@@ -1,16 +1,19 @@
 # repos
 
-A new Flutter project.
+A4I 심리 상담 프로젝트 로그인/회원가입 기능 구현
 
-## Getting Started
+## 진행 사항
 
-This project is a starting point for a Flutter application.
-
-A few resources to get you started if this is your first Flutter project:
-
-- [Lab: Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Cookbook: Useful Flutter samples](https://docs.flutter.dev/cookbook)
-
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+앱 구동 시 초기 화면 (미구현) -> 사용자 인증 검사 후 로그인이 필요 없다면 바로 메인 화면으로 이동
+### 로그인 화면
+- 로그인 UI (구현)
+- ID/password 입력 (구현)
+- 비밀번호 찾기 (구현)
+- 회원가입 (미구현)
+- 로그인 이벤트 (미구현)
+### 비밀번호 찾기
+- 회원가입 UI (구현)
+- 텍스트 필드 예외 처리 (미구현)
+- 이메일에 인증 코드 보내기 (미구현)
+- 인증 코드 검사 (미구현)
+- 비밀번호 출력 (미구현)
