@@ -29,8 +29,6 @@ void main() async {
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
   );
-  tz.initializeTimeZones();
-  tz.setLocalLocation(tz.getLocation('Asia/Seoul'));
 
   runApp(MyApp());
 }
