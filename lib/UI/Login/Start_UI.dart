@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'Login_UI.dart';  // 새로운 화면 클래스를 import
+import 'SignUp_UI.dart';
+
 class LoginScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
@@ -27,7 +29,10 @@ class LoginScreen extends StatelessWidget {
             ElevatedButton(
               onPressed: () {
                 // 회원가입 버튼 클릭 시 이벤트 처리 -> 회원가입 페이지로 이동
-                ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('First Button Clicked')));
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => SignUpScreen()),
+                );
               },
               style: ElevatedButton.styleFrom(
                 padding: EdgeInsets.zero,

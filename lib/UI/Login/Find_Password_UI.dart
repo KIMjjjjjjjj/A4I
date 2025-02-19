@@ -13,21 +13,32 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
   String captionText = "이메일";
   String hintText = "이메일을 입력해주세요.";
   String buttonText = "다음";
+  String errorText = "";
   bool isTextFiledInputValid = false; // 텍스트 필드 입력 여부
   bool isEmailEntered = false;
   bool isCodeEntered = false;
 
   void onNextPressed() {
     if (!isEmailEntered) {
-      setState(() {
-        statusText = "이메일을 확인해주세요.";
-        additionalText = "인증 번호를 보냈어요.";
-        captionText = "인증 번호";
-        hintText = "인증 번호를 입력해주세요.";
-        isTextFiledInputValid = false;
-        emailController.clear();
-        isEmailEntered = true;
-      });
+      if (!isValidEmail(emailController.text)) {
+        setState(() {
+          errorText = "유효하지 않은 이메일 형식입니다.";
+          isTextFiledInputValid = false;
+          emailController.clear();
+        });
+      }
+      else {
+        setState(() {
+          errorText = "";
+          statusText = "이메일을 확인해주세요.";
+          additionalText = "인증 번호를 보냈어요.";
+          captionText = "인증 번호";
+          hintText = "인증 번호를 입력해주세요.";
+          isTextFiledInputValid = false;
+          emailController.clear();
+          isEmailEntered = true;
+        });
+      }
     } else if (isEmailEntered && !isCodeEntered) {
       setState(() {
         statusText = "비밀번호를 확인하세요.";
@@ -45,6 +56,13 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
         MaterialPageRoute(builder: (context) => LoginFormScreen()),
       );
     }
+  }
+  // 이메일 형식 확인 로직
+  bool isValidEmail(String email) {
+    final regex = RegExp(
+      r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$',
+    );
+    return regex.hasMatch(email);
   }
 
   @override
@@ -64,8 +82,9 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 20),
           child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
+            mainAxisAlignment: MainAxisAlignment.start,
             children: [
+              SizedBox(height: 20),
               Align(
                 alignment: Alignment.centerLeft, // 왼쪽 정렬
                 child: Padding(
@@ -127,22 +146,38 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                   ),
                 ),
               ),
-              SizedBox(height: 400),
-              // 다음 버튼
-              ElevatedButton(
-                onPressed: isTextFiledInputValid ? onNextPressed : null,
-                style: ElevatedButton.styleFrom(
-                  minimumSize: Size(320, 60),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(17),
+              SizedBox(height: 10),
+              // 에러 출력
+              if (errorText.isNotEmpty)
+                Align(
+                  alignment: Alignment.centerLeft,
+                  child: Padding(
+                    padding: EdgeInsets.only(left: 15),
+                    child: Text(
+                      errorText,
+                      style: TextStyle(color: Color(0xFFFF6C6C), fontSize: 14),
+                    ),
                   ),
-                  backgroundColor: isTextFiledInputValid
-                      ? Color(0xFF6BE5A0)
-                      : Color(0xFFB3EFCC),
                 ),
-                child: Text(
-                  buttonText,
-                  style: TextStyle(color: Colors.white, fontSize: 16),
+              // 다음 버튼
+              Spacer(),
+              Padding(
+                padding: const EdgeInsets.only(bottom: 30),
+                child : ElevatedButton(
+                  onPressed: isTextFiledInputValid ? onNextPressed : null,
+                  style: ElevatedButton.styleFrom(
+                    minimumSize: Size(320, 60),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(17),
+                    ),
+                    backgroundColor: isTextFiledInputValid
+                        ? Color(0xFF6BE5A0)
+                        : Color(0xFFB3EFCC),
+                  ),
+                  child: Text(
+                    buttonText,
+                    style: TextStyle(color: Colors.white, fontSize: 16),
+                  ),
                 ),
               ),
             ],
