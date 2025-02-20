@@ -51,7 +51,7 @@ class LoginScreen extends StatelessWidget {
                 // 로그인 버튼 클릭 시 이벤트 처리 - > 로그인 페이지로 이동
                 Navigator.push(
                   context,
-                  MaterialPageRoute(builder: (context) => LoginFormScreen()),
+                  MaterialPageRoute(builder: (context) => LoginPage()),
                 );
               },
               style: ElevatedButton.styleFrom(

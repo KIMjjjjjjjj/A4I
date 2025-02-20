@@ -1,5 +1,12 @@
+import 'dart:math';
+
 import 'package:flutter/material.dart';
+import 'package:repos/UI/Login/Start_UI.dart';
 import 'Login_UI.dart';
+import 'package:mailer/mailer.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:mailer/smtp_server/gmail.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 // 상태 값으로 UI 컨트롤
 enum SignUpStep { emailVerification, password, nickname, complete }
@@ -10,7 +17,8 @@ class SignUpScreen extends StatefulWidget {
 }
 
 class _SignUpScreenState extends State<SignUpScreen> {
-  final TextEditingController emailController = TextEditingController();
+  final TextEditingController textController = TextEditingController();
+  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   SignUpStep currentStep = SignUpStep.emailVerification;
 
   String statusText = "안녕하세요!\n이메일을 입력해 주세요.";
@@ -20,65 +28,158 @@ class _SignUpScreenState extends State<SignUpScreen> {
   String buttonText = "다음";
   String errorText = "";
   String firstPassword = "";
+
+  //이메일 비밀번호 저장 변수
+  String email = "";
+  String password = "";
+  String nickname = "";
+
+  //랜덤 변수 저장
+  String? _generatedCode;
+  bool _isCodeVerified = false;
+  bool _isValidId = true;
+
   bool firstPasswordStep = false;
   bool isTextFiledInputValid = false; // 텍스트 필드 입력 여부
   bool isEmailEntered = false;
+
+  //코드 랜덤 생성
+  String generateRandomCode() {
+    final random = Random();
+    int randomNumber = 10000 + random.nextInt(90000);
+    return randomNumber.toString();
+  }
+
+  //이메일에 코드 보내기
+  Future<void> sendVerificationCode(String toEmail) async {
+    String randomCode = generateRandomCode();
+    setState(() {
+      _generatedCode = randomCode;
+      _isCodeVerified = false;
+    });
+
+    String username = 'yun7171717@gmail.com';
+    String password = 'hpwr frpl dsdx uqda';
+
+    final smtpServer = gmail(username, password);
+
+    final message = Message()
+      ..from = Address(username, 'A4I 인증번호')
+      ..recipients.add(toEmail)
+      ..subject = '이메일 인증 코드'
+      ..text = '당신의 인증 코드는: $randomCode';
+
+    try {
+      final sendReport = await send(message, smtpServer);
+      print('Message sent: ' + sendReport.toString());
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text('인증 코드가 이메일로 전송되었습니다.')));
+    } catch (e) {
+      print('메시지 전송 실패: $e');
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text('이메일 전송에 실패했습니다.')));
+    }
+  }
+
+  //확인 코드 검사
+  bool verifyCode() {
+    if (textController.text == _generatedCode) {
+      setState(() {
+        _isCodeVerified = true;
+        errorText = "";
+      });
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text('인증이 완료되었습니다.')));
+      return false;
+    } else {
+      setState(() {
+        textController.clear();
+        errorText = '인증 코드가 일치하지 않습니다.';
+      });
+      return true;
+    }
+  }
+
+  Future<void> saveToFireStore(String email, String password, String nickname) async {
+    try {
+      // Firebase Authentication을 통해 사용자 등록
+      UserCredential userCredential = await FirebaseAuth.instance.createUserWithEmailAndPassword(
+        email: email,
+        password: password,
+      );
+      // Firestore에 데이터 저장
+      await _firestore.collection('register').doc(userCredential.user?.uid).set({
+        'email' : email,
+        'nickname': nickname,
+      });
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('저장 실패: $e')),
+      );
+    }
+  }
+
+
 
   void onNextPressed() { // 컨트롤러 메소드
     setState(() {
       switch (currentStep) {
         case SignUpStep.emailVerification:
           if (!isEmailEntered) {
-            if (!isValidEmail(emailController.text)) {
+            if (!isValidEmail(textController.text)) {
               setState(() {
                 errorText = "유효하지 않은 이메일 형식입니다.";
                 isTextFiledInputValid = false;
-                emailController.clear();
+                textController.clear();
               });
             } else {
               setState(() {
+                email = textController.text.trim();
+                sendVerificationCode(textController.text.trim());
+                textController.clear();
                 errorText = "";
                 statusText = "이메일을 확인해주세요.";
                 additionalText = "인증 번호를 보냈어요.";
                 captionText = "인증 번호";
                 hintText = "인증 번호를 입력해주세요.";
                 isTextFiledInputValid = false;
-                emailController.clear();
                 isEmailEntered = true;
               });
             }
           } else if (isEmailEntered) {
-            setState(() {
-              // 인증코드 검사 로직 추가
-              // 입력한 인증코드가 일치하면 상태값 변경
-              statusText = "비밀번호를 입력해주세요.";
-              additionalText = "비밀번호는 영문, 숫자, 특수문자 등을 조합하여 길이를\n최소 8자리 이상 입력해주세요";
-              captionText = "비밀번호";
-              hintText = "비밀번호를 입력해주세요";
-              emailController.clear();
-              isTextFiledInputValid = false;
-              currentStep = SignUpStep.password;
-            });
+            if(!verifyCode()){
+              setState(() {
+                // 인증코드 검사 로직 추가
+                // 입력한 인증코드가 일치하면 상태값 변경
+                statusText = "비밀번호를 입력해주세요.";
+                additionalText = "비밀번호는 영문, 숫자, 특수문자 등을 조합하여 길이를\n최소 8자리 이상 입력해주세요";
+                captionText = "비밀번호";
+                hintText = "비밀번호를 입력해주세요";
+                textController.clear();
+                isTextFiledInputValid = false;
+                currentStep = SignUpStep.password;
+              });
+            }
           }
           break;
         case SignUpStep.password:
           // 입력한 비밀번호가 조건에 맞는지 검사
           if (!firstPasswordStep) {
-            firstPassword = emailController.text;
+            firstPassword = textController.text;
             if (isValidPassword(firstPassword)) {
               statusText = "비밀번호를 한번 더 입력해주세요.";
               additionalText = "비밀번호를 다시 한번 확인할게요.";
               errorText = "";
               firstPasswordStep = true;
               isTextFiledInputValid = false;
-              emailController.clear();
+              textController.clear();
             }
             else {
-              emailController.clear();
+              textController.clear();
               errorText = "비밀번호 형식이 맞지 않아요.";
             }
           } else {
-            if (firstPassword == emailController.text) {
+            if (firstPassword == textController.text) {
               statusText = "마지막이에요!\n당신을 뭐라고 부를까요?";
               additionalText = "별명을 알려주세요.";
               hintText = "닉네임을 입력해주세요.";
@@ -86,10 +187,11 @@ class _SignUpScreenState extends State<SignUpScreen> {
               errorText = "";
               isTextFiledInputValid = false;
               currentStep = SignUpStep.nickname;
-              emailController.clear();
+              password = textController.text.trim();
+              textController.clear();
             }
             else {
-              emailController.clear();
+              textController.clear();
               errorText = "비밀번호가 일치하지 않아요.";
             }
           }
@@ -99,13 +201,15 @@ class _SignUpScreenState extends State<SignUpScreen> {
           buttonText = "로그인";
           additionalText = "";
           currentStep = SignUpStep.complete;
-          emailController.clear();
+          nickname = textController.text.trim();
+          textController.clear();
           break;
         case SignUpStep.complete:
           // 로그인으로 이동
+          saveToFireStore(email, password, nickname);
           Navigator.push(
             context,
-            MaterialPageRoute(builder: (context) => LoginFormScreen()),
+            MaterialPageRoute(builder: (context) => LoginPage()),
           );
           break;
 
@@ -208,7 +312,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
                           style: TextStyle(color: Color(0xFF2719ED), fontSize: 12),
                         ),
                         TextField(
-                          controller: emailController,
+                          controller: textController,
                           style: TextStyle(color: Color(0xFF000000), fontSize: 18),
                           onChanged: (value) {
                             setState(() {

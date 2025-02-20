@@ -1,3 +1,8 @@
+import 'dart:math';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:mailer/mailer.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:mailer/smtp_server/gmail.dart';
 import 'package:flutter/material.dart';
 import 'Login_UI.dart';
 
@@ -18,6 +23,100 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
   bool isEmailEntered = false;
   bool isCodeEntered = false;
 
+  //이메일 저장 변수
+  String email = "";
+
+  //랜덤 변수 저장
+  String? _generatedCode;
+  bool _isCodeVerified = false;
+  bool _isValidId = true;
+
+  //코드 랜덤 생성
+  String generateRandomCode() {
+    final random = Random();
+    int randomNumber = 10000 + random.nextInt(90000);
+    return randomNumber.toString();
+  }
+
+  //이메일에 코드 보내기
+  Future<void> sendVerificationCode(String toEmail) async {
+    String randomCode = generateRandomCode();
+    setState(() {
+      _generatedCode = randomCode;
+      _isCodeVerified = false;
+    });
+
+    String username = 'yun7171717@gmail.com';
+    String password = 'hpwr frpl dsdx uqda';
+
+    final smtpServer = gmail(username, password);
+
+    final message = Message()
+      ..from = Address(username, 'A4I 인증번호')
+      ..recipients.add(toEmail)
+      ..subject = '이메일 인증 코드'
+      ..text = '당신의 인증 코드는: $randomCode';
+
+    try {
+      final sendReport = await send(message, smtpServer);
+      print('Message sent: ' + sendReport.toString());
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text('인증 코드가 이메일로 전송되었습니다.')));
+    } catch (e) {
+      print('메시지 전송 실패: $e');
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text('이메일 전송에 실패했습니다.')));
+    }
+  }
+
+  //확인 코드 검사
+  bool verifyCode() {
+    if (emailController.text == _generatedCode) {
+      setState(() {
+        _isCodeVerified = true;
+        errorText = "";
+      });
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text('인증이 완료되었습니다.')));
+      return false;
+    } else {
+      setState(() {
+        emailController.clear();
+        errorText = '인증 코드가 일치하지 않습니다.';
+      });
+      return true;
+    }
+  }
+
+  //비밀번호 초기화 이메일
+  void sendEmail() async {
+    try {
+      // Firestore에서 사용자 ID 검색
+      QuerySnapshot snapshot = await FirebaseFirestore.instance
+          .collection('register') // 사용자 정보를 저장한 컬렉션 이름
+          .where('email', isEqualTo: emailController.text.trim())
+          .get();
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('사용자 검색에 실패했습니다.')),
+      );
+      return;
+    }
+
+    try {
+      await FirebaseAuth.instance.sendPasswordResetEmail(email: email.trim());
+      // 이메일 전송 성공 시 사용자에게 알림
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('비밀번호 초기화 이메일이 전송되었습니다.')),
+      );
+      Navigator.pop(context);
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('이메일 전송에 실패했습니다.')),
+      );
+    }
+  }
+
   void onNextPressed() {
     if (!isEmailEntered) {
       if (!isValidEmail(emailController.text)) {
@@ -29,31 +128,36 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
       }
       else {
         setState(() {
+          email = emailController.text.trim();
+          sendVerificationCode(emailController.text.trim());
+          emailController.clear();
           errorText = "";
           statusText = "이메일을 확인해주세요.";
           additionalText = "인증 번호를 보냈어요.";
           captionText = "인증 번호";
           hintText = "인증 번호를 입력해주세요.";
           isTextFiledInputValid = false;
-          emailController.clear();
           isEmailEntered = true;
         });
       }
     } else if (isEmailEntered && !isCodeEntered) {
-      setState(() {
-        statusText = "비밀번호를 확인하세요.";
-        captionText = "비밀 번호";
-        hintText = "비밀번호입니다.";
-        additionalText = "";
-        buttonText = "로그인";
-        emailController.clear();
-        isCodeEntered = true;
-      });
+      if(!verifyCode()){
+        sendEmail();
+        setState(() {
+          statusText = "비밀번호 재설정을 위해\n이메일을 확인하세요.";
+          captionText = "";
+          hintText = "";
+          additionalText = "";
+          buttonText = "로그인";
+          emailController.clear();
+          isCodeEntered = true;
+        });
+      }
     } else if (isEmailEntered && isCodeEntered) {
       // 로그인 버튼 눌렀을 때 로그인 UI로 이동
       Navigator.push(
         context,
-        MaterialPageRoute(builder: (context) => LoginFormScreen()),
+        MaterialPageRoute(builder: (context) => LoginPage()),
       );
     }
   }
@@ -108,44 +212,48 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                 ),
               SizedBox(height: 10),
               // 이메일 입력 필드
-              Container(
-                width: 335,
-                height: 89,
-                decoration: BoxDecoration(
-                  color: Color(0xFFF0EFFA),
-                  borderRadius: BorderRadius.circular(29),
-                ),
-                child: Padding(
-                  padding: const EdgeInsets.only(left: 20, top: 15),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        captionText,
-                        style: TextStyle(color: Color(0xFF2719ED), fontSize: 12),
-                      ),
-                      TextField(
-                        controller: emailController,
-                        style: TextStyle(color: Color(0xFF000000), fontSize: 18),
-                        enabled: !isCodeEntered, // 비밀번호 입력 시 비활성화
-                        onChanged: (value) {
-                          setState(() {
-                            isTextFiledInputValid = value.isNotEmpty;
-                          });
-                        },
-                        decoration: InputDecoration(
-                          hintText: hintText,
-                          hintStyle: TextStyle(
-                            color: isCodeEntered ? Color(0xFF000000) : Color(0xFFCECECE), // 비밀번호 단계에서 검은색 힌트
-                            fontSize: 18,
-                          ),
-                          border: InputBorder.none,
+              Visibility(
+                visible: !isCodeEntered,
+                child: Container(
+                  width: 335,
+                  height: 89,
+                  decoration: BoxDecoration(
+                    color: Color(0xFFF0EFFA),
+                    borderRadius: BorderRadius.circular(29),
+                  ),
+                  child: Padding(
+                    padding: const EdgeInsets.only(left: 20, top: 15),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          captionText,
+                          style: TextStyle(color: Color(0xFF2719ED), fontSize: 12),
                         ),
-                      ),
-                    ],
+                        TextField(
+                          controller: emailController,
+                          style: TextStyle(color: Color(0xFF000000), fontSize: 18),
+                          enabled: !isCodeEntered, // 비밀번호 입력 시 비활성화
+                          onChanged: (value) {
+                            setState(() {
+                              isTextFiledInputValid = value.isNotEmpty;
+                            });
+                          },
+                          decoration: InputDecoration(
+                            hintText: hintText,
+                            hintStyle: TextStyle(
+                              color: isCodeEntered ? Color(0xFF000000) : Color(0xFFCECECE), // 비밀번호 단계에서 검은색 힌트
+                              fontSize: 18,
+                            ),
+                            border: InputBorder.none,
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
               ),
+
               SizedBox(height: 10),
               // 에러 출력
               if (errorText.isNotEmpty)
