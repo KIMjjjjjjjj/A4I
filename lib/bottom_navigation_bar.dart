@@ -17,6 +17,9 @@ class NavigationBarState extends State<CustomNavigationBar> {
   Widget build(BuildContext context) {
     final List<Widget> _pages = [
       SettingPage(),
+      SettingPage(),
+      SettingPage(),
+      SettingPage(),
     ];
 
     return Scaffold(

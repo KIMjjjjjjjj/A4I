@@ -20,7 +20,7 @@ class MyApp extends StatelessWidget {
       routes: {
         '/' : (context) => LoginScreen(),
         '/navigation': (context) => CustomNavigationBar(),
-        '/survey' : (context) => SurveyApp(),
+        '/survey' : (context) => SurveyExplainPage(),
         '/setting' : (context) => SettingPage(),
       },
     );

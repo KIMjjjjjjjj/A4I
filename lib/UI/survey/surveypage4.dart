@@ -3,18 +3,6 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 
-class SurveyApp extends StatelessWidget {
-  const SurveyApp({Key? key}) : super(key: key);
-
-  @override
-  Widget build(BuildContext context) {
-    return MaterialApp(
-      title: '사전 설문 조사',
-      home: const SurveyPage4(),
-    );
-  }
-}
-
 class SurveyPage4 extends StatefulWidget {
   const SurveyPage4({Key? key}) : super(key: key);
 

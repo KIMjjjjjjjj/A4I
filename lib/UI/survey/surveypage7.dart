@@ -3,18 +3,6 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 
-class SurveyApp extends StatelessWidget {
-  const SurveyApp({Key? key}) : super(key: key);
-
-  @override
-  Widget build(BuildContext context) {
-    return MaterialApp(
-      title: '사전 설문 조사',
-      home: const SurveyPage7(),
-    );
-  }
-}
-
 class SurveyPage7 extends StatefulWidget {
   const SurveyPage7({Key? key}) : super(key: key);
 
@@ -46,10 +34,7 @@ class _SurveyPage7State extends State<SurveyPage7> {
         '현재 감정': selectedEmotions,
       }, SetOptions(merge: true));
 
-      Navigator.push(
-        context,
-        MaterialPageRoute(builder: (context) => const SettingPage()),
-      );
+      Navigator.pushNamed(context, '/navigation');
 
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(

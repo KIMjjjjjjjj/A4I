@@ -71,7 +71,7 @@ class LoginFormScreen extends State<LoginPage> {
 
       Navigator.push(
         context,
-        MaterialPageRoute(builder: (context) => SurveyApp()),
+        MaterialPageRoute(builder: (context) => SurveyExplainPage()),
       );
 
       print('Username: $username');
