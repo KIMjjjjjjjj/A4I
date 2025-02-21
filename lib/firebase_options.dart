@@ -55,5 +55,4 @@ class DefaultFirebaseOptions {
     storageBucket: 'psychologicalcounseling-ecdee.firebasestorage.app',
     iosBundleId: 'com.example.repos',
   );
-
 }

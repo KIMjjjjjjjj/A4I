@@ -4,6 +4,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../../firebase_options.dart';
 import '../survey/Firstsurvey_explain.dart';
+import '../Setting/setting_page.dart';
 
 class LoginPage extends StatefulWidget{
   @override

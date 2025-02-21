@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
+import 'UI/Setting/setting_page.dart';
 import 'UI/Login/Start_UI.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'firebase_options.dart';
+import 'bottom_navigation_bar.dart';
+import 'UI/survey/Firstsurvey_explain.dart';
 
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
@@ -13,8 +16,13 @@ class MyApp extends StatelessWidget {
       theme: ThemeData(
         primarySwatch: Colors.blue,
       ),
-
-      home: LoginScreen(), // 앱이 시작되면 LoginScreen이 표시됨
+      initialRoute: '/', // 앱이 시작되면 LoginScreen이 표시됨
+      routes: {
+        '/' : (context) => LoginScreen(),
+        '/navigation': (context) => CustomNavigationBar(),
+        '/survey' : (context) => SurveyApp(),
+        '/setting' : (context) => SettingPage(),
+      },
     );
   }
 }

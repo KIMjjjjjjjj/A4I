@@ -1,4 +1,4 @@
-import '../Login/Login_UI.dart';
+import '../Setting/setting_page.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
@@ -48,7 +48,7 @@ class _SurveyPage7State extends State<SurveyPage7> {
 
       Navigator.push(
         context,
-        MaterialPageRoute(builder: (context) => LoginPage()),
+        MaterialPageRoute(builder: (context) => const SettingPage()),
       );
 
     } catch (e) {
