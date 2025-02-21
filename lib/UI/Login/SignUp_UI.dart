@@ -111,6 +111,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
       await _firestore.collection('register').doc(userCredential.user?.uid).set({
         'email' : email,
         'nickname': nickname,
+        'profileImageUrl' : "",
       });
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
