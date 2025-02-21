@@ -3,6 +3,7 @@ import 'Find_Password_UI.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../../firebase_options.dart';
+import '../survey/Firstsurvey_explain.dart';
 
 class LoginPage extends StatefulWidget{
   @override
@@ -66,6 +67,11 @@ class LoginFormScreen extends State<LoginPage> {
 
       String username = emailController.text;
       String password = passwordController.text;
+
+      Navigator.push(
+        context,
+        MaterialPageRoute(builder: (context) => SurveyApp()),
+      );
 
       print('Username: $username');
       print('Password: $password');
