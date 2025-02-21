@@ -8,7 +8,6 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'edit_profile.dart';
 import 'delete_account.dart';
-import 'login_page.dart';
 
 class SettingPage extends StatefulWidget {
   final String elements;
@@ -187,7 +186,7 @@ class _SettingPageState extends State<SettingPage> {
                     await FirebaseAuth.instance.signOut();
                     Navigator.pushReplacement(
                       context,
-                      MaterialPageRoute(builder: (context) => LoginScreen()),
+                      MaterialPageRoute(builder: (context) => LoginPage()),
                     );
                   },
                 ),

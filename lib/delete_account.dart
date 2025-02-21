@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
-import 'login_page.dart';
 
 class DeleteAccountPage extends StatefulWidget {
   const DeleteAccountPage({Key? key}) : super(key: key);
@@ -44,7 +43,7 @@ class DeleteAccountPageState extends State<DeleteAccountPage> {
         });
         Navigator.push(
           context,
-          MaterialPageRoute(builder: (context) => LoginScreen()),
+          MaterialPageRoute(builder: (context) => LoginPage()),
         );
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('계정이 삭제되었습니다.')),
