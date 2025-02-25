@@ -85,6 +85,9 @@ flutter:
     - assets/images/Main/counsel_center.png
     - assets/images/DayLine/letter_HARU.png
     - assets/images/DayLine/speech_bubble.png
+    - assets/images/DayLine/topic_cloud.png
+    - assets/images/DayLine/background_image.png
+    - assets/images/DayLine/default_profile.png
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/to/resolution-aware-images
 
