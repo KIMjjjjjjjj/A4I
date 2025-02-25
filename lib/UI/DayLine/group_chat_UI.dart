@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:intl/intl.dart'; // 날짜 및 시간 포맷을 위해 추가
+import 'dart:async';
 
 class GroupChatScreen extends StatefulWidget {
   const GroupChatScreen({Key? key}) : super(key: key);
@@ -20,6 +21,9 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
   final String textDocumentId = "oiXm2LUYnE4U20OI3VMx";
   final TextEditingController _textController = TextEditingController();
 
+  List<Widget> messages = []; // 가져온 메시지 저장
+  Timer? _timer;
+
   // 텍스트 색상 리스트
   final List<String> colorList = [
     "FFF7EF", "FFEFEF", "F7FFEF", "EFF6FF",
@@ -30,6 +34,23 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
     super.initState();
     currentUserUid = _auth.currentUser?.uid ?? '';
     _fetchDayTopic();
+    _startFetchingMessages(); // 1초마다 메시지 업데이트 시작
+  }
+
+  // 1초마다 메시지 업데이트
+  void _startFetchingMessages() {
+    _timer = Timer.periodic(Duration(seconds: 1), (timer) async {
+      List<Widget> newMessages = await _fetchMessages();
+      setState(() {
+        messages = newMessages;
+      });
+    });
+  }
+
+  @override
+  void dispose() {
+    _timer?.cancel();
+    super.dispose();
   }
 
   Future<void> _fetchDayTopic() async {
@@ -110,7 +131,7 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
   }
 
 // 현재 사용자 채팅 패널
-  Widget currentUserChatPanel(String nickname, String profileImageUrl, String lineColor, String lineText, Timestamp timestamp) {
+  Widget otherUserChatPanel(String nickname, String profileImageUrl, String lineColor, String lineText, Timestamp timestamp) {
     return Padding(
       padding: const EdgeInsets.all(10),
       child: Row(
@@ -158,7 +179,7 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
 
 
   // 다른 사용자 채팅 패널
-  Widget otherUserChatPanel(String nickname, String profileImageUrl, String lineColor, String lineText, Timestamp timestamp) {
+  Widget currentUserChatPanel(String nickname, String profileImageUrl, String lineColor, String lineText, Timestamp timestamp) {
     return Padding(
       padding: const EdgeInsets.all(10),
       child: Row(
@@ -173,20 +194,17 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
               ),
               SizedBox(height: 5),
               Container(
+                constraints: BoxConstraints(
+                  maxWidth: MediaQuery.of(context).size.width * 0.6, // ✅ 최대 너비 제한
+                ),
                 decoration: BoxDecoration(
                   color: Color(int.parse("0xFF$lineColor")),
                   borderRadius: BorderRadius.circular(30),
                 ),
                 padding: EdgeInsets.symmetric(horizontal: 15, vertical: 10),
-                child: Stack(
-                  children: [
-                    Text(
-                      lineText,
-                      style: TextStyle(color: Colors.black),
-                      overflow: TextOverflow.ellipsis,
-                      maxLines: null, // 자동 줄바꿈
-                    ),
-                  ],
+                child: Text(
+                  lineText,
+                  style: TextStyle(color: Colors.black),
                 ),
               ),
               SizedBox(height: 5),
@@ -265,70 +283,80 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
           ),
         ),
       ),
-      body: Column(
+      body: Stack(
         children: [
-          Flexible(
-            child: FutureBuilder<List<Widget>>(
-              future: _fetchMessages(),
-              builder: (context, snapshot) {
-                if (snapshot.connectionState == ConnectionState.waiting) {
-                  return Center(child: CircularProgressIndicator());
-                } else if (snapshot.hasError) {
-                  return Center(child: Text("오류 발생: ${snapshot.error}"));
-                } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
-                  return Center(child: Text("메시지가 없습니다."));
-                } else {
-                  return ListView(
-                    padding: EdgeInsets.symmetric(vertical: 10, horizontal: 10),
-                    children: snapshot.data!,
-                  );
-                }
-              },
-            ),
-          ),
-          Align(
-            alignment: Alignment.bottomCenter,
-            child: Image.asset(
-              'assets/images/DayLine/background_image.png',
-            ),
-          ),
-          Container(
-            color: Color(0xFFD9AEAE),
-            padding: EdgeInsets.symmetric(vertical: 10, horizontal: 10),
-            child: Center(
-              child: FractionallySizedBox(
-                widthFactor: 1,
-                child: Container(
-                  height: 43,
-                  decoration: BoxDecoration(
-                    color: Color(0xFFE6BCA9),
-                    borderRadius: BorderRadius.circular(21.5),
-                  ),
-                  padding: EdgeInsets.symmetric(horizontal: 10),
-                  child: Row(
-                    children: [
-                      Icon(Icons.add, color: Colors.black),
-                      SizedBox(width: 8),
-                      Expanded(
-                        child: TextField(
-                          controller: _textController,
-                          decoration: InputDecoration(
-                            hintText: "자유롭게 한 줄을 적어보세요.",
-                            border: InputBorder.none,
-                            isDense: true,
+          Column(
+            children: [
+              Expanded(
+                child: FutureBuilder<List<Widget>>(
+                  future: _fetchMessages(),
+                  builder: (context, snapshot) {
+                    if (snapshot.connectionState == ConnectionState.waiting) {
+                      return Center(child: CircularProgressIndicator());
+                    } else if (snapshot.hasError) {
+                      return Center(child: Text("오류 발생: ${snapshot.error}"));
+                    } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
+                      return Center(child: Text("메시지가 없습니다."));
+                    } else {
+                      return ListView(
+                        padding: EdgeInsets.symmetric(vertical: 10, horizontal: 10),
+                        children: snapshot.data!,
+                      );
+                    }
+                  },
+                ),
+              ),
+              Container(
+                color: Color(0xFFD9AEAE).withOpacity(0.9),
+                padding: EdgeInsets.symmetric(vertical: 10, horizontal: 10),
+                child: Center(
+                  child: FractionallySizedBox(
+                    widthFactor: 1,
+                    child: Container(
+                      height: 43,
+                      decoration: BoxDecoration(
+                        color: Color(0xFFE6BCA9),
+                        borderRadius: BorderRadius.circular(21.5),
+                      ),
+                      padding: EdgeInsets.symmetric(horizontal: 10),
+                      child: Row(
+                        children: [
+                          Icon(Icons.add, color: Colors.black),
+                          SizedBox(width: 8),
+                          Expanded(
+                            child: TextField(
+                              controller: _textController,
+                              decoration: InputDecoration(
+                                hintText: "자유롭게 한 줄을 적어보세요.",
+                                border: InputBorder.none,
+                                isDense: true,
+                              ),
+                            ),
                           ),
-                        ),
+                          GestureDetector(
+                            onTap: _textController.text.trim().isEmpty ? null : _sendMessage,
+                            child: Icon(
+                              Icons.send,
+                              color: _textController.text.trim().isEmpty ? Colors.grey : Colors.black,
+                            ),
+                          ),
+                        ],
                       ),
-                      GestureDetector(
-                        onTap: _textController.text.trim().isEmpty ? null : _sendMessage,
-                        child: Icon(
-                          Icons.send,
-                          color: _textController.text.trim().isEmpty ? Colors.grey : Colors.black,
-                        ),
-                      ),
-                    ],
+                    ),
                   ),
                 ),
+              ),
+            ],
+          ),
+          Positioned(
+            bottom: 63, // 입력창보다 살짝 위로 배치
+            left: 0,
+            right: 0,
+            child: Align(
+              alignment: Alignment.bottomCenter,
+              child: Image.asset(
+                'assets/images/DayLine/background_image.png',
+                fit: BoxFit.none, // 원본 크기 유지
               ),
             ),
           ),
