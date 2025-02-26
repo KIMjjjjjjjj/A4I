@@ -20,6 +20,10 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
   final String topicDocumentId = "tZsVTdoaMu3pDYagWUR1";
   final String textDocumentId = "oiXm2LUYnE4U20OI3VMx";
   final TextEditingController _textController = TextEditingController();
+  final ScrollController _scrollController = ScrollController();
+  Map<String, Map<String, String>> userCache = {};
+  bool _isTextNotEmpty = false;
+
 
   List<Widget> messages = []; // 가져온 메시지 저장
   Timer? _timer;
@@ -34,10 +38,20 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
     super.initState();
     currentUserUid = _auth.currentUser?.uid ?? '';
     _fetchDayTopic();
-    _startFetchingMessages(); // 1초마다 메시지 업데이트 시작
+    _textController.addListener(_onTextChanged);
+    //_startFetchingMessages(); // 1초마다 메시지 업데이트 시작
   }
 
-  // 1초마다 메시지 업데이트
+  void _onTextChanged() {
+    bool isNotEmpty = _textController.text.trim().isNotEmpty;
+    if(_isTextNotEmpty != isNotEmpty){
+      setState(() {
+        _isTextNotEmpty = _textController.text.trim().isNotEmpty;
+      });
+    }
+  }
+
+/*  // 1초마다 메시지 업데이트
   void _startFetchingMessages() {
     _timer = Timer.periodic(Duration(seconds: 1), (timer) async {
       List<Widget> newMessages = await _fetchMessages();
@@ -45,11 +59,13 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
         messages = newMessages;
       });
     });
-  }
+  }*/
 
   @override
   void dispose() {
     _timer?.cancel();
+    _textController.removeListener(_onTextChanged);
+    _textController.dispose();
     super.dispose();
   }
 
@@ -68,6 +84,19 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
     }
   }
 
+  Future<Map<String, String>> _getUserInfo(String uid) async {
+    if (userCache.containsKey(uid)) {
+      return userCache[uid]!;
+    } else {
+      DocumentSnapshot userDoc = await _firestore.collection('register').doc(uid).get();
+      String nickname = userDoc['nickname'];
+      String profileImageUrl = userDoc['profileImageUrl'] ?? defaultProfileImageUrl;
+      userCache[uid] = {'nickname': nickname, 'profileImageUrl': profileImageUrl};
+      return userCache[uid]!;
+    }
+  }
+
+/*
   Future<List<Widget>> _fetchMessages() async {
     List<Widget> messageWidgets = [];
     try {
@@ -76,6 +105,7 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
       QuerySnapshot snapshot = await _firestore.collection('day_line')
           .doc(textDocumentId)
           .collection('messages')
+          .orderBy('text_time', descending: false)
           .get();
 
       print("메시지 가져오기 완료, 총 ${snapshot.docs.length}개의 메시지");  // 디버깅: 가져온 메시지 개수 출력
@@ -113,7 +143,7 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
       print("메시지 가져오기 오류: $e");  // 디버깅: 메시지 가져오기 오류 출력
     }
     return messageWidgets;
-  }
+  }*/
 
 
 
@@ -229,6 +259,8 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
 
 
   void _sendMessage() async {
+    if(_textController.text.isEmpty)
+      return;
     String message = _textController.text;
     if (message.trim().isNotEmpty) {
       String uid = FirebaseAuth.instance.currentUser?.uid ?? '';
@@ -254,6 +286,7 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      resizeToAvoidBottomInset: true,
       backgroundColor: Color(0xFFE6FFFD),
       appBar: PreferredSize(
         preferredSize: Size.fromHeight(100),
@@ -285,25 +318,84 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
       ),
       body: Stack(
         children: [
+          Positioned(
+            bottom: 63, // 입력창보다 살짝 위로 배치
+            left: 0,
+            right: 0,
+            child: Align(
+              alignment: Alignment.bottomCenter,
+              child: Image.asset(
+                'assets/images/DayLine/background_image.png',
+                fit: BoxFit.none, // 원본 크기 유지
+              ),
+            ),
+          ),
           Column(
             children: [
               Expanded(
-                child: FutureBuilder<List<Widget>>(
-                  future: _fetchMessages(),
-                  builder: (context, snapshot) {
-                    if (snapshot.connectionState == ConnectionState.waiting) {
-                      return Center(child: CircularProgressIndicator());
-                    } else if (snapshot.hasError) {
-                      return Center(child: Text("오류 발생: ${snapshot.error}"));
-                    } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
-                      return Center(child: Text("메시지가 없습니다."));
-                    } else {
-                      return ListView(
-                        padding: EdgeInsets.symmetric(vertical: 10, horizontal: 10),
-                        children: snapshot.data!,
-                      );
-                    }
+                child:GestureDetector(
+                  onTap: () {
+                    FocusScope.of(context).unfocus();
                   },
+                  child: StreamBuilder<QuerySnapshot>(
+                    stream: _firestore.collection('day_line')
+                        .doc(textDocumentId)
+                        .collection('messages')
+                        .orderBy('text_time', descending: true)
+                        .snapshots(),
+                    builder: (context, snapshot) {
+                      if (snapshot.connectionState == ConnectionState.waiting) {
+                        return Center(child: CircularProgressIndicator());
+                      }
+                      if (snapshot.hasError) {
+                        return Center(child: Text("오류 발생: ${snapshot.error}"));
+                      }
+                      if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+                        return Center(child: Text("메시지가 없습니다."));
+                      }
+                      List<Widget> messageWidgets = snapshot.data!.docs.map((doc) {
+                        String uid = doc['uid'];
+                        String lineText = doc['line_text'];
+                        String lineColor = doc['line_color'];
+                        Timestamp timestamp = doc['text_time'];
+
+                        // 사용자 정보 가져오기
+                        return FutureBuilder<Map<String, String>>(
+                          future: _getUserInfo(uid),
+                          builder: (context, userSnapshot) {
+                            if (!userSnapshot.hasData) {
+                              return SizedBox(); // 로딩 중인 경우 빈 위젯 반환
+                            }
+                            String nickname = userSnapshot.data!['nickname']!;
+                            String profileImageUrl = userSnapshot.data!['profileImageUrl']!;
+
+                            if (uid == currentUserUid) {
+                              return currentUserChatPanel(nickname, profileImageUrl, lineColor, lineText, timestamp);
+                            } else {
+                              return otherUserChatPanel(nickname, profileImageUrl, lineColor, lineText, timestamp);
+                            }
+                          },
+                        );
+                      }).toList();
+
+                      _scrollController.animateTo(
+                          0,
+                          duration: const Duration(milliseconds: 300),
+                          curve: Curves.easeInOut,
+                      );
+
+                      return Align(
+                        alignment: Alignment.topCenter,
+                        child: ListView(
+                          reverse: true,
+                          shrinkWrap: true,
+                          controller: _scrollController,
+                          padding: EdgeInsets.symmetric(vertical: 10, horizontal: 10),
+                          children: messageWidgets,
+                        ),
+                      );
+                    },
+                  ),
                 ),
               ),
               Container(
@@ -331,13 +423,18 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
                                 border: InputBorder.none,
                                 isDense: true,
                               ),
+                              onSubmitted: (value){//엔터 입력시 메세지 전송
+                                if(_isTextNotEmpty){
+                                  _sendMessage();
+                                }
+                              },
                             ),
                           ),
                           GestureDetector(
-                            onTap: _textController.text.trim().isEmpty ? null : _sendMessage,
+                            onTap: _isTextNotEmpty ? _sendMessage : null,
                             child: Icon(
                               Icons.send,
-                              color: _textController.text.trim().isEmpty ? Colors.grey : Colors.black,
+                              color: _isTextNotEmpty ? Colors.black : Colors.grey,
                             ),
                           ),
                         ],
@@ -347,18 +444,6 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
                 ),
               ),
             ],
-          ),
-          Positioned(
-            bottom: 63, // 입력창보다 살짝 위로 배치
-            left: 0,
-            right: 0,
-            child: Align(
-              alignment: Alignment.bottomCenter,
-              child: Image.asset(
-                'assets/images/DayLine/background_image.png',
-                fit: BoxFit.none, // 원본 크기 유지
-              ),
-            ),
           ),
         ],
       ),
