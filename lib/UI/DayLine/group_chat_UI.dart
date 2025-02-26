@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:intl/intl.dart'; // 날짜 및 시간 포맷을 위해 추가
 import 'dart:async';
 
 class GroupChatScreen extends StatefulWidget {
@@ -23,7 +22,7 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
   final ScrollController _scrollController = ScrollController();
   Map<String, Map<String, String>> userCache = {};
   bool _isTextNotEmpty = false;
-
+  String choiceColor = "";
 
   List<Widget> messages = []; // 가져온 메시지 저장
   Timer? _timer;
@@ -50,16 +49,6 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
       });
     }
   }
-
-/*  // 1초마다 메시지 업데이트
-  void _startFetchingMessages() {
-    _timer = Timer.periodic(Duration(seconds: 1), (timer) async {
-      List<Widget> newMessages = await _fetchMessages();
-      setState(() {
-        messages = newMessages;
-      });
-    });
-  }*/
 
   @override
   void dispose() {
@@ -96,57 +85,6 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
     }
   }
 
-/*
-  Future<List<Widget>> _fetchMessages() async {
-    List<Widget> messageWidgets = [];
-    try {
-      print("메시지 가져오기 시작...");  // 디버깅: 시작 출력
-
-      QuerySnapshot snapshot = await _firestore.collection('day_line')
-          .doc(textDocumentId)
-          .collection('messages')
-          .orderBy('text_time', descending: false)
-          .get();
-
-      print("메시지 가져오기 완료, 총 ${snapshot.docs.length}개의 메시지");  // 디버깅: 가져온 메시지 개수 출력
-
-      for (var doc in snapshot.docs) {
-        try {
-          String uid = doc['uid'];
-          String lineText = doc['line_text'];
-          String lineColor = doc['line_color'];
-          Timestamp timestamp = doc['text_time'];
-
-          print("메시지 데이터: uid=$uid, lineText=$lineText, lineColor=$lineColor, timestamp=$timestamp"); // 디버깅: 각 메시지 데이터 출력
-
-          // 사용자 정보 가져오기
-          DocumentSnapshot userDoc = await _firestore.collection('register').doc(uid).get();
-          String nickname = userDoc['nickname'];
-          String? profileImageUrl = userDoc['profileImageUrl'];
-
-          // profileImageUrl이 null일 경우 기본 이미지 URL 사용
-          String imageUrlToUse = profileImageUrl ?? defaultProfileImageUrl;
-
-          print("사용자 정보: nickname=$nickname, profileImageUrl=$profileImageUrl"); // 디버깅: 사용자 정보 출력
-
-          // 현재 사용자 채팅 패널과 다른 사용자 채팅 패널을 구분
-          if (uid == currentUserUid) {
-            messageWidgets.add(currentUserChatPanel(nickname, imageUrlToUse, lineColor, lineText, timestamp));
-          } else {
-            messageWidgets.add(otherUserChatPanel(nickname, imageUrlToUse, lineColor, lineText, timestamp));
-          }
-        } catch (e) {
-          print("메시지 처리 중 오류: $e");  // 디버깅: 메시지 처리 오류 출력
-        }
-      }
-    } catch (e) {
-      print("메시지 가져오기 오류: $e");  // 디버깅: 메시지 가져오기 오류 출력
-    }
-    return messageWidgets;
-  }*/
-
-
-
   // 메시지 전송 시간 계산 (분, 시간, 일 단위로 출력)
   String _getTimeAgo(Timestamp timestamp) {
     DateTime messageTime = timestamp.toDate();
@@ -160,30 +98,41 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
     }
   }
 
-// 현재 사용자 채팅 패널
-  Widget otherUserChatPanel(String nickname, String profileImageUrl, String lineColor, String lineText, Timestamp timestamp) {
+// 다른 사용자 채팅 패널
+  Widget otherUserChatPanel(String nickname, String profileImageUrl, String lineColor, String lineText, Timestamp timestamp,) {
     return Padding(
       padding: const EdgeInsets.all(10),
-      child: Row(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          CircleAvatar(
-            radius: 23,
-            backgroundImage: profileImageUrl == defaultProfileImageUrl
-                ? AssetImage(defaultProfileImageUrl) as ImageProvider
-                : NetworkImage(profileImageUrl),
-          ),
-          SizedBox(width: 10),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+          Row(
             children: [
+              CircleAvatar(
+                radius: 13,
+                backgroundImage: profileImageUrl == defaultProfileImageUrl || profileImageUrl == null
+                    ? AssetImage(defaultProfileImageUrl) as ImageProvider
+                    : NetworkImage(profileImageUrl),
+              ),
+              SizedBox(width: 10),
               Text(
                 nickname,
                 style: TextStyle(color: Colors.black, fontSize: 14),
               ),
-              SizedBox(height: 5),
+              SizedBox(width: 10),
+              Text(
+                _getTimeAgo(timestamp),
+                style: TextStyle(color: Colors.grey, fontSize: 12),
+              ),
+            ],
+          ),
+          SizedBox(height: 5), // 닉네임 & 프로필 이미지 아래 간격
+          Row( // ✅ 채팅 패널을 오른쪽으로 이동시키기 위해 Row 사용
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              SizedBox(width: 25), // ✅ 닉네임 아래까지 이동시키기 위해 왼쪽 여백 추가
               Container(
                 constraints: BoxConstraints(
-                  maxWidth: MediaQuery.of(context).size.width * 0.6, // ✅ 최대 너비 제한
+                  maxWidth: 250, // ✅ 최대 너비 제한
                 ),
                 decoration: BoxDecoration(
                   color: Color(int.parse("0xFF$lineColor")),
@@ -195,11 +144,6 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
                   style: TextStyle(color: Colors.black),
                 ),
               ),
-              SizedBox(height: 5),
-              Text(
-                _getTimeAgo(timestamp),
-                style: TextStyle(color: Colors.grey, fontSize: 12),
-              ),
             ],
           ),
         ],
@@ -207,56 +151,61 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
     );
   }
 
-
-  // 다른 사용자 채팅 패널
+  // 현재 사용자 채팅 패널
   Widget currentUserChatPanel(String nickname, String profileImageUrl, String lineColor, String lineText, Timestamp timestamp) {
     return Padding(
       padding: const EdgeInsets.all(10),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.end,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.end, // ✅ 오른쪽 정렬
         children: [
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.end,
+          Row(
+            mainAxisAlignment: MainAxisAlignment.end, // ✅ 닉네임 & 프로필 오른쪽 정렬
             children: [
-              Text(
-                nickname,
-                style: TextStyle(color: Colors.black, fontSize: 14),
-              ),
-              SizedBox(height: 5),
-              Container(
-                constraints: BoxConstraints(
-                  maxWidth: MediaQuery.of(context).size.width * 0.6, // ✅ 최대 너비 제한
-                ),
-                decoration: BoxDecoration(
-                  color: Color(int.parse("0xFF$lineColor")),
-                  borderRadius: BorderRadius.circular(30),
-                ),
-                padding: EdgeInsets.symmetric(horizontal: 15, vertical: 10),
-                child: Text(
-                  lineText,
-                  style: TextStyle(color: Colors.black),
-                ),
-              ),
-              SizedBox(height: 5),
               Text(
                 _getTimeAgo(timestamp),
                 style: TextStyle(color: Colors.grey, fontSize: 12),
               ),
+              SizedBox(width: 10),
+              Text(
+                nickname,
+                style: TextStyle(color: Colors.black, fontSize: 14),
+              ),
+              SizedBox(width: 10),
+              CircleAvatar(
+                radius: 13,
+                backgroundImage: profileImageUrl == defaultProfileImageUrl || profileImageUrl == null
+                    ? AssetImage(defaultProfileImageUrl) as ImageProvider
+                    : NetworkImage(profileImageUrl),
+              ),
             ],
           ),
-          SizedBox(width: 10),
-          CircleAvatar(
-            radius: 23,
-            backgroundImage: profileImageUrl == defaultProfileImageUrl
-                ? AssetImage(defaultProfileImageUrl) as ImageProvider
-                : NetworkImage(profileImageUrl),
+          SizedBox(height: 5), // 닉네임 아래 간격 추가
+          Row(
+            mainAxisAlignment: MainAxisAlignment.end, // ✅ 말풍선을 오른쪽 정렬
+            children: [
+              Padding(
+                padding: EdgeInsets.only(right: 25), // ✅ 오른쪽 여백 추가 → 말풍선이 왼쪽으로 이동
+                child: Container(
+                  constraints: BoxConstraints(
+                    maxWidth: 250, // ✅ 최대 너비 제한
+                  ),
+                  decoration: BoxDecoration(
+                    color: Color(int.parse("0xFF$lineColor")),
+                    borderRadius: BorderRadius.circular(30),
+                  ),
+                  padding: EdgeInsets.symmetric(horizontal: 15, vertical: 10),
+                  child: Text(
+                    lineText,
+                    style: TextStyle(color: Colors.black),
+                  ),
+                ),
+              ),
+            ],
           ),
         ],
       ),
     );
   }
-
-
 
   void _sendMessage() async {
     if(_textController.text.isEmpty)
@@ -264,12 +213,11 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
     String message = _textController.text;
     if (message.trim().isNotEmpty) {
       String uid = FirebaseAuth.instance.currentUser?.uid ?? '';
-      String color = (colorList..shuffle()).first;  // 색상 랜덤으로 선택
       Timestamp timestamp = Timestamp.now();
 
       try {
         await _firestore.collection('day_line').doc('oiXm2LUYnE4U20OI3VMx').collection('messages').add({
-          'line_color': color,
+          'line_color': choiceColor,
           'line_text': message,
           'text_time': timestamp,
           'uid': uid,
@@ -281,6 +229,86 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
         print("메시지 전송 오류: $e");
       }
     }
+  }
+
+  void _showColorPicker() {
+    choiceColor = colorList[0];
+    showDialog(
+      context: context,
+      barrierColor: Colors.black54, // 배경 어둡게 처리
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (context, setState) {
+            return Dialog(
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(30),
+              ),
+              backgroundColor: Color(0xFFEAEBF0), // 배경 색상
+              child: Container(
+                width: MediaQuery.of(context).size.width * 1,
+                height: MediaQuery.of(context).size.width * 0.6,
+                padding: EdgeInsets.all(20),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Text(
+                      "색상을 선택해주세요",
+                      style: TextStyle(color: Colors.black, fontSize: 18),
+                    ),
+                    SizedBox(height: 20),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                      children: List.generate(colorList.length, (index) {
+                        return GestureDetector(
+                          onTap: () {
+                            setState(() {
+                              choiceColor = colorList[index];
+                            });
+                          },
+                          child: Container(
+                            width: MediaQuery.of(context).size.width * 0.15,
+                            height: MediaQuery.of(context).size.width * 0.15,
+                            decoration: BoxDecoration(
+                              color: Color(int.parse("0xFF${colorList[index]}")),
+                              borderRadius: BorderRadius.circular(10),
+                              border: Border.all(
+                                color: choiceColor == colorList[index]
+                                    ? Color(0xFF69DEC3) // 선택한 색상 테두리 표시
+                                    : Colors.transparent,
+                                width: 3,
+                              ),
+                            ),
+                          ),
+                        );
+                      }),
+                    ),
+                    SizedBox(height: 20),
+                    GestureDetector(
+                      onTap: () {
+                        Navigator.pop(context); // 다이얼로그 닫기
+                      },
+                      child: Container(
+                        width: MediaQuery.of(context).size.width * 0.8,
+                        height: 50,
+                        decoration: BoxDecoration(
+                          color: Color(0xFF69DEC3),
+                          borderRadius: BorderRadius.circular(7),
+                        ),
+                        alignment: Alignment.center,
+                        child: Text(
+                          "선택하기",
+                          style: TextStyle(color: Colors.white, fontSize: 20),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            );
+          },
+        );
+      },
+    );
   }
 
   @override
@@ -413,7 +441,10 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
                       padding: EdgeInsets.symmetric(horizontal: 10),
                       child: Row(
                         children: [
-                          Icon(Icons.add, color: Colors.black),
+                          GestureDetector(
+                            onTap: _showColorPicker, // 색상 선택 모달 연결
+                            child: Icon(Icons.add, color: Colors.black),
+                          ),
                           SizedBox(width: 8),
                           Expanded(
                             child: TextField(
