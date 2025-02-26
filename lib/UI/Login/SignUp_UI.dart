@@ -112,6 +112,8 @@ class _SignUpScreenState extends State<SignUpScreen> {
         'email' : email,
         'nickname': nickname,
         'profileImageUrl' : "",
+        'attendanceCount': 0,
+        'lastAttendanceDate' : ""
       });
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(

@@ -10,18 +10,22 @@ class ChallengeBadgePage extends StatefulWidget {
 }
 
 class _ChallengeBadgePageState extends State<ChallengeBadgePage> {
-  final PageController pageController = PageController(initialPage: 0);
   final User? user = FirebaseAuth.instance.currentUser;
+  final PageController pageController = PageController(initialPage: 0);
   final ChallengeService challengeService = ChallengeService();
   String? profileImageUrl;
+  double progress = 0.0;
   int currentIndex = 0;
 
   @override
   void initState() {
     super.initState();
     loadUserData();
+    updateAttendanceProgress();
+    initializeChallenge();
   }
 
+  // 프로필 이미지 불러오기
   Future<void> loadUserData() async {
     if (user != null) {
       DocumentSnapshot userDoc = await FirebaseFirestore.instance
@@ -37,16 +41,64 @@ class _ChallengeBadgePageState extends State<ChallengeBadgePage> {
     }
   }
 
-  Future<List<bool>> fetchChallengeStatuses() async {
-    if (user == null) {
-      return [false, false, false];
-    }
+  // 출석 진행률 업데이트
+  Future<void> updateAttendanceProgress() async {
+    FirebaseFirestore.instance
+        .collection('register')
+        .doc(user!.uid)
+        .snapshots()
+        .listen((snapshot) {
+      if (snapshot.exists) {
+        int attendanceCount = snapshot.data()?['attendanceCount'] ?? 0;
+        setState(() {
+          progress = (attendanceCount / 100).clamp(0.0, 1.0);
+        });
+      }
+    });
+  }
 
-    return [
-      await challengeService.isChallengeCompleted(user!.uid, "attendance100"),
-      await challengeService.isChallengeCompleted(user!.uid, "diary7"),
-      await challengeService.isChallengeCompleted(user!.uid, "test1"),
-    ];
+  // 도전과제 초기화
+  Future<void> initializeChallenge() async {
+    if (user != null) {
+      List<String> challengeIds = ['attendance1', 'attendance100', 'diary7', 'test1'];
+
+      for (String challengeId in challengeIds) {
+        DocumentReference challengeDoc = FirebaseFirestore.instance
+            .collection('register')
+            .doc(user!.uid)
+            .collection('challenges')
+            .doc(challengeId);
+
+        if (!(await challengeDoc.get()).exists) {
+          await challengeDoc.set({'achieved': false});
+        }
+      }
+
+      await challengeService.saveAttendance(user!.uid);
+      setState(() {});
+    }
+  }
+
+  // 모든 도전과제 상태
+  Future<List<bool>> getAllChallengeStatus() async {
+    return Future.wait([
+      _isChallengeCompleted("attendance1"),
+      _isChallengeCompleted("attendance100"),
+      _isChallengeCompleted("diary7"),
+      _isChallengeCompleted("test1"),
+    ]);
+  }
+
+  // 특정 도전과제 성공 여부
+  Future<bool> _isChallengeCompleted(String challengeId) async {
+    DocumentSnapshot challengeDoc = await FirebaseFirestore.instance
+        .collection('register')
+        .doc(user!.uid)
+        .collection('challenges')
+        .doc(challengeId)
+        .get();
+
+    return challengeDoc.exists && (challengeDoc['achieved'] ?? false);
   }
 
   @override
@@ -97,6 +149,7 @@ class _ChallengeBadgePageState extends State<ChallengeBadgePage> {
     );
   }
 
+  // 고정 헤더
   Widget buildFixedHeader() {
     return Center(
       child: Container(
@@ -113,8 +166,7 @@ class _ChallengeBadgePageState extends State<ChallengeBadgePage> {
                     ? CircleAvatar(
                   radius: 40,
                   backgroundImage: NetworkImage(profileImageUrl!),
-                )
-                    : Container(
+                ) : Container(
                   width: 80,
                   height: 80,
                   decoration: BoxDecoration(
@@ -163,12 +215,12 @@ class _ChallengeBadgePageState extends State<ChallengeBadgePage> {
                         )
                     ),
                     SizedBox(height: 5),
-                    Text('도전과제 달성률 : 54%'),
+                    Text('도전과제 달성률 : ${(progress * 100).toStringAsFixed(0)}%'),
                     SizedBox(height: 5),
                     SizedBox(
                       width: 230,
                       child: LinearProgressIndicator(
-                        value: 0.54,
+                        value: progress,
                         backgroundColor: Colors.white,
                         color: Color(0xFF6BE5A0),
                         borderRadius: BorderRadius.circular(20),
@@ -185,6 +237,7 @@ class _ChallengeBadgePageState extends State<ChallengeBadgePage> {
     );
   }
 
+  // PageView 전환 버튼
   Widget buildToggleButtons() {
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
@@ -225,20 +278,19 @@ class _ChallengeBadgePageState extends State<ChallengeBadgePage> {
   // 도전과제 화면
   Widget buildChallengeScreen() {
     return FutureBuilder<List<bool>>(
-      future: fetchChallengeStatuses(),
+      future: getAllChallengeStatus(),
       builder: (context, snapshot) {
-        List<bool> challengeStatuses = snapshot.data ?? [false, false, false];
-
+        List<bool> challengeStatuses = snapshot.data ?? [false, false, false, false];
         return Center(
           child: GridView.count(
             crossAxisCount: 2,
             mainAxisSpacing: 30,
             crossAxisSpacing: 20,
             children: [
-              _buildChallengeCard('총 출석을 100일 달성', '100일', challengeStatuses[0]),
-              _buildChallengeCard('', '', false),
-              _buildChallengeCard('일기 연속 7일 쓰기', '7일', challengeStatuses[1]),
-              _buildChallengeCard('심리테스트 1회 테스트 하기', '1회', challengeStatuses[2]),
+              _buildChallengeCard('총 출석을 1일 달성', '1일', challengeStatuses[0]),
+              _buildChallengeCard('총 출석을 100일 달성', '100일', challengeStatuses[1]),
+              _buildChallengeCard('일기 연속 7일 쓰기', '7일', challengeStatuses[2]),
+              _buildChallengeCard('심리테스트 1회 테스트 하기', '1회', challengeStatuses[3]),
               _buildChallengeCard('', '', false),
               _buildChallengeCard('', '', false),
               _buildChallengeCard('', '', false),
@@ -248,80 +300,86 @@ class _ChallengeBadgePageState extends State<ChallengeBadgePage> {
         );
       },
     );
-
   }
 
   // 칭호 화면
   Widget buildBadgeScreen() {
-    return Center(
-      child: Column(
-        children: [
-          Container(
-            width: double.infinity,
-            padding: EdgeInsets.all(15),
-            decoration: BoxDecoration(
-              color: Color(0xFF7BD3EA),
-              borderRadius: BorderRadius.circular(15),
-            ),
-            child: Column(
-              children: [
-                Container(
+    return FutureBuilder<List<bool>>(
+      future: getAllChallengeStatus(),
+      builder: (context, snapshot) {
+        List<bool> challengeStatuses = snapshot.data ?? [false, false, false, false];
+        return Center(
+          child: Column(
+            children: [
+              Container(
                   width: double.infinity,
                   padding: EdgeInsets.all(15),
                   decoration: BoxDecoration(
-                    color: Color(0xFFE6FFFD),
+                    color: Color(0xFF7BD3EA),
                     borderRadius: BorderRadius.circular(15),
                   ),
-                  child: Text(
-                    '내가 보유한 칭호',
-                    textAlign: TextAlign.left,
-                    style: TextStyle(fontSize: 20, color: Color(0xFF0091B2), fontWeight: FontWeight.bold),
-                  ),
-                ),
-                SizedBox(height: 10),
-                // 칭호 리스트
-                Padding(
-                  padding: EdgeInsets.symmetric(vertical: 15),
-                  child: GridView.count(
-                    crossAxisCount: 2,
-                    mainAxisSpacing: 20,
-                    crossAxisSpacing: 30,
-                    shrinkWrap: true,
-                    physics: NeverScrollableScrollPhysics(),
-                    childAspectRatio: 6,
-                    children: [
-                      _buildBadgeCard('100일 연속 출석', true),
-                      _buildBadgeCard('일찬 한주', true),
-                      _buildBadgeCard('심리테스트 초보', true),
-                      _buildBadgeCard('???', false),
-                      _buildBadgeCard('???', false),
-                      _buildBadgeCard('???', false),
-                      _buildBadgeCard('???', false),
-                      _buildBadgeCard('???', false),
-                      _buildBadgeCard('???', false),
-                      _buildBadgeCard('???', false),
-                      _buildBadgeCard('???', false),
-                      _buildBadgeCard('???', false),
-                      _buildBadgeCard('???', false),
-                      _buildBadgeCard('???', false),
-                      _buildBadgeCard('???', false),
-                      _buildBadgeCard('???', false),
-                      _buildBadgeCard('???', false),
-                      _buildBadgeCard('???', false),
-                      _buildBadgeCard('???', false),
-                      _buildBadgeCard('???', false),
-                    ],
-                  ),
-                ),
-                SizedBox(height: 10),
-              ]
-            )
+                  child: Column(
+                      children: [
+                        Container(
+                          width: double.infinity,
+                          padding: EdgeInsets.all(15),
+                          decoration: BoxDecoration(
+                            color: Color(0xFFE6FFFD),
+                            borderRadius: BorderRadius.circular(15),
+                          ),
+                          child: Text(
+                            '내가 보유한 칭호',
+                            textAlign: TextAlign.left,
+                            style: TextStyle(fontSize: 20, color: Color(0xFF0091B2), fontWeight: FontWeight.bold),
+                          ),
+                        ),
+                        SizedBox(height: 10),
+                        // 칭호 리스트
+                        Padding(
+                          padding: EdgeInsets.symmetric(vertical: 15),
+                          child: GridView.count(
+                            crossAxisCount: 2,
+                            mainAxisSpacing: 20,
+                            crossAxisSpacing: 30,
+                            shrinkWrap: true,
+                            physics: NeverScrollableScrollPhysics(),
+                            childAspectRatio: 6,
+                            children: [
+                              _buildBadgeCard('1일 출석', challengeStatuses[0]),
+                              _buildBadgeCard('100일 연속 출석', challengeStatuses[1]),
+                              _buildBadgeCard('일찬 한주', challengeStatuses[2]),
+                              _buildBadgeCard('심리테스트 초보', challengeStatuses[3]),
+                              _buildBadgeCard('???', false),
+                              _buildBadgeCard('???', false),
+                              _buildBadgeCard('???', false),
+                              _buildBadgeCard('???', false),
+                              _buildBadgeCard('???', false),
+                              _buildBadgeCard('???', false),
+                              _buildBadgeCard('???', false),
+                              _buildBadgeCard('???', false),
+                              _buildBadgeCard('???', false),
+                              _buildBadgeCard('???', false),
+                              _buildBadgeCard('???', false),
+                              _buildBadgeCard('???', false),
+                              _buildBadgeCard('???', false),
+                              _buildBadgeCard('???', false),
+                              _buildBadgeCard('???', false),
+                              _buildBadgeCard('???', false),
+                            ],
+                          ),
+                        ),
+                        SizedBox(height: 10),
+                      ]
+                  )
+              ),
+            ],
           ),
-        ],
-      ),
+        );
+      },
     );
   }
 
+  // 도전과제 카드
   Widget _buildChallengeCard(String title, String subtitle, bool success) {
     return Stack(
       clipBehavior: Clip.none,
@@ -390,6 +448,7 @@ class _ChallengeBadgePageState extends State<ChallengeBadgePage> {
     );
   }
 
+  // 칭호 카드
   Widget _buildBadgeCard(String title, bool isAchieved) {
     return Container(
       padding: EdgeInsets.symmetric(horizontal: 10, vertical: 4),
@@ -418,40 +477,40 @@ class _ChallengeBadgePageState extends State<ChallengeBadgePage> {
 }
 
 class ChallengeService {
-  // 도전과제 성공 여부
-  Future<bool> isChallengeCompleted(String userId, String challengeId) async {
-    DocumentSnapshot userDoc = await FirebaseFirestore.instance
-        .collection('register')
-        .doc(userId)
-        .collection('challenges')
-        .doc(challengeId)
-        .get();
+  // 출석 기록 저장
+  Future<void> saveAttendance(String userId) async {
+    final sfDocRef = FirebaseFirestore.instance.collection('register').doc(userId);
 
-    print("📌 $challengeId 도전과제 데이터: ${userDoc.data()}");
+    await FirebaseFirestore.instance.runTransaction((transaction) async {
+      final snapshot = await transaction.get(sfDocRef);
 
-    return userDoc.exists && (userDoc['achieved'] ?? false);
+      DateTime today = DateTime.now();
+      String todayStr = "${today.year}-${today.month}-${today.day}";
+      String? lastAttendanceDate = snapshot.data()?['lastAttendanceDate'];
+
+      if (lastAttendanceDate != todayStr){
+        int newCount = snapshot.get("attendanceCount") + 1;
+        transaction.update(sfDocRef, {
+          'attendanceCount': newCount,
+          'lastAttendanceDate': todayStr
+        });
+
+        // 총 출석을 1일 달성
+        if (newCount >= 1) {
+          transaction.set(sfDocRef.collection('challenges').doc('attendance1'), {
+            'achieved': true,
+          });
+        }
+
+        // 총 출석을 100일 달성
+        if (newCount >= 100) {
+          transaction.set(sfDocRef.collection('challenges').doc('attendance100'), {
+            'achieved': true,
+          });
+        }
+      }
+    });
   }
-
-  // // 출석 기록 저장
-  // Future<void> saveAttendance(String userId) async {
-  //   String today = DateTime.now().toIso8601String().split('T')[0]; // YYYY-MM-DD
-  //   await FirebaseFirestore.instance
-  //       .collection('register')
-  //       .doc(userId)
-  //       .collection('attendance')
-  //       .doc(today)
-  //       .set({'date': today, 'status': 'present'});
-  // }
-  //
-  // // 총 출석 일수
-  // Future<int> getTotalAttendance(String userId) async {
-  //   QuerySnapshot snapshot = await FirebaseFirestore.instance
-  //       .collection('register')
-  //       .doc(userId)
-  //       .collection('attendance')
-  //       .get();
-  //   return snapshot.docs.length; // 출석한 날의 개수
-  // }
 
 }
 
