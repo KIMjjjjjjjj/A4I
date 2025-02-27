@@ -3,6 +3,8 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'dart:math';
 import '../DayLine/day_line_UI.dart';
+import '../Challenge/challenge_page.dart';
+import '../diary/calender_page.dart';
 
 class MainScreen extends StatefulWidget {
   @override
@@ -125,7 +127,7 @@ class _MainScreenState extends State<MainScreen> {
                   buildSmallButton("일기", "assets/images/Main/diary.png", () {
                     Navigator.push(
                       context,
-                      MaterialPageRoute(builder: (context) => DayLineScreen()),
+                      MaterialPageRoute(builder: (context) => CalendarPage()),
                     );
                   }),
                   buildSmallButton("오늘 한줄", "assets/images/Main/daily_line.png", () {
@@ -137,7 +139,7 @@ class _MainScreenState extends State<MainScreen> {
                   buildSmallButton("챌린지", "assets/images/Main/challenge.png", () {
                     Navigator.push(
                       context,
-                      MaterialPageRoute(builder: (context) => DayLineScreen()),
+                      MaterialPageRoute(builder: (context) => ChallengeBadgePage()),
                     );
                   }),
                   buildSmallButton("상담센터", "assets/images/Main/counsel_center.png", () {

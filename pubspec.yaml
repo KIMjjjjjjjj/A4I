@@ -126,6 +126,7 @@ flutter:
     - assets/images/DayLine/topic_cloud.png
     - assets/images/DayLine/background_image.png
     - assets/images/DayLine/default_profile.png
+    - assets/images/success.png
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/to/resolution-aware-images
 
