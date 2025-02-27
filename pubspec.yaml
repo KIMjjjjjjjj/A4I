@@ -41,6 +41,7 @@ dependencies:
   image_picker:
   firebase_storage: ^12.4.3
   firebase_auth: ^5.5.0
+  google_fonts: ^6.2.1
 
 dev_dependencies:
   flutter_test:
@@ -58,7 +59,14 @@ dev_dependencies:
 
 # The following section is specific to Flutter packages.
 flutter:
+  fonts:
+  - family: PoetsenOne
+    fonts:
+      - asset: assets/font/PoetsenOne-Regular.ttf
 
+  - family: SingleDay
+    fonts:
+      - asset: assets/font/SingleDay-Regular.ttf
   # The following line ensures that the Material Icons font is
   # included with your application, so that you can use the icons in
   # the material Icons class.
@@ -77,6 +85,36 @@ flutter:
     - assets/Widget/Login/login_button.png
     - assets/Widget/Login/input_frame.png
     - assets/Widget/Login/logo.png
+    - assets/face/face1.png
+    - assets/face/face2.png
+    - assets/face/face3.png
+    - assets/face/face4.png
+    - assets/face/face5.png
+    - assets/face/face6.png
+    - assets/face/face7.png
+    - assets/face/face8.png
+    - assets/face/face9.png
+    - assets/face/face10.png
+    - assets/face/face11.png
+    - assets/face/face12.png
+    - assets/face/face13.png
+    - assets/face/face14.png
+    - assets/face/face15.png
+    - assets/face/face16.png
+    - assets/face/face17.png
+    - assets/face/face18.png
+    - assets/face/face19.png
+    - assets/face/face20.png
+    - assets/face/face21.png
+    - assets/face/face22.png
+    - assets/face/face23.png
+    - assets/face/face24.png
+    - assets/face/face25.png
+    - assets/face/face26.png
+    - assets/face/face27.png
+    - assets/face/face28.png
+    - assets/face/face29.png
+    - assets/face/face30.png
     - assets/images/Main/main_banner.png
     - assets/images/Main/main_chatbot_banner.png
     - assets/images/Main/diary.png
