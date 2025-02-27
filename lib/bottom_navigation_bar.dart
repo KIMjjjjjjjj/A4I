@@ -1,7 +1,7 @@
 import 'UI/Setting/setting_page.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/material.dart' hide NavigationBar;
-
+import 'UI/MainDisplay/mainDisplay.dart';
 
 class CustomNavigationBar extends StatefulWidget {
   const CustomNavigationBar({super.key});
@@ -16,7 +16,7 @@ class NavigationBarState extends State<CustomNavigationBar> {
   @override
   Widget build(BuildContext context) {
     final List<Widget> _pages = [
-      SettingPage(),
+      MainScreen(),
       SettingPage(),
       SettingPage(),
       SettingPage(),

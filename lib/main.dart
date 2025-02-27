@@ -5,6 +5,7 @@ import 'package:firebase_core/firebase_core.dart';
 import 'firebase_options.dart';
 import 'bottom_navigation_bar.dart';
 import 'UI/survey/Firstsurvey_explain.dart';
+import 'UI/MainDisplay/mainDisplay.dart';
 
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
@@ -22,6 +23,7 @@ class MyApp extends StatelessWidget {
         '/navigation': (context) => CustomNavigationBar(),
         '/survey' : (context) => SurveyExplainPage(),
         '/setting' : (context) => SettingPage(),
+        '/main' : (context) => MainScreen(),
       },
     );
   }
