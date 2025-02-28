@@ -5,6 +5,7 @@ import 'dart:math';
 import '../DayLine/day_line_UI.dart';
 import '../Challenge/challenge_page.dart';
 import '../diary/calender_page.dart';
+import '../HelpCenter/help_center_ui.dart';
 
 class MainScreen extends StatefulWidget {
   @override
@@ -145,7 +146,7 @@ class _MainScreenState extends State<MainScreen> {
                   buildSmallButton("상담센터", "assets/images/Main/counsel_center.png", () {
                     Navigator.push(
                       context,
-                      MaterialPageRoute(builder: (context) => DayLineScreen()),
+                      MaterialPageRoute(builder: (context) => HelpCenterPage()),
                     );
                   }),
                 ],
