@@ -4,6 +4,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'dart:math';
 import '../DayLine/day_line_UI.dart';
 import '../Challenge/challenge_page.dart';
+import '../PsychologicalTest/select_test.dart';
 import '../diary/calender_page.dart';
 
 class MainScreen extends StatefulWidget {
@@ -114,7 +115,7 @@ class _MainScreenState extends State<MainScreen> {
                         () {
                       Navigator.push(
                         context,
-                        MaterialPageRoute(builder: (context) => DayLineScreen()),
+                        MaterialPageRoute(builder: (context) => SelectTestPage()),
                       );
                     },
                   ),
