@@ -133,6 +133,11 @@ flutter:
     - assets/images/HelpCenter/danger_sign.png
     - assets/images/HelpCenter/emergency_number.png
     - assets/images/HelpCenter/suicide_prevention.png
+    - assets/Widget/Community/diary.png
+    - assets/Widget/Community/help.png
+    - assets/Widget/Community/review.png
+    - assets/Widget/Community/smile.png
+    - assets/Widget/Community/write.png
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/to/resolution-aware-images
 

@@ -39,7 +39,7 @@ class _HelpCenterPageState extends State<HelpCenterPage> {
     List<NMarker> markers = centers.map((center) {
       return NMarker(
         id: center["name"],
-        position: NLatLng(center["lat"], center["lng"]), // ✅ 버전에 맞게 수정
+        position: NLatLng(center["lat"], center["lng"]),
         caption: NOverlayCaption(text: center["name"]),
       )..setOnTapListener((overlay) {
         debugPrint("${center["name"]} 클릭됨");
