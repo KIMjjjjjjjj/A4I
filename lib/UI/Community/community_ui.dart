@@ -20,11 +20,7 @@ class CommunityScreen extends StatelessWidget {
         automaticallyImplyLeading: false,
         title: const Text(
           "TODAK",
-          style: TextStyle(
-            fontSize: 40,
-            color: Colors.black,
-            fontWeight: FontWeight.bold,
-          ),
+          style: TextStyle(color: Colors.black, fontSize: 36, fontWeight: FontWeight.bold),
         ),
         centerTitle: false,
       ),
