@@ -3,15 +3,18 @@ import 'dart:async';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
-import 'package:repos/UI/PsychologicalTest/test_result_page.dart';
+import 'package:repos/UI/PsychologicalTest/select_test.dart';
 
-class TestPage extends StatefulWidget {
+class TestPageAsi extends StatefulWidget {
   @override
-  _TestPageState createState() => _TestPageState();
+  _TestPageAsiState createState() => _TestPageAsiState();
 }
 
-class _TestPageState extends State<TestPage> {
-  List<int> selectedValues = List.filled(6, 0);
+class _TestPageAsiState extends State<TestPageAsi> {
+  User? user = FirebaseAuth.instance.currentUser;
+  int solvedCount = 0;
+  String testType = 'ASI';
+  List<int> selectedValues = List.filled(16, -1);
   List<String> questions = [
     '1. 남들에게 불안하게 보이지 말아야 한다.',
     '2. 집중이 잘 안되면, 이러다가 미치는 것은 아닌가 걱정한다.',
@@ -19,7 +22,78 @@ class _TestPageState extends State<TestPage> {
     '4. 기절할 것 같으면, 겁이 난다.',
     '5. 감정 조절은 잘 하는 것이 중요하다.',
     '6. 심장이 빨리 뛰면 겁이 난다.',
+    '7. 배에서 소리가 나면 깜짝 놀란다.',
+    '8. 속이 매스꺼워지면 겁이 난다.',
+    '9. 심장이 빨리 뛰는 것이 느껴지면 심장마비가 오지 않을까 걱정된다.',
+    '10. 숨이 가빠지면, 겁이 난다.',
+    '11. 뱃속이 불편해지면, 심각한 병에 걸린 것은 아닌가 걱정된다.',
+    '12. 어떤 일을 할 때 집중이 안되면 겁이 난다.',
+    '13. 내가 떨면, 다른 사람들이 알아 챈다.',
+    '14. 몸이 평소와 다른 감각이 느껴지면, 겁이 난다.',
+    '15. 신경이 예민해지면, 정신적으로 문제가 생긴 것은 아닌가 걱정된다.',
+    '16. 신경이 날카로워 지면, 겁이 난다.'
   ];
+
+  @override
+  void initState() {
+    super.initState();
+    // 제출하지 않고 페이지를 벗어났을 때 이전에 선택했던 답을 저장하고 있어야 함.
+  }
+
+  // 총점 계산
+  int getTotalScore() {
+    return selectedValues.where((value) => value != -1).fold(0, (sum, value) => sum + value);
+  }
+
+  // 중간 진행 상황
+  Future<void> progressTest() async {
+    int solvedCount = selectedValues.where((v) => v != -1).length;
+    
+    if (user == null) return;
+    DocumentReference<Map<String, dynamic>> docRef = FirebaseFirestore.instance
+        .collection("test")
+        .doc(user!.uid)
+        .collection(testType)
+        .doc("score");
+
+    await docRef.set({
+      "solvedCount": solvedCount,
+    }, SetOptions(merge: true));
+  }
+
+  // 최종 제출
+  Future<void> submitTest() async {
+    int currentRound = 1;
+    int totalScore = getTotalScore();
+
+    if (user == null) return;
+    DocumentReference<Map<String, dynamic>> docRef = FirebaseFirestore.instance
+        .collection("test")
+        .doc(user?.uid)
+        .collection(testType)
+        .doc("score");
+
+    DocumentSnapshot<Map<String, dynamic>> snapshot = await docRef.get();
+
+    if (snapshot.exists) {
+      Map<String, dynamic>? data = snapshot.data();
+      if (data != null && data.isNotEmpty) {
+        List<int> existingRounds = data.keys
+            .where((key) => int.tryParse(key) != null)
+            .map((key) => int.parse(key))
+            .toList();
+        if (existingRounds.isNotEmpty) {
+          currentRound = existingRounds.reduce((a, b) => a > b ? a : b);
+        }
+      }
+    }
+
+    await docRef.set({
+      "$currentRound": totalScore,
+      "solvedCount": 0
+    }, SetOptions(merge: true));
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -47,7 +121,7 @@ class _TestPageState extends State<TestPage> {
               ),
               const SizedBox(height: 7),
               const Text(
-                '1/2',
+                '1/1',
                 style: TextStyle(fontSize: 15),
               ),
               const SizedBox(height: 7),
@@ -72,7 +146,13 @@ class _TestPageState extends State<TestPage> {
                 children: [
                   Expanded(
                     child: ElevatedButton(
-                      onPressed: () {},
+                      onPressed: () {
+                        progressTest();
+                        Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (context) => SelectTestPage()),
+                        );
+                      },
                       style: ElevatedButton.styleFrom(
                         backgroundColor: Color(0xFF6BE5A0),
                         shape: RoundedRectangleBorder(
@@ -90,10 +170,11 @@ class _TestPageState extends State<TestPage> {
                   Expanded(
                     child: ElevatedButton(
                       onPressed: () {
-                        // Navigator.push(
-                        //   context,
-                        //   MaterialPageRoute(builder: (context) => TestPage()),
-                        // );
+                        submitTest();
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(builder: (context) => SelectTestPage()),
+                        );
                       },
                       style: ElevatedButton.styleFrom(
                         backgroundColor: Color(0xFF6BE5A0),
@@ -103,7 +184,7 @@ class _TestPageState extends State<TestPage> {
                         padding: const EdgeInsets.all(12.0),
                       ),
                       child: const Text(
-                        '다음',
+                        '제출',
                         style: TextStyle(fontSize: 18, color: Colors.black),
                       ),
                     ),
@@ -164,7 +245,8 @@ class QuestionSlider extends StatelessWidget {
                         groupValue: value,
                         onChanged: (value) => onChanged(value!),
                         activeColor: Color(0xFF6BE5A0),
-                        fillColor: MaterialStateColor.resolveWith((states) => Color(0xFF6BE5A0)),
+                        fillColor: MaterialStateColor.resolveWith((states) =>
+                        value == index ? Color(0xFF6BE5A0) : Colors.grey),
                       ),
                       Text(index.toString()),
                     ],

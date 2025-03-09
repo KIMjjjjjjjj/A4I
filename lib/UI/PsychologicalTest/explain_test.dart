@@ -1,24 +1,21 @@
-import 'dart:async';
-
-import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
-import 'package:repos/UI/PsychologicalTest/test_page.dart';
+import 'package:repos/UI/PsychologicalTest/test_page_asi.dart';
+import 'package:repos/UI/PsychologicalTest/test_page_pss.dart';
 
 
-class ExplainTestPage extends StatefulWidget {
-  const ExplainTestPage({Key? key}) : super(key: key);
+class ExplainTestPage extends StatelessWidget {
+  final String title;
+  final String subtitle;
+  final int totalCount;
+  final String description;
 
-  @override
-  _ExplainTestPageState createState() => _ExplainTestPageState();
-}
-
-
-class _ExplainTestPageState extends State<ExplainTestPage> {
-  @override
-  void initState() {
-    super.initState();
-  }
+  const ExplainTestPage({
+    Key? key,
+    required this.title,
+    required this.subtitle,
+    required this.totalCount,
+    required this.description,
+  }) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
@@ -42,7 +39,7 @@ class _ExplainTestPageState extends State<ExplainTestPage> {
             Align(
               alignment: Alignment.centerLeft,
               child: Text(
-                '불안 민감성 척도 ASI',
+                '$subtitle $title',
                 style: TextStyle(fontSize:25, fontWeight: FontWeight.bold),
               ),
             ),
@@ -50,7 +47,7 @@ class _ExplainTestPageState extends State<ExplainTestPage> {
             Align(
               alignment: Alignment.centerLeft,
               child: Text(
-                '16문항',
+                '$totalCount문항',
                 style: TextStyle(fontSize: 17, color: Colors.grey[700]),
               ),
             ),
@@ -60,8 +57,7 @@ class _ExplainTestPageState extends State<ExplainTestPage> {
               child: SizedBox(
                 width: 330,
                 child: Text(
-                  '이 척도는 불안과 관련된 증상을 경험할 때 그 증상으로 인해 얼마나 두렵고 염려되는가를 평가하는 검사로서 불안 증상에 대해 개인이 가지고 있는 두려움을 반영한다.'
-                      .replaceAllMapped(RegExp(r'(\S)(?=\S)'), (m) => '${m[1]}\u200D'),
+                  description.replaceAllMapped(RegExp(r'(\S)(?=\S)'), (m) => '${m[1]}\u200D'),
                   style: TextStyle(fontSize: 17, color: Colors.grey[700]),
                 ),
               ),
@@ -71,9 +67,21 @@ class _ExplainTestPageState extends State<ExplainTestPage> {
               width: double.infinity,
               child: ElevatedButton(
                 onPressed: () {
+                  Widget nextPage = TestPageAsi();
+
+                  if (title == "ASI") {
+                    nextPage = TestPageAsi();
+                  } else if (title == "PSS") {
+                    nextPage = TestPagePss();
+                  } else if (title == "BDI") {
+                    nextPage = TestPageAsi();
+                  } else if (title == "SSI") {
+                    nextPage = TestPageAsi();
+                  }
+
                   Navigator.push(
                     context,
-                    MaterialPageRoute(builder: (context) => TestPage()),
+                    MaterialPageRoute(builder: (context) => nextPage),
                   );
                 },
                 style: ElevatedButton.styleFrom(
