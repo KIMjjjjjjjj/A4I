@@ -30,7 +30,7 @@ class _TestPagePssState extends State<TestPagePss> {
   @override
   void initState() {
     super.initState();
-    // 제출하지 않고 페이지를 벗어났을 때 이전에 선택했던 답을 저장하고 있어야 함.
+    // 제출하지 않고 페이지를 벗어났을 때 이전에 선택했던 답을 저장하고 있어야 함
   }
 
   // 총점 계산

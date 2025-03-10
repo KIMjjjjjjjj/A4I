@@ -3,7 +3,6 @@ import 'package:repos/UI/PsychologicalTest/test_page_asi.dart';
 import 'package:repos/UI/PsychologicalTest/test_page_bdi.dart';
 import 'package:repos/UI/PsychologicalTest/test_page_pss.dart';
 
-
 class ExplainTestPage extends StatelessWidget {
   final String title;
   final String subtitle;
