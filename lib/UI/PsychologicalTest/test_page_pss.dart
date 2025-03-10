@@ -13,6 +13,7 @@ class TestPagePss extends StatefulWidget {
 class _TestPagePssState extends State<TestPagePss> {
   User? user = FirebaseAuth.instance.currentUser;
   String testType = 'PSS';
+  ScrollController scrollController = ScrollController();
   List<int> answers = List.filled(10, -1);
   List<String> questions = [
     '1. 예상치 못한 일 때문에 화가 난 적이 있습니까?',
@@ -122,11 +123,23 @@ class _TestPagePssState extends State<TestPagePss> {
   }
 
   // 최종 제출
-  Future<void> submitTest() async {
+  Future<bool> submitTest() async {
     int currentRound = 1;
     int totalScore = getTotalScore();
+    int firstUnansweredIndex = answers.indexWhere((answer) => answer == -1);
 
-    if (user == null) return;
+    if (firstUnansweredIndex != -1) {
+      ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text("모든 문항을 선택하지 않았어요!"))
+      );
+      scrollController.animateTo(
+        firstUnansweredIndex * 100,
+        duration: Duration(milliseconds: 500),
+        curve: Curves.easeInOut,
+      );
+      return false;
+    }
+
     DocumentReference<Map<String, dynamic>> docRef = FirebaseFirestore.instance
         .collection("test")
         .doc(user?.uid)
@@ -157,6 +170,8 @@ class _TestPagePssState extends State<TestPagePss> {
         .collection(testType)
         .doc("questions")
         .delete();
+
+    return true;
   }
 
   @override
@@ -192,6 +207,7 @@ class _TestPagePssState extends State<TestPagePss> {
                   const SizedBox(height: 7),
                   Expanded(
                     child: SingleChildScrollView(
+                      controller: scrollController,
                       child: Column(
                           children: List.generate(questions.length, (index) {
                             return QuestionSlider(
@@ -235,12 +251,15 @@ class _TestPagePssState extends State<TestPagePss> {
                       const SizedBox(width: 20),
                       Expanded(
                         child: ElevatedButton(
-                          onPressed: () {
-                            submitTest();
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(builder: (context) => SelectTestPage()),
-                            );
+                          onPressed: () async {
+                            bool isComplete = await submitTest();
+                            progressTest();
+                            if(isComplete){
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(builder: (context) => SelectTestPage()),
+                              );
+                            }
                           },
                           style: ElevatedButton.styleFrom(
                             backgroundColor: Color(0xFF6BE5A0),
