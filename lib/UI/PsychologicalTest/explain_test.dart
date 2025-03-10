@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:repos/UI/PsychologicalTest/test_page_asi.dart';
+import 'package:repos/UI/PsychologicalTest/test_page_bdi.dart';
 import 'package:repos/UI/PsychologicalTest/test_page_pss.dart';
 
 
@@ -74,7 +75,7 @@ class ExplainTestPage extends StatelessWidget {
                   } else if (title == "PSS") {
                     nextPage = TestPagePss();
                   } else if (title == "BDI") {
-                    nextPage = TestPageAsi();
+                    nextPage = TestPageBdi();
                   } else if (title == "SSI") {
                     nextPage = TestPageAsi();
                   }

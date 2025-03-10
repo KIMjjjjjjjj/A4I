@@ -12,9 +12,8 @@ class TestPageAsi extends StatefulWidget {
 
 class _TestPageAsiState extends State<TestPageAsi> {
   User? user = FirebaseAuth.instance.currentUser;
-  int solvedCount = 0;
   String testType = 'ASI';
-  List<int> selectedValues = List.filled(16, -1);
+  List<int> answers = List.filled(16, -1);
   List<String> questions = [
     '1. 남들에게 불안하게 보이지 말아야 한다.',
     '2. 집중이 잘 안되면, 이러다가 미치는 것은 아닌가 걱정한다.',
@@ -42,12 +41,12 @@ class _TestPageAsiState extends State<TestPageAsi> {
 
   // 총점 계산
   int getTotalScore() {
-    return selectedValues.where((value) => value != -1).fold(0, (sum, value) => sum + value);
+    return answers.where((value) => value != -1).fold(0, (sum, value) => sum + value);
   }
 
   // 중간 진행 상황
   Future<void> progressTest() async {
-    int solvedCount = selectedValues.where((v) => v != -1).length;
+    int solvedCount = answers.where((v) => v != -1).length;
     
     if (user == null) return;
     DocumentReference<Map<String, dynamic>> docRef = FirebaseFirestore.instance
@@ -131,9 +130,9 @@ class _TestPageAsiState extends State<TestPageAsi> {
                     children: List.generate(questions.length, (index) {
                       return QuestionSlider(
                         question: questions[index],
-                        value: selectedValues[index],
+                        value: answers[index],
                         onChanged: (value) {
-                          setState(() => selectedValues[index] = value);
+                          setState(() => answers[index] = value);
                         },
                       );
                     })

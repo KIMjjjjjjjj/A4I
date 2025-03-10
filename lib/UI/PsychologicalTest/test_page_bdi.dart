@@ -5,27 +5,51 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:repos/UI/PsychologicalTest/select_test.dart';
 
-class TestPagePss extends StatefulWidget {
+class TestPageBdi extends StatefulWidget {
   @override
-  _TestPagePssState createState() => _TestPagePssState();
+  _TestPageBdiState createState() => _TestPageBdiState();
 }
 
-class _TestPagePssState extends State<TestPagePss> {
+class _TestPageBdiState extends State<TestPageBdi> {
   User? user = FirebaseAuth.instance.currentUser;
-  String testType = 'PSS';
-  List<int> answers = List.filled(10, -1);
-  List<String> questions = [
-    '1. 예상치 못한 일 때문에 화가 난 적이 있습니까?',
-    '2. 생활하면서 중요한 일들을 통제할 수 없다고 느낀 적이 있습니까?',
-    '3. 신경이 예민해지고 스트레스를 받은 적이 있습니까?',
-    '4. 개인적인 문제들을 다루는 능력에 대해 자신감을 느낀 적이 있습니까?',
-    '5. 당신이 원하는 방식으로 일이 진행되고 있다고 느낀 적이 있습니까?',
-    '6. 당신이 해야만 하는 모든 일을 감당할 수 없다고 느낀 적이 있습니까?',
-    '7. 일상생활에서 겪는 불안감과 초조함을 통제할 수 있었습니까?',
-    '8. 일들이 어떻게 돌아가는 지 잘 알고 있다고 느낀 적이 있었습니까?',
-    '9. 통제할 수 없는 일 때문에 화가 난 적이 있습니까?',
-    '10. 힘든 일이 너무 많이 쌓여도 도저히 감당할 수 없다고 느낀 적이 있습니까?'
+  String testType = 'BDI';
+  int index = 0;
+  List<int> answers = List.filled(21, -1);
+  final List<Map<String, dynamic>> questions = [
+    {
+      'options': [
+        '나는 슬프지 않다.',
+        '나는 슬프다.',
+        '나는 항상 슬퍼서 기운을 낼 수 없다.',
+        '나는 너무나 슬프고 불행해서 도저히 견딜 수가 없다.'
+      ]
+    },
+    {
+      'options': [
+        '나는 앞날에 대해서 별로 낙담하지 않는다.',
+        '나는 앞날에 대해서 비관적인 느낌이 든다.',
+        '나는 앞날에 대해 기대할 것이 아무것도 없다고 느낀다.',
+        '나의 앞날은 아주 절망적이고 나아질 가망이 없다고 느낀다.'
+      ]
+    },
+    {
+      'options': [
+        '나는 실패자라고 느끼지 않는다.',
+        '나는 보통 사람들보다 더 많이 실패한 것 같다.',
+        '내가 살아온 과거를 뒤돌아 보면 실패투성이인 것 같다.',
+        '나는 인간으로서 완전한 실패자라고 느낀다.'
+      ]
+    },
+    {
+      'options': [
+        '나는 전과 같은 일상생활에 만족하고 있다.',
+        '나의 일상생활은 예전처럼 즐겁지 않다.',
+        '나는 어떠한 것에서도 만족을 느끼지 못한다.',
+        '나는 모든 것이 싫고 불만스럽다.'
+      ]
+    }
   ];
+
 
   @override
   void initState() {
@@ -35,35 +59,7 @@ class _TestPagePssState extends State<TestPagePss> {
 
   // 총점 계산
   int getTotalScore() {
-    return answers.asMap().entries.fold(0, (sum, entry) {
-      int index = entry.key;
-      int value = entry.value;
-
-      if (value == -1) return sum;
-
-      if (index >= 3 && index <= 7) {
-        int convertedScore;
-        switch (value) {
-          case 0:
-            convertedScore = 3;
-            break;
-          case 1:
-            convertedScore = 2;
-            break;
-          case 2:
-            convertedScore = 1;
-            break;
-          case 3:
-            convertedScore = 0;
-            break;
-          default:
-            convertedScore = value;
-        }
-        return sum + convertedScore;
-      } else {
-        return sum + value;
-      }
-    });
+    return answers.where((value) => value != -1).fold(0, (sum, value) => sum + value);
   }
 
   // 중간 진행 상황
@@ -132,11 +128,11 @@ class _TestPagePssState extends State<TestPagePss> {
             child: Column(
                 children: [
                   const Text(
-                    '스트레스 척도 PSS',
+                    '우울 척도 BDI',
                     style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
                   ),
                   const Text(
-                    '0: 아니다  1: 가끔 그렇다\n2: 자주그렇다  3: 항상 그렇다',
+                    '다음 문항을 읽어보고, 자신의 상태를\n잘 나타내는 곳에 표시를 하시오',
                     textAlign: TextAlign.center,
                     style: TextStyle(fontSize: 15, color: Colors.grey),
                   ),
@@ -147,18 +143,31 @@ class _TestPagePssState extends State<TestPagePss> {
                   ),
                   const SizedBox(height: 7),
                   Expanded(
-                    child: SingleChildScrollView(
-                      child: Column(
-                          children: List.generate(questions.length, (index) {
-                            return QuestionSlider(
-                              question: questions[index],
-                              value: answers[index],
-                              onChanged: (value) {
-                                setState(() => answers[index] = value);
-                              },
-                            );
-                          })
-                      ),
+                    child: ListView.builder(
+                      itemCount: questions.length,
+                      itemBuilder: (context, questionIndex){
+                        return Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              '${index + 1}.',
+                              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                            ),
+                            Column(
+                              children: List.generate(questions[index]['options'].length, (index) {
+                                return RadioListTile<int>(
+                                  title: Text(questions[index]['options'][index]),
+                                  value: index,
+                                  groupValue: answers[index],
+                                  onChanged: (int? value) {
+                                    setState(() => answers[index] = value!);
+                                  },
+                                );
+                              }),
+                            ),
+                          ],
+                        );
+                      }
                     ),
                   ),
                   const SizedBox(height: 30),
@@ -217,68 +226,6 @@ class _TestPagePssState extends State<TestPagePss> {
             ),
           ),
         )
-    );
-  }
-}
-
-class QuestionSlider extends StatelessWidget {
-  final String question;
-  final int value;
-  final ValueChanged<int> onChanged;
-
-  const QuestionSlider({
-    required this.question,
-    required this.value,
-    required this.onChanged,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(question, style: const TextStyle(fontSize: 16)),
-        Stack(
-          children: [
-            Positioned(
-              top: 16,
-              left: 0,
-              right: 0,
-              child: Container(
-                width: double.infinity,
-                height: 16,
-                margin: const EdgeInsets.symmetric(horizontal: 14),
-                decoration: BoxDecoration(
-                  color: const Color(0xFFCFF7D3),
-                  borderRadius: BorderRadius.circular(17.0),
-                ),
-              ),
-            ),
-            SizedBox(
-              width: double.infinity,
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: List.generate(4, (index) {
-                  return Column(
-                    children: [
-                      Radio<int>(
-                        value: index,
-                        groupValue: value,
-                        onChanged: (value) => onChanged(value!),
-                        activeColor: Color(0xFF6BE5A0),
-                        fillColor: MaterialStateColor.resolveWith((states) =>
-                        value == index ? Color(0xFF6BE5A0) : Colors.grey),
-                      ),
-                      Text(index.toString()),
-                    ],
-                  );
-                }),
-              ),
-            )
-          ],
-        ),
-        SizedBox(height: 10)
-      ],
     );
   }
 }
