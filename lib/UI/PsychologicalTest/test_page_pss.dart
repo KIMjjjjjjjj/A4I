@@ -30,7 +30,7 @@ class _TestPagePssState extends State<TestPagePss> {
   @override
   void initState() {
     super.initState();
-    // 제출하지 않고 페이지를 벗어났을 때 이전에 선택했던 답을 저장하고 있어야 함
+    loadAnswer();
   }
 
   // 총점 계산
@@ -64,6 +64,45 @@ class _TestPagePssState extends State<TestPagePss> {
         return sum + value;
       }
     });
+  }
+
+  //답변 저장
+  Future<void> saveAnswer(int questionIndex, int selectedOption) async {
+    if (user == null) return;
+
+    DocumentReference<Map<String, dynamic>> questionRef = FirebaseFirestore.instance
+        .collection("test")
+        .doc(user!.uid)
+        .collection(testType)
+        .doc("questions");
+
+    await questionRef.set({
+      "$questionIndex": {"선택 문항": selectedOption}
+    }, SetOptions(merge: true));
+  }
+
+  //답변 불러오기
+  Future<void> loadAnswer() async {
+    DocumentReference<Map<String, dynamic>> questionRef = FirebaseFirestore.instance
+        .collection("test")
+        .doc(user!.uid)
+        .collection(testType)
+        .doc("questions");
+
+    DocumentSnapshot<Map<String, dynamic>> snapshot = await questionRef.get();
+    if (snapshot.exists && snapshot.data() != null) {
+      Map<String, dynamic> savedAnswers = snapshot.data()!;
+      setState(() {
+        savedAnswers.forEach((key, value) {
+          if (key != "solvedCount") {
+            int questionIndex = int.tryParse(key) ?? -1;
+            if (questionIndex >= 0 && questionIndex < answers.length) {
+              answers[questionIndex] = value["선택 문항"];
+            }
+          }
+        });
+      });
+    }
   }
 
   // 중간 진행 상황
@@ -108,11 +147,16 @@ class _TestPagePssState extends State<TestPagePss> {
         }
       }
     }
-
     await docRef.set({
       "$currentRound": totalScore,
-      "solvedCount": 0
     }, SetOptions(merge: true));
+
+    await FirebaseFirestore.instance
+        .collection("test")
+        .doc(user!.uid)
+        .collection(testType)
+        .doc("questions")
+        .delete();
   }
 
   @override
@@ -155,6 +199,7 @@ class _TestPagePssState extends State<TestPagePss> {
                               value: answers[index],
                               onChanged: (value) {
                                 setState(() => answers[index] = value);
+                                saveAnswer(index, value);
                               },
                             );
                           })

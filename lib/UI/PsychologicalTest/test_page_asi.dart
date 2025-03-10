@@ -36,7 +36,7 @@ class _TestPageAsiState extends State<TestPageAsi> {
   @override
   void initState() {
     super.initState();
-    // 제출하지 않고 페이지를 벗어났을 때 이전에 선택했던 답을 저장하고 있어야 함
+    loadAnswer();
   }
 
   // 총점 계산
@@ -44,10 +44,49 @@ class _TestPageAsiState extends State<TestPageAsi> {
     return answers.where((value) => value != -1).fold(0, (sum, value) => sum + value);
   }
 
+  //답변 저장
+  Future<void> saveAnswer(int questionIndex, int selectedOption) async {
+    if (user == null) return;
+
+    DocumentReference<Map<String, dynamic>> questionRef = FirebaseFirestore.instance
+        .collection("test")
+        .doc(user!.uid)
+        .collection(testType)
+        .doc("questions");
+
+    await questionRef.set({
+      "$questionIndex": {"선택 문항": selectedOption}
+    }, SetOptions(merge: true));
+  }
+
+  //답변 불러오기
+  Future<void> loadAnswer() async {
+    DocumentReference<Map<String, dynamic>> questionRef = FirebaseFirestore.instance
+        .collection("test")
+        .doc(user!.uid)
+        .collection(testType)
+        .doc("questions");
+
+    DocumentSnapshot<Map<String, dynamic>> snapshot = await questionRef.get();
+    if (snapshot.exists && snapshot.data() != null) {
+      Map<String, dynamic> savedAnswers = snapshot.data()!;
+      setState(() {
+        savedAnswers.forEach((key, value) {
+          if (key != "solvedCount") {
+            int questionIndex = int.tryParse(key) ?? -1;
+            if (questionIndex >= 0 && questionIndex < answers.length) {
+              answers[questionIndex] = value["선택 문항"];
+            }
+          }
+        });
+      });
+    }
+  }
+
   // 중간 진행 상황
   Future<void> progressTest() async {
     int solvedCount = answers.where((v) => v != -1).length;
-    
+
     if (user == null) return;
     DocumentReference<Map<String, dynamic>> docRef = FirebaseFirestore.instance
         .collection("test")
@@ -86,11 +125,16 @@ class _TestPageAsiState extends State<TestPageAsi> {
         }
       }
     }
-
     await docRef.set({
       "$currentRound": totalScore,
-      "solvedCount": 0
     }, SetOptions(merge: true));
+
+    await FirebaseFirestore.instance
+        .collection("test")
+        .doc(user!.uid)
+        .collection(testType)
+        .doc("questions")
+        .delete();
   }
 
   @override
@@ -133,6 +177,7 @@ class _TestPageAsiState extends State<TestPageAsi> {
                         value: answers[index],
                         onChanged: (value) {
                           setState(() => answers[index] = value);
+                          saveAnswer(index, value);
                         },
                       );
                     })
@@ -148,8 +193,8 @@ class _TestPageAsiState extends State<TestPageAsi> {
                       onPressed: () {
                         progressTest();
                         Navigator.push(
-                        context,
-                        MaterialPageRoute(builder: (context) => SelectTestPage()),
+                          context,
+                          MaterialPageRoute(builder: (context) => SelectTestPage()),
                         );
                       },
                       style: ElevatedButton.styleFrom(

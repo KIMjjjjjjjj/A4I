@@ -25,19 +25,19 @@ class _SelectTestPageState extends State<SelectTestPage> {
 
   // 현재 테스트 진행 상황 불러오기
   Future<void> loadTestData() async {
-    List<String> testNames = ["ASI", "BDI", "PSS", "SSI"];
+    List<String> testTypes = ["ASI", "BDI", "PSS", "SSI"];
     Map<String, int> solvedCounts = {"ASI": 0, "BDI": 0, "PSS": 0, "SSI": 0};
 
-    for (String testName in testNames) {
+    for (String testType in testTypes) {
       DocumentSnapshot<Map<String, dynamic>> testDoc = await FirebaseFirestore.instance
           .collection("test")
           .doc(user!.uid)
-          .collection(testName)
+          .collection(testType)
           .doc("score")
           .get();
 
       if (testDoc.exists && testDoc.data()!.containsKey("solvedCount")) {
-        solvedCounts[testName] = testDoc["solvedCount"];
+        solvedCounts[testType] = testDoc["solvedCount"];
       }
     }
 
@@ -75,16 +75,13 @@ class _SelectTestPageState extends State<SelectTestPage> {
 
           if(currentScore > 0) {
             currentRound += 1;
-            await docRef.set(
-                {"$currentRound": 0, "solvedCount": 0}, SetOptions(merge: true));
           }
         }
       }
-    } else{
-      await docRef.set(
-        {"1": 0, "solvedCount": 0}
-      );
     }
+    await docRef.set({
+      "$currentRound": 0,
+    }, SetOptions(merge: true));
   }
 
   @override
@@ -148,8 +145,8 @@ class _SelectTestPageState extends State<SelectTestPage> {
                   child: ElevatedButton(
                     onPressed:(){
                       Navigator.push(
-                          context,
-                          MaterialPageRoute(builder: (context) => TestResultPage()),
+                        context,
+                        MaterialPageRoute(builder: (context) => TestResultPage()),
                       );
                     },
                     style: ElevatedButton.styleFrom(
