@@ -33,7 +33,7 @@ class _SelectTestPageState extends State<SelectTestPage> {
           .collection("test")
           .doc(user!.uid)
           .collection(testType)
-          .doc("score")
+          .doc("questions")
           .get();
 
       if (testDoc.exists && testDoc.data()!.containsKey("solvedCount")) {
