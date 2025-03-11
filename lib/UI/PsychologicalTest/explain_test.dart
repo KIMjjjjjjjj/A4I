@@ -76,7 +76,7 @@ class ExplainTestPage extends StatelessWidget {
                   } else if (title == "BDI") {
                     nextPage = TestPageBdi();
                   } else if (title == "SSI") {
-                    nextPage = TestPageAsi();
+                    nextPage = TestPageSsi();
                   }
 
                   Navigator.push(
