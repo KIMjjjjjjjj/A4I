@@ -6,6 +6,7 @@ import 'firebase_options.dart';
 import 'bottom_navigation_bar.dart';
 import 'UI/survey/Firstsurvey_explain.dart';
 import 'UI/MainDisplay/mainDisplay.dart';
+import 'package:flutter_naver_map/flutter_naver_map.dart';
 
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
@@ -34,6 +35,7 @@ void main() async {
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
   );
+  await NaverMapSdk.instance.initialize(clientId: 'lnluw3cz1n');
 
   runApp(MyApp());
 }
