@@ -1,4 +1,6 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
+import 'board_post_ui.dart';
 import 'board_ui.dart';
 
 class CommunityScreen extends StatelessWidget {
@@ -51,16 +53,63 @@ class CommunityScreen extends StatelessWidget {
                   color: Color(0xFFFFFFFF),
                   borderRadius: BorderRadius.circular(20),
                 ),
-                child: Column(
-                  children: [
-                    const SizedBox(height: 5,),
-                    postPanel("제목", "자유 게시판", panelHeight * 0.8 / 3, panelWidth * 0.9),
-                    Divider(color: Colors.black, thickness: 1, indent: 10, endIndent: 10),
-                    postPanel("제목", "일기 게시판", panelHeight * 0.8 / 3, panelWidth * 0.9),
-                    Divider(color: Colors.black, thickness: 1, indent: 10, endIndent: 10),
-                    postPanel("제목", "고민 게시판", panelHeight * 0.8 / 3, panelWidth * 0.9),
-                  ],
-                ),
+                child: FutureBuilder<QuerySnapshot>(
+                  future: FirebaseFirestore.instance
+                      .collection("community")
+                      .doc("AjeagqxuQCcafNgotPhV")
+                      .collection("posts")
+                      .orderBy("likeCount", descending: true)
+                      //.orderBy("commentCount", descending: true)
+                      //.orderBy("viewCount", descending: true)
+                      .limit(3)
+                      .get(),
+                  builder: (context, snapshot){
+                    if(snapshot.connectionState == ConnectionState.waiting){
+                      return Center(child: CircularProgressIndicator());
+                    }
+                    if (snapshot.hasError) {
+                      return Center(child: Text("오류 발생: ${snapshot.error}"));
+                    }
+                    if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+                      return Center(child: Text("추천글이 없습니다."));
+                    }
+
+                    snapshot.data!.docs.forEach((doc) {
+                      print("Title: ${doc["title"]}, LikeCount: ${doc["likeCount"]}");
+                    });
+
+                    List<Widget> postWidgets = snapshot.data!.docs.map((doc) {
+                      return GestureDetector(
+                        onTap: () {
+                          // 게시글 상세 페이지로 이동
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => PostDetailScreen(postId: doc.id), // 게시글 ID 전달
+                            ),
+                          );
+                        },
+                        child: postPanel(
+                          doc["title"],
+                          doc["boardName"],
+                          panelHeight * 0.8 / 3,
+                          panelWidth * 0.9,
+                        ),
+                      );
+                    }).toList();
+
+                    // 게시글 수에 따라 Divider 추가
+                    List<Widget> finalWidgets = [];
+                    for (int i = 0; i < postWidgets.length; i++) {
+                      finalWidgets.add(postWidgets[i]);
+                      if (i < postWidgets.length - 1) {
+                        finalWidgets.add(Divider(color: Colors.black, thickness: 1, indent: 10, endIndent: 10)); // 마지막 게시글 뒤에는 Divider 추가 안 함
+                      }
+                    }
+
+                    return Column(children: finalWidgets);
+                  }
+                )
               ),
             ),
             const SizedBox(height: 10),
