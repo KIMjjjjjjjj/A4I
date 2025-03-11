@@ -2,7 +2,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:fl_chart/fl_chart.dart';
-import 'package:repos/UI/chart/week_report.dart';
+import 'week_report.dart';
 
 import '../diary/calender_page.dart';
 
@@ -60,7 +60,7 @@ class _dayreport extends State<dayreport> {
                           mainAxisSize: MainAxisSize.min,
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Text("토리와의 대화를 통해 나의 감정을 객관적으로 확인하고, 그날의 나를 돌아볼 수 있어요!"),
+                            Text("하루와의 대화를 통해 나의 감정을 객관적으로 확인하고, 그날의 나를 돌아볼 수 있어요!"),
                             Text("일일 보고서는 매일 오전 6시에 갱신돼요."),
                             Text("해당 보고서는 참고용이며, 필요 시 전문가와 상의하세요"),
                           ],
@@ -118,7 +118,7 @@ class _dayreport extends State<dayreport> {
                   ),
                   ],
               ),
-                  Text("토리와의 대화에서 마음을 살펴보았어요", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                  Text("하루와의 대화에서 마음을 살펴보았어요", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
                 ],
               ),
             ),

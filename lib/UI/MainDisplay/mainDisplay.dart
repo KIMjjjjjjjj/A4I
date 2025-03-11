@@ -7,6 +7,7 @@ import '../Challenge/challenge_page.dart';
 import '../PsychologicalTest/select_test.dart';
 import '../diary/calender_page.dart';
 import '../HelpCenter/help_center_ui.dart';
+import '../Report/day_report.dart';
 
 class MainScreen extends StatefulWidget {
   @override
@@ -106,7 +107,7 @@ class _MainScreenState extends State<MainScreen> {
                         () {
                       Navigator.push(
                         context,
-                        MaterialPageRoute(builder: (context) => DayLineScreen()),
+                        MaterialPageRoute(builder: (context) => dayreport()),
                       );
                     },
                   ),

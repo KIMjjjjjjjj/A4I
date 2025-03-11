@@ -46,7 +46,8 @@ dependencies:
   firebase_storage: ^12.4.3
   firebase_auth: ^5.5.0
   google_fonts: ^6.2.1
-  fl_chart:
+  intl: ^0.20.2
+  fl_chart: ^0.66.1
 
 dev_dependencies:
   flutter_test:
@@ -141,6 +142,7 @@ flutter:
     - assets/Widget/Community/review.png
     - assets/Widget/Community/smile.png
     - assets/Widget/Community/write.png
+    - assets/images/character.png
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/to/resolution-aware-images
 
