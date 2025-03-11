@@ -93,7 +93,7 @@ class _TestPageAsiState extends State<TestPageAsi> {
         .collection("test")
         .doc(user!.uid)
         .collection(testType)
-        .doc("score");
+        .doc("questions");
 
     await docRef.set({
       "solvedCount": solvedCount,

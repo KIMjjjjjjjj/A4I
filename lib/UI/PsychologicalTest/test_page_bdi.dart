@@ -192,12 +192,10 @@ class _TestPageBdiState extends State<TestPageBdi> {
 
   ];
 
-
   @override
   void initState() {
     super.initState();
     loadAnswer();
-    // 제출하지 않고 페이지를 벗어났을 때 이전에 선택했던 답을 저장하고 있어야 함
   }
 
   // 총점 계산
@@ -212,7 +210,7 @@ class _TestPageBdiState extends State<TestPageBdi> {
     DocumentReference<Map<String, dynamic>> questionRef = FirebaseFirestore.instance
         .collection("test")
         .doc(user!.uid)
-        .collection("BDI")
+        .collection(testType)
         .doc("questions");
 
     await questionRef.set({
@@ -225,7 +223,7 @@ class _TestPageBdiState extends State<TestPageBdi> {
     DocumentReference<Map<String, dynamic>> questionRef = FirebaseFirestore.instance
         .collection("test")
         .doc(user!.uid)
-        .collection("BDI")
+        .collection(testType)
         .doc("questions");
 
     DocumentSnapshot<Map<String, dynamic>> snapshot = await questionRef.get();
@@ -243,7 +241,6 @@ class _TestPageBdiState extends State<TestPageBdi> {
       });
     }
   }
-
 
   // 중간 진행 상황
   Future<void> progressTest() async {

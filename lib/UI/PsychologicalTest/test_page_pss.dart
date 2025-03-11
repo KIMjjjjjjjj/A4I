@@ -115,7 +115,7 @@ class _TestPagePssState extends State<TestPagePss> {
         .collection("test")
         .doc(user!.uid)
         .collection(testType)
-        .doc("score");
+        .doc("questions");
 
     await docRef.set({
       "solvedCount": solvedCount,
