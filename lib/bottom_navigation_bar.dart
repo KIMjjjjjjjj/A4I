@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/material.dart' hide NavigationBar;
 import 'UI/MainDisplay/mainDisplay.dart';
 import 'UI/Community/community_ui.dart';
+import 'UI/chatbot/chatbot_home.dart';
 
 class CustomNavigationBar extends StatefulWidget {
   const CustomNavigationBar({super.key});
@@ -18,7 +19,7 @@ class NavigationBarState extends State<CustomNavigationBar> {
   Widget build(BuildContext context) {
     final List<Widget> _pages = [
       MainScreen(),
-      SettingPage(),
+      ChatbotScreen(),
       CommunityScreen(),
       SettingPage(),
     ];
