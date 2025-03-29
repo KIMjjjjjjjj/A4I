@@ -32,7 +32,7 @@ class ChatAnalyzer {
           }
 
           **분석 기준**
-          - "핵심 키워드": 메시지에서 중요한 단어나 구를 2~3개 추출해줘
+          - "핵심 키워드": 메시지에서 중요한 단어를 2~3개 추출해줘
           - "주제": 대화의 주요 주제를 한 단어로 정리해줘 (예: "대인관계", "학업", "취업 및 직장")
           - "감정": 메시지에서 가장 강하게 느껴지는 감정을 하나 선택해줘 (예: "행복", "분노", "슬픔", "불안", "놀람", "평온") //긍정적, 낙관적, 비관적, 부정적, 기타?  
           """
@@ -61,7 +61,7 @@ class ChatAnalyzer {
     }
   }
 
-// 감정이 강하면 대화를 저장
+// 감정이 강할때 대화를 저장
   static bool shouldSaveConversation(String emotion, String topic) {
     List<String> strongEmotions = ["분노", "슬픔", "놀람", "불안"];
     if (strongEmotions.contains(emotion)) return true;
