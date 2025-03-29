@@ -5,18 +5,39 @@ import 'dart:convert' as convert;
 import 'voice_chat.dart';
 
 class ChatScreen extends StatefulWidget {
+  final List<Map<String, String>>? initialMessages;
+
+  ChatScreen({Key? key, this.initialMessages}) : super(key: key);
+
   @override
   _ChatScreenState createState() => _ChatScreenState();
 }
 
 class _ChatScreenState extends State<ChatScreen> {
-  List<Map<String, String>> messages = [
-    {"sender": "bot", "text": "안녕! 난 토리에요. 반가워요!"},
-    {"sender": "bot", "text": "오늘 기분은 어떤가요? 고민이 있다면 편하게 이야기해주세요."},
-  ];
+  late List<Map<String, String>> messages;
   TextEditingController _controller = TextEditingController();
   final ScrollController _scrollController = ScrollController();
   final String _apiKey = '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 ';
+
+  @override
+  void initState() {
+    super.initState();
+    messages = widget.initialMessages ?? [
+      {"sender": "bot", "text": "안녕! 난 토리에요. 반가워요!"},
+      {"sender": "bot", "text": "오늘 기분은 어떤가요? 고민이 있다면 편하게 이야기해주세요."},
+    ];
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (_scrollController.hasClients) {
+        _scrollController.animateTo(
+          _scrollController.position.maxScrollExtent,
+          duration: Duration(milliseconds: 300),
+          curve: Curves.easeOut,
+        );
+      }
+    });
+  }
+
 
   void sendMessage() async {
     String userMessage = _controller.text.trim();
@@ -248,7 +269,7 @@ class _ChatScreenState extends State<ChatScreen> {
                           onPressed: () {
                             Navigator.push(
                               context,
-                              MaterialPageRoute(builder: (context) => VoiceChatScreen()),
+                              MaterialPageRoute(builder: (context) => VoiceChatScreen(messages: messages)),
                             );
                           },
                         ),

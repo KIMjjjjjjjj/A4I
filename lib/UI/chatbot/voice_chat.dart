@@ -2,21 +2,34 @@ import 'package:flutter/material.dart';
 import 'chat_screen.dart';
 import 'sound_wave_painter.dart';
 import 'recording_chat_button.dart';
+import 'package:http/http.dart' as http;
+import 'dart:convert';
+import 'dart:convert' as convert;
 
 class VoiceChatScreen extends StatefulWidget {
+  final List<Map<String, String>> messages;
+
+  // 메시지 목록을 받아오는 생성자 추가
+  VoiceChatScreen({Key? key, required this.messages}) : super(key: key);
+
   @override
   _VoiceChatScreenState createState() => _VoiceChatScreenState();
 }
 
 class _VoiceChatScreenState extends State<VoiceChatScreen> with SingleTickerProviderStateMixin {
   String _recognizedText = "누르고 말해주세요";
+  String _botResponse = "오늘 기분은 어떤가요? 고민이 있으면 편하게 이야기해주세요.";
   bool _isRecording = false;
+  bool _isProcessing = false;
 
   late AnimationController _animationController;
+  // 채팅 메시지 저장할 리스트
+  late List<Map<String, String>> _messages;
 
   @override
   void initState() {
     super.initState();
+    _messages = widget.messages; // 전달 받은 메시지 목록 초기화
     _animationController = AnimationController(
       vsync: this,
       duration: Duration(milliseconds: 500),
@@ -40,6 +53,13 @@ class _VoiceChatScreenState extends State<VoiceChatScreen> with SingleTickerProv
     setState(() {
       _isRecording = false;
       _animationController.stop(); // 애니메이션 중지
+
+      // 인식된 텍스트가 있고 의미 있는 내용이면 챗봇에 전송
+      if (_recognizedText != "누르고 말해주세요" &&
+          _recognizedText != "말하는 중..." &&
+          _recognizedText != "말을 인식하지 못했어요.") {
+        _sendToChatbot(_recognizedText);
+      }
     });
   }
 
@@ -47,6 +67,65 @@ class _VoiceChatScreenState extends State<VoiceChatScreen> with SingleTickerProv
     setState(() {
       _recognizedText = text;
     });
+  }
+
+  Future<void> _sendToChatbot(String message) async {
+    if (message.isEmpty || _isProcessing) return;
+
+    // 사용자 메시지를 먼저 저장
+    setState(() {
+      _isProcessing = true;
+      _messages.add({"sender": "user", "text": message});
+      _botResponse = "생각 중...";
+    });
+
+    final String _apiKey = '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';
+
+    try {
+      final response = await http.post(
+        Uri.parse('https://api.openai.com/v1/chat/completions'),
+        headers: {
+          'Authorization': 'Bearer $_apiKey',
+          'Content-Type': 'application/json',
+        },
+        body: jsonEncode({
+          "model": "gpt-3.5-turbo",
+          "messages": [
+            {"role": "system", "content": "You are a helpful assistant."},
+            ...widget.messages.map((m) => {
+              "role": m["sender"] == "user" ? "user" : "assistant",
+              "content": m["text"],
+            }),
+            {"role": "user", "content": message},
+          ]
+        }),
+      );
+
+      if (response.statusCode == 200) {
+        final utfDecoded = convert.utf8.decode(response.bodyBytes);
+        final data = jsonDecode(utfDecoded);
+        final reply = data['choices'][0]['message']['content'];
+
+        setState(() {
+          _botResponse = reply.trim();
+          // 봇 응답 메시지도 저장
+          _messages.add({"sender": "bot", "text": reply.trim()});
+          _isProcessing = false;
+        });
+      } else {
+        setState(() {
+          _botResponse = "죄송해요, 응답을 가져오는 데 문제가 있었어요.";
+          _messages.add({"sender": "bot", "text": "죄송해요, 응답을 가져오는 데 문제가 있었어요."});
+          _isProcessing = false;
+        });
+      }
+    } catch (e) {
+      setState(() {
+        _botResponse = "오류가 발생했어요. 다시 시도해주세요.";
+        _messages.add({"sender": "bot", "text": "오류가 발생했어요. 다시 시도해주세요."});
+        _isProcessing = false;
+      });
+    }
   }
 
   @override
@@ -88,7 +167,7 @@ class _VoiceChatScreenState extends State<VoiceChatScreen> with SingleTickerProv
                     Padding(
                       padding: EdgeInsets.only(left: 25, top: 10, right: 25),
                       child: Text(
-                        '오늘 기분은 어떤가요? 고민이 있으면 편하게 이야기해주세요.\n',
+                        _botResponse,
                         textAlign: TextAlign.left,
                         style: TextStyle(fontSize: 16, color: Colors.black),
                       ),
@@ -100,7 +179,7 @@ class _VoiceChatScreenState extends State<VoiceChatScreen> with SingleTickerProv
               Image.asset('assets/Widget/Login/character.png', width: screenWidth * 0.6),
               SizedBox(height: 30),
 
-              // 🎨 애니메이션 적용
+              // 애니메이션 적용
               Container(
                 width: screenWidth * 0.6,
                 height: 50,
@@ -128,9 +207,12 @@ class _VoiceChatScreenState extends State<VoiceChatScreen> with SingleTickerProv
             right: 0,
             child: GestureDetector(
               onTap: () {
+                // 업데이트된 메시지 목록과 함께 ChatScreen으로 이동
                 Navigator.pushReplacement(
                   context,
-                  MaterialPageRoute(builder: (context) => ChatScreen()),
+                  MaterialPageRoute(
+                    builder: (context) => ChatScreen(initialMessages: _messages),
+                  ),
                 );
               },
               child: Container(
