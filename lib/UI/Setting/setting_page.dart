@@ -3,8 +3,9 @@ import 'dart:io';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
+import 'package:repos/UI/Setting/settings.dart';
+import 'alarm_setting.dart';
 import 'edit_profile.dart';
-import 'delete_account.dart';
 import '../Login/Login_UI.dart';
 
 class SettingPage extends StatefulWidget {
@@ -149,7 +150,7 @@ class _SettingPageState extends State<SettingPage> {
                         onTap: () {
                           Navigator.push(
                             context,
-                            MaterialPageRoute(builder: (context) => DeleteAccountPage()),
+                            MaterialPageRoute(builder: (context) => SettingacountPage()),
                           );
                         },
                       ),
@@ -160,10 +161,10 @@ class _SettingPageState extends State<SettingPage> {
                         trailing: Icon(Icons.arrow_forward_ios),
                         tileColor: Colors.white,
                         onTap: () {
-                          // Navigator.push(
-                          //   context,
-                          //   MaterialPageRoute(builder: (context) => NotificationSettingsPage()),
-                          // );
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(builder: (context) => AlarmSettingPage()),
+                          );
                         },
                       ),
                     ],
