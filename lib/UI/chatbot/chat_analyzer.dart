@@ -7,10 +7,14 @@ import 'package:http/http.dart' as http;
 class ChatAnalyzer {
   static DateTime? lastMessageTime;
   static Timer? inactivityTimer;
+  static List<String> unsavedMessages = [];
 
   static Future<void> analyzeAndSaveMessage(String message) async {
     final User? user = FirebaseAuth.instance.currentUser;
     final String _apiKey = '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';
+
+    unsavedMessages.add(message);
+    String combinedMessages = unsavedMessages.join(" ");
 
     final response = await http.post(
       Uri.parse("https://api.openai.com/v1/chat/completions"),
@@ -58,7 +62,7 @@ class ChatAnalyzer {
           },
           {
             "role": "user",
-            "content": message
+            "content": combinedMessages
           }
         ]
       }),
@@ -80,12 +84,14 @@ class ChatAnalyzer {
       // 메시지를 안 보낸지 2분 이상이 되면 저장
       inactivityTimer = Timer(Duration(minutes: 2), () async {
         await createDocument(user!.uid, message, result); //embedding추가
+        unsavedMessages.clear();
       });
 
       // 감정이 강한 경우 저장
       if (shouldSaveConversation(emotionIntensity)) {
         await createDocument(user!.uid, message, result); //embedding추가
         inactivityTimer?.cancel();
+        unsavedMessages.clear();
       }
       // 주제가 바뀐 경우 저장
 
@@ -95,7 +101,6 @@ class ChatAnalyzer {
   static Future<void> createDocument(String userId, String message, Map<String, dynamic> result)async { // List<double> embedding 추가
     await FirebaseFirestore.instance.collection("register").doc(userId).collection("chat").doc().set({
       "timestamp": FieldValue.serverTimestamp(),
-      "message": message,
       "keywords": result["keywords"],
       "topic": result["topic"],
       "emotion": result["emotion"],
@@ -126,6 +131,6 @@ class ChatAnalyzer {
 
   // 강한 감정이 느껴지는 경우
   static bool shouldSaveConversation(double intensity) {
-    return intensity >= 0.7;
+    return intensity >= 0.8;
   }
 }
