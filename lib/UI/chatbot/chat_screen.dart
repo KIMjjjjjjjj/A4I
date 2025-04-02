@@ -2,6 +2,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
+import 'package:repos/UI/Chatbot/prompts.dart';
 import 'dart:convert';
 import 'dart:convert' as convert;
 import 'chat_analyzer.dart';
@@ -27,8 +28,8 @@ class _ChatScreenState extends State<ChatScreen> {
   void initState() {
     super.initState();
     messages = widget.initialMessages ?? [
-      {"sender": "bot", "text": "안녕! 난 토리에요. 반가워요!"},
-      {"sender": "bot", "text": "오늘 기분은 어떤가요? 고민이 있다면 편하게 이야기해주세요."},
+      {"sender": "bot", "text": "안녕! 난 토리야. 반가워!"},
+      {"sender": "bot", "text": "오늘 기분은 어때? 고민이 있다면 편하게 이야기해줘."},
     ];
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -42,34 +43,8 @@ class _ChatScreenState extends State<ChatScreen> {
     });
   }
 
-  Future<Map<String, dynamic>?> loadUserData() async {
-    if (user != null) {
-      DocumentSnapshot testDoc = await FirebaseFirestore.instance
-          .collection('test')
-          .doc(user!.uid)
-          .collection('firsttest')
-          .doc(user!.uid)
-          .get();
-
-      DocumentSnapshot registerDoc = await FirebaseFirestore.instance
-          .collection('register')
-          .doc(user!.uid)
-          .get();
-
-      Map<String, dynamic> data = {};
-      if (testDoc.exists) {
-        data.addAll(testDoc.data() as Map<String, dynamic>);
-      }
-      if (registerDoc.exists) {
-        data.addAll(registerDoc.data() as Map<String, dynamic>);
-      }
-      return data.isNotEmpty ? data : null;
-    }
-  }
-
-
   void sendMessage() async {
-    Map<String, dynamic>? userData = await loadUserData();
+    Map<String, String> prompts = await loadPrompts();
     String userMessage = _controller.text.trim();
     if (userMessage.isEmpty) return;
 
@@ -101,38 +76,7 @@ class _ChatScreenState extends State<ChatScreen> {
           "presence_penalty": 0.8,
           "messages": [
             { "role": "system",
-              "content": """
-              너는 사용자의 친한 친구야. 사용자의 감정을 잘 이해해줘.
-              
-              사용자의 정보:
-              - 사용자 이름: ${userData?['nickname']}
-              - 성별: ${userData?['성별']}
-              - 나이대: ${userData?['나이대']}
-              - 상담 경험: ${userData?['상담 경험이 있는가?']}
-              - 현재 고민: ${userData?['현재 고민']}
-              - 상담을 통해 얻고 싶은 것: ${userData?['상담을 통해 얻고 싶은 것']}
-              - 받고 싶은 도움 방식: ${userData?['받고 싶은 도움']}
-              - 현재 감정 상태: ${userData?['현재 감정']}
-              사용자 정보를 참고하여 사용자에게 맞는 상담을 제공해줘.
-              
-              **대화 스타일**  
-              - 반말 써줘. 너무 공손한 말은 필요 없어. 너무 딱딱한 말투보다는 친구처럼 편하게 이야기해줘.
-              - 답변은 1~3문장 정도로 간결하게, 너무 긴 답변보다 짧고 가볍게 대화하듯이 이야기해줘. 
-              - 질문을 많이 던져서 사용자가 더 깊게 고민을 나눌 수 있도록 해줘  
-              - 먼저 공감부터 해줘 ("오 그랬구나, 진짜 힘들었겠다..." 등)
-              - "헐", "와" 같은 말도 자연스럽게 써도 돼.  
-              - **말투를 사용자 나이에 맞춰 조정해줘.** 
-                - 10대: 좀 더 유행어가 섞인 말투
-                - 20대:자연스럽고 캐주얼한 말투
-                - 30대 이상: 좀 더 차분한 말투
-           
-              **예제 대화**  
-              - "무슨 일 있었어? 요즘 어때?"  
-              - "헐 진짜? 그럼 너 완전 힘들었겠네... 좀 더 자세히 말해줄 수 있어?"  
-              - "이거 진짜 고민되겠다ㅠㅠ 혹시 너는 어떤 선택이 더 끌려?"  
-              - "완전 이해돼... 그럼 지금 제일 걱정되는 부분이 뭐야?"  
-              - "근데 그거 고민될 만하네"
-              """
+              "content": prompts["chatPrompt"],
             },
             ...messages.map((m) => {
               "role": m["sender"] == "user" ? "user" : "assistant",
