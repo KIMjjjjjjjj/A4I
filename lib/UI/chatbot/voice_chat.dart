@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:repos/UI/Chatbot/prompts.dart';
+import 'chat_analyzer.dart';
 import 'chat_screen.dart';
 import 'sound_wave_painter.dart';
 import 'recording_chat_button.dart';
@@ -121,6 +122,7 @@ class _VoiceChatScreenState extends State<VoiceChatScreen> with SingleTickerProv
           _messages.add({"sender": "bot", "text": reply.trim()});
           _isProcessing = false;
         });
+        ChatAnalyzer.analyzeAndSaveMessage(message);
       } else {
         setState(() {
           _botResponse = "죄송해요, 응답을 가져오는 데 문제가 있었어요.";
