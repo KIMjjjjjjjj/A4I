@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:repos/UI/Chatbot/prompts.dart';
+import 'package:flutter_tts/flutter_tts.dart';
 import 'chat_analyzer.dart';
 import 'chat_screen.dart';
 import 'sound_wave_painter.dart';
@@ -25,7 +26,7 @@ class _VoiceChatScreenState extends State<VoiceChatScreen> with SingleTickerProv
   String _botResponse = "오늘 기분은 어때? 고민이 있으면 편하게 이야기해줘";
   bool _isRecording = false;
   bool _isProcessing = false;
-
+  final FlutterTts flutterTts = FlutterTts();
   late AnimationController _animationController;
   // 채팅 메시지 저장할 리스트
   late List<Map<String, String>> _messages;
@@ -33,6 +34,7 @@ class _VoiceChatScreenState extends State<VoiceChatScreen> with SingleTickerProv
   @override
   void initState() {
     super.initState();
+    initializeTTS();
     _messages = widget.messages; // 전달 받은 메시지 목록 초기화
     _animationController = AnimationController(
       vsync: this,
@@ -71,6 +73,16 @@ class _VoiceChatScreenState extends State<VoiceChatScreen> with SingleTickerProv
     setState(() {
       _recognizedText = text;
     });
+  }
+
+  void initializeTTS() async {
+    await flutterTts.setLanguage("ko-KR"); // 언어 설정
+    await flutterTts.setPitch(1.0); // 음성 높낮이 설정
+    await flutterTts.setSpeechRate(1.0); // 음성 속도 설정
+  }
+
+  void textToSpeech(String text) {
+    flutterTts.speak(text);
   }
 
   Future<void> _sendToChatbot(String message) async {
@@ -122,6 +134,7 @@ class _VoiceChatScreenState extends State<VoiceChatScreen> with SingleTickerProv
           _messages.add({"sender": "bot", "text": reply.trim()});
           _isProcessing = false;
         });
+        Future.microtask(() => textToSpeech(_botResponse));
         ChatAnalyzer.analyzeAndSaveMessage(message);
       } else {
         setState(() {
