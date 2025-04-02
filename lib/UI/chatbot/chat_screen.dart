@@ -490,7 +490,7 @@ class _ChatScreenState extends State<ChatScreen> {
                 "keywords": ["핵심 키워드1", "핵심 키워드2", "핵심 키워드3"],
                 "topic": "주제",
                 "emotion": "감정",
-                "emotion_intensity": 0.7,
+                "emotion_intensity": 0.0,
                 "summary": "대화 요약"
               }
 
