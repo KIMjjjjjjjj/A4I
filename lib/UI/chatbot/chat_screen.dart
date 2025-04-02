@@ -10,8 +10,10 @@ import 'voice_chat.dart';
 
 class ChatScreen extends StatefulWidget {
   final List<Map<String, String>>? initialMessages;
+  final String? topicFilter; // 특정 주제를 필터링하기 위한 파라미터
+  final String? userId;
 
-  ChatScreen({Key? key, this.initialMessages}) : super(key: key);
+  ChatScreen({Key? key, this.initialMessages, this.topicFilter, this.userId}) : super(key: key);
 
   @override
   _ChatScreenState createState() => _ChatScreenState();
@@ -23,6 +25,7 @@ class _ChatScreenState extends State<ChatScreen> {
   TextEditingController _controller = TextEditingController();
   final ScrollController _scrollController = ScrollController();
   final String _apiKey = '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 ';
+  bool isLoading = false;
 
   @override
   void initState() {
@@ -32,15 +35,92 @@ class _ChatScreenState extends State<ChatScreen> {
       {"sender": "bot", "text": "오늘 기분은 어때? 고민이 있다면 편하게 이야기해줘."},
     ];
 
+    if (widget.topicFilter != null && widget.userId != null) {
+      _loadPreviousConversation(widget.topicFilter!, widget.userId!);
+    }
+
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (_scrollController.hasClients) {
-        _scrollController.animateTo(
-          _scrollController.position.maxScrollExtent,
-          duration: Duration(milliseconds: 300),
-          curve: Curves.easeOut,
-        );
-      }
+      _scrollToBottom();
     });
+  }
+
+  Future<void> _loadPreviousConversation(String topic, String userId) async {
+    setState(() {
+      isLoading = true;
+    });
+
+    try {
+      // 해당 토픽에 관련된 대화 내역 가져오기
+      final chatSnapshot = await FirebaseFirestore.instance
+          .collection('register')
+          .doc(userId)
+          .collection('chat')
+          .where('topic', isEqualTo: topic)
+          .orderBy('timestamp', descending: false)
+          .limit(1) // 토픽별로 가장 오래된 대화 하나만 가져옴
+          .get();
+
+      if (chatSnapshot.docs.isNotEmpty) {
+        final chatData = chatSnapshot.docs.first.data();
+        final summary = chatData['summary'] ?? '대화 내용이 없습니다.';
+        final keywords = (chatData['keywords'] as List<dynamic>?)?.join(', ') ?? '';
+
+        setState(() {
+          messages.add({
+            "sender": "bot",
+            "text": "이전 대화 요약: $summary"
+          });
+
+          messages.add({
+            "sender": "bot",
+            "text": "관련 키워드: $keywords"
+          });
+        });
+      }
+    } catch (e) {
+      print('이전 대화 로드 오류: $e');
+    } finally {
+      setState(() {
+        isLoading = false;
+      });
+
+      _scrollToBottom();
+    }
+  }
+
+  void _scrollToBottom() {
+    if (_scrollController.hasClients) {
+      _scrollController.animateTo(
+        _scrollController.position.maxScrollExtent,
+        duration: Duration(milliseconds: 300),
+        curve: Curves.easeOut,
+      );
+    }
+  }
+
+  Future<Map<String, dynamic>?> loadUserData() async {
+    if (user != null) {
+      DocumentSnapshot testDoc = await FirebaseFirestore.instance
+          .collection('test')
+          .doc(user!.uid)
+          .collection('firsttest')
+          .doc(user!.uid)
+          .get();
+
+      DocumentSnapshot registerDoc = await FirebaseFirestore.instance
+          .collection('register')
+          .doc(user!.uid)
+          .get();
+
+      Map<String, dynamic> data = {};
+      if (testDoc.exists) {
+        data.addAll(testDoc.data() as Map<String, dynamic>);
+      }
+      if (registerDoc.exists) {
+        data.addAll(registerDoc.data() as Map<String, dynamic>);
+      }
+      return data.isNotEmpty ? data : null;
+    }
   }
 
   void sendMessage() async {
@@ -163,15 +243,25 @@ class _ChatScreenState extends State<ChatScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('토리의 채팅방', style: TextStyle(fontWeight: FontWeight.bold)),
-        backgroundColor : Color(0xFFDFF8FF),
+        title: widget.topicFilter != null
+            ? Text('${widget.topicFilter} 대화', style: TextStyle(fontWeight: FontWeight.bold))
+            : Text('토리의 채팅방', style: TextStyle(fontWeight: FontWeight.bold)),
+        backgroundColor: Color(0xFFDFF8FF),
         actions: [
+          IconButton(
+            icon: Icon(Icons.save),
+            onPressed: () {
+              // 대화 내용 저장 함수 호출
+              _summarizeAndSaveChat();
+            },
+          ),
           IconButton(
             icon: Icon(Icons.menu),
             onPressed: ChatHistory,
           )
         ],
       ),
+
       body: Stack(
         children: [
           Container(
@@ -323,6 +413,120 @@ class _ChatScreenState extends State<ChatScreen> {
     );
   }
 
+  Future<void> _summarizeAndSaveChat() async {
+    if (messages.length < 3) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('대화가 너무 짧아 저장할 수 없습니다.')),
+      );
+      return;
+    }
+
+    if (user == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('로그인이 필요합니다.')),
+      );
+      return;
+    }
+
+    setState(() {
+      isLoading = true;
+    });
+
+    try {
+      // 대화 내용 준비
+      final conversationText = messages.map((m) {
+        return "${m["sender"] == "user" ? "사용자" : "토리"}: ${m["text"]}";
+      }).join("\n");
+
+      // OpenAI API를 사용하여 대화 분석
+      final response = await http.post(
+        Uri.parse('https://api.openai.com/v1/chat/completions'),
+        headers: {
+          'Authorization': 'Bearer $_apiKey',
+          'Content-Type': 'application/json',
+        },
+        body: jsonEncode({
+          "model": "gpt-3.5-turbo",
+          "messages": [
+            {
+              "role": "system",
+              "content": """
+              사용자의 메시지를 분석하여 사건을 중심으로 정리하는 역할을 수행해줘.
+              주어진 텍스트를 기반으로 사용자의 메시지를 분석해서 핵심 정보를 추출한 후 아래 JSON 형식으로 반환해줘.
+
+              **출력 형식 (JSON)**
+              {
+                "keywords": ["핵심 키워드1", "핵심 키워드2", "핵심 키워드3"],
+                "topic": "주제",
+                "emotion": "감정",
+                "emotion_intensity": 0.0,
+                "summary": "대화 요약"
+              }
+
+              **분석 기준**
+              - "핵심 키워드": 메시지에서 중요한 단어를 2~3개 추출해줘
+              - "주제": 대화의 주요 주제를 한 단어로 정리해줘 (예: "대인관계", "학업", "취업 및 직장")
+              - "감정": 메시지에서 가장 강하게 느껴지는 감정을 하나 선택해줘 (예: "행복", "분노", "슬픔", "불안", "놀람", "평온")
+              - "emotion_intensity": 감정 강도를 0~1 사이 숫자로 표현해줘
+              - "대화 요약": 메시지를 요약하여 1~2문장으로 정리해줘.
+              """
+            },
+            {
+              "role": "user",
+              "content": conversationText
+            }
+          ]
+        }),
+      );
+
+      if (response.statusCode == 200) {
+        final utfDecoded = utf8.decode(response.bodyBytes);
+        final data = jsonDecode(utfDecoded);
+        final result = data['choices'][0]['message']['content'];
+
+        try {
+          final Map<String, dynamic> analysisResult = jsonDecode(result);
+
+          // Firestore에 저장
+          await FirebaseFirestore.instance
+              .collection("register")
+              .doc(user!.uid)
+              .collection("chat")
+              .add({
+            "timestamp": FieldValue.serverTimestamp(),
+            "keywords": analysisResult["keywords"] ?? [],
+            "topic": analysisResult["topic"] ?? "일반 대화",
+            "emotion": analysisResult["emotion"] ?? "중립",
+            "emotion_intensity": analysisResult["emotion_intensity"] ?? 0.5,
+            "summary": analysisResult["summary"] ?? "대화 요약 없음",
+          });
+
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('대화가 성공적으로 저장되었습니다.')),
+          );
+        } catch (e) {
+          print('JSON 파싱 오류: $e');
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('대화 분석 중 오류가 발생했습니다.')),
+          );
+        }
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('서버 연결 중 오류가 발생했습니다.')),
+        );
+      }
+    } catch (e) {
+      print('대화 저장 중 오류: $e');
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('대화 저장 중 오류가 발생했습니다.')),
+      );
+    } finally {
+      setState(() {
+        isLoading = false;
+      });
+    }
+  }
+
   Widget drawCloud() {
     return Positioned(
       bottom: 0,
@@ -368,19 +572,13 @@ class ChatHistoryPage extends StatelessWidget {
   final ScrollController scrollController;
   ChatHistoryPage({required this.scrollController});
 
-  final List<String> recentChats = [
-    'AI 산업 전망',
-    '대인관계 고민',
-    '소화불량',
-  ];
-  final List<String> oldChats = [
-    '1:1 대전 게임 개발',
-    '피보나치 수열',
-    '안녕하세요 대화',
-  ];
-
   @override
   Widget build(BuildContext context) {
+    final User? user = FirebaseAuth.instance.currentUser;
+    if (user == null) {
+      return Center(child: Text('로그인이 필요합니다.'));
+    }
+
     return Column(
       children: [
         SizedBox(height: 16),
@@ -398,23 +596,258 @@ class ChatHistoryPage extends StatelessWidget {
         Text('토리와 대화한 내역을 확인할 수 있어요', style: TextStyle(color: Colors.grey[600])),
 
         Expanded(
-          child: ListView(
-            controller: scrollController,
-            padding: EdgeInsets.symmetric(horizontal: 20),
-            children: [
-              SizedBox(height: 16),
-              Text('최근', style: TextStyle(fontWeight: FontWeight.bold)),
-              ...recentChats.map((chat) => ListTile(title: Text(chat))),
-              Divider(),
-              Text('지난 30일', style: TextStyle(fontWeight: FontWeight.bold)),
-              ...oldChats.map((chat) => ListTile(title: Text(chat))),
-              Divider(),
-              Text('2024년', style: TextStyle(fontWeight: FontWeight.bold)),
-              SizedBox(height: 20),
-            ],
+          child: StreamBuilder<QuerySnapshot>(
+            stream: FirebaseFirestore.instance
+                .collection('register')
+                .doc(user.uid)
+                .collection('chat')
+                .orderBy('timestamp', descending: true)
+                .snapshots(),
+            builder: (context, snapshot) {
+              if (snapshot.connectionState == ConnectionState.waiting) {
+                return Center(child: CircularProgressIndicator());
+              }
+
+              if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+                return Center(child: Text('저장된 대화가 없습니다.'));
+              }
+
+              // 시간대별로 대화 분류
+              final now = DateTime.now();
+              final recentChats = <DocumentSnapshot>[];
+              final last30DaysChats = <DocumentSnapshot>[];
+              final olderChats = <DocumentSnapshot>[];
+
+              for (var doc in snapshot.data!.docs) {
+                final data = doc.data() as Map<String, dynamic>;
+                final timestamp = (data['timestamp'] as Timestamp?)?.toDate();
+
+                if (timestamp == null) {
+                  continue;
+                }
+
+                if (now.difference(timestamp).inDays < 7) {
+                  recentChats.add(doc);
+                } else if (now.difference(timestamp).inDays < 30) {
+                  last30DaysChats.add(doc);
+                } else {
+                  olderChats.add(doc);
+                }
+              }
+
+              return ListView(
+                controller: scrollController,
+                padding: EdgeInsets.symmetric(horizontal: 20),
+                children: [
+                  SizedBox(height: 16),
+                  if (recentChats.isNotEmpty) ...[
+                    Text('최근', style: TextStyle(fontWeight: FontWeight.bold)),
+                    ...recentChats.map((doc) => _buildChatItem(context, doc, user.uid)),
+                    Divider(),
+                  ],
+
+                  if (last30DaysChats.isNotEmpty) ...[
+                    Text('지난 30일', style: TextStyle(fontWeight: FontWeight.bold)),
+                    ...last30DaysChats.map((doc) => _buildChatItem(context, doc, user.uid)),
+                    Divider(),
+                  ],
+
+                  if (olderChats.isNotEmpty) ...[
+                    Text('2024년', style: TextStyle(fontWeight: FontWeight.bold)),
+                    ...olderChats.map((doc) => _buildChatItem(context, doc, user.uid)),
+                  ],
+                  SizedBox(height: 20),
+                ],
+              );
+            },
           ),
         ),
       ],
+    );
+  }
+
+  Widget _buildChatItem(BuildContext context, DocumentSnapshot doc, String userId) {
+    final data = doc.data() as Map<String, dynamic>;
+    final topic = data['topic'] ?? '대화';
+    final emotion = data['emotion'] ?? '중립';
+    final summary = data['summary'] ?? '대화 요약 없음';
+
+    // 감정에 따른 아이콘 설정
+    IconData emotionIcon = Icons.chat;
+    switch (emotion.toLowerCase()) {
+      case '행복':
+        emotionIcon = Icons.sentiment_very_satisfied;
+        break;
+      case '분노':
+        emotionIcon = Icons.sentiment_very_dissatisfied;
+        break;
+      case '슬픔':
+        emotionIcon = Icons.sentiment_dissatisfied;
+        break;
+      case '불안':
+        emotionIcon = Icons.sentiment_neutral;
+        break;
+      case '놀람':
+        emotionIcon = Icons.sentiment_satisfied;
+        break;
+      case '평온':
+        emotionIcon = Icons.sentiment_satisfied_alt;
+        break;
+    }
+
+    return ListTile(
+      leading: Icon(emotionIcon),
+      title: Text(topic),
+      subtitle: Text(summary, maxLines: 1, overflow: TextOverflow.ellipsis),
+      onTap: () {
+        // 클릭하면 대화 내역 자세히 보기
+        _showChatDetail(context, doc, userId);
+      },
+    );
+  }
+
+  void _showChatDetail(BuildContext context, DocumentSnapshot doc, String userId) {
+    final data = doc.data() as Map<String, dynamic>;
+    final topic = data['topic'] ?? '대화';
+    final summary = data['summary'] ?? '대화 요약 없음';
+    final keywords = (data['keywords'] as List<dynamic>?)?.join(', ') ?? '';
+    final emotion = data['emotion'] ?? '중립';
+    final emotionIntensity = data['emotion_intensity'] ?? 0.0;
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(25.0)),
+      ),
+      builder: (context) {
+        return DraggableScrollableSheet(
+          initialChildSize: 0.6,
+          minChildSize: 0.3,
+          maxChildSize: 0.9,
+          expand: false,
+          builder: (_, controller) {
+            return Container(
+              padding: EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+              child: ListView(
+                controller: controller,
+                children: [
+                  Center(
+                    child: Container(
+                      height: 4,
+                      width: 40,
+                      decoration: BoxDecoration(
+                        color: Colors.grey[400],
+                        borderRadius: BorderRadius.circular(2),
+                      ),
+                    ),
+                  ),
+                  SizedBox(height: 16),
+                  Center(
+                    child: Text(
+                      topic,
+                      style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                    ),
+                  ),
+                  SizedBox(height: 16),
+                  Card(
+                    elevation: 2,
+                    child: Padding(
+                      padding: EdgeInsets.all(16),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text('요약', style: TextStyle(fontWeight: FontWeight.bold)),
+                          SizedBox(height: 8),
+                          Text(summary),
+                        ],
+                      ),
+                    ),
+                  ),
+                  SizedBox(height: 16),
+                  Card(
+                    elevation: 2,
+                    child: Padding(
+                      padding: EdgeInsets.all(16),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text('키워드', style: TextStyle(fontWeight: FontWeight.bold)),
+                          SizedBox(height: 8),
+                          Text(keywords),
+                        ],
+                      ),
+                    ),
+                  ),
+                  SizedBox(height: 16),
+                  Card(
+                    elevation: 2,
+                    child: Padding(
+                      padding: EdgeInsets.all(16),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text('감정 상태', style: TextStyle(fontWeight: FontWeight.bold)),
+                          SizedBox(height: 8),
+                          Row(
+                            children: [
+                              Text('$emotion (강도: ${(emotionIntensity * 100).toStringAsFixed(0)}%)'),
+                              Expanded(
+                                child: Slider(
+                                  value: emotionIntensity.toDouble(),
+                                  min: 0,
+                                  max: 1,
+                                  divisions: 10,
+                                  onChanged: null,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                  SizedBox(height: 16),
+                  ElevatedButton(
+                    onPressed: () {
+                      // 해당 대화 내역으로 이동
+                      _loadFullConversation(context, topic, userId);
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.pink[100],
+                      padding: EdgeInsets.symmetric(vertical: 12),
+                    ),
+                    child: Text('이 대화 내역 불러오기'),
+                  ),
+                ],
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
+  void _loadFullConversation(BuildContext context, String topic, String userId) {
+    // ChatScreen으로 돌아가면서 해당 대화 주제에 맞는 이전 대화 내역을 불러옴
+
+    // 1. 기존 내비게이션 스택에서 ChatScreen을 찾아 제거
+    Navigator.popUntil(context, (route) => route.isFirst);
+
+    // 2. 새로운 ChatScreen 시작 - 대화 주제를 인자로 전달
+    // 이 부분은 토리 앱의 구조에 맞게 수정해야 합니다
+    Navigator.pushReplacement(
+      context,
+      MaterialPageRoute(
+        builder: (context) => ChatScreen(
+          initialMessages: [
+            {"sender": "bot", "text": "안녕! 난 토리에요. 이전에 '$topic'에 대해 이야기했던 내용을 불러왔어요."},
+            {"sender": "bot", "text": "더 이야기하고 싶은 부분이 있으면 말해주세요!"},
+          ],
+          topicFilter: topic,
+          userId: userId,
+        ),
+      ),
     );
   }
 }
