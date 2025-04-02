@@ -38,6 +38,7 @@ dependencies:
   permission_handler: ^11.0.1
   flutter_sound: ^9.2.13
   speech_to_text: ^7.0.0
+  flutter_tts: ^3.3.0
 
   # The following adds the Cupertino Icons font to your application.
   # Use with the CupertinoIcons class for iOS style icons.
@@ -88,6 +89,7 @@ flutter:
   #   - images/a_dot_burr.jpeg
   #   - images/a_dot_ham.jpeg
   assets:
+    - assets/prompt/prompt.txt
     - assets/map/health_centers.json
     - assets/images/
     - assets/Widget/Login/character.png
