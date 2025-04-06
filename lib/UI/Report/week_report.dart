@@ -2,6 +2,8 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:fl_chart/fl_chart.dart';
+import 'package:intl/intl.dart';
+import 'package:repos/UI/Report/report_date_range_selector.dart';
 import 'day_report.dart';
 
 class weekreport extends StatefulWidget {
@@ -10,11 +12,56 @@ class weekreport extends StatefulWidget {
 }
 
 class _weekreport extends State<weekreport> {
-  String selectedEmotion = "긍정적";
-  final List<String> emotions = ["긍정적", "낙관적", "부정적", "비관적", "기타"];
-
+  final User? user = FirebaseAuth.instance.currentUser;
+  List<String> topTopics = [];
+  List<String> topKeywords = [];
+  List<FlSpot> emotionSpots = [];
+  DateTime? _startDate = DateTime.now().subtract(Duration(days: 7));
+  DateTime? _endDate = DateTime.now();
+  String selectedEmotion = "두려움";
+  final List<String> emotions = ["두려움", "슬픔", "놀람", "분노", "기쁨", "기타"];
   final TextEditingController percentController = TextEditingController();
 
+  @override
+  void initState() {
+    super.initState();
+    fetchAnalysisData();
+  }
+
+  Future<void> selectEmotionData(String emotion) async {
+    List<Map<String, dynamic>> data = await loadAnalysisData(_startDate!, _endDate!);
+    setState(() {
+      selectedEmotion = emotion;
+      emotionSpots = getEmotions(data, emotion);
+    });
+  }
+
+  Future<void> fetchAnalysisData() async {
+    List<Map<String, dynamic>> data = await loadAnalysisData(_startDate!, _endDate!);
+    setState(() {
+      topTopics = getTopTopics(data, 3);
+      topKeywords = getTopKeywords(data, 5);
+      emotionSpots = getEmotions(data, selectedEmotion);
+    });
+  }
+
+  // 기간별 분석 데이터 조회
+  Future<List<Map<String, dynamic>>> loadAnalysisData(DateTime startDate, DateTime endDate) async {
+    final querySnapshot = await FirebaseFirestore.instance
+        .collection("register")
+        .doc(user?.uid)
+        .collection("chat")
+        .where("timestamp", isGreaterThanOrEqualTo: Timestamp.fromDate(startDate))
+        .where("timestamp", isLessThanOrEqualTo: Timestamp.fromDate(endDate))
+        .orderBy("timestamp")
+        .get();
+
+    final List<Map<String, dynamic>> analysisData = querySnapshot.docs.map((doc) {
+      return doc.data();
+    }).toList();
+
+    return analysisData;
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -23,12 +70,13 @@ class _weekreport extends State<weekreport> {
         leading: IconButton(
           icon: Icon(Icons.event, color: Colors.black),
           onPressed: () async {
-            final selectedDate  = await showDatePicker(
-              context: context,
-              initialDate: DateTime(2025, 1, 1),
-              firstDate: DateTime(2020),
-              lastDate: DateTime(2030),
-            );
+            final pickedRange = await DateRangePicker.selectDateRange(context);
+            if (pickedRange != null) {
+              setState(() {
+                _startDate = pickedRange.start;
+                _endDate = pickedRange.end;
+              });
+            }
           },
         ),
         title: Row(
@@ -91,8 +139,7 @@ class _weekreport extends State<weekreport> {
                     backgroundImage: AssetImage("assets/images/character.png"),
                   ),
                   SizedBox(height: 10),
-                  Text("2025년 01월 22일부터 2025년 01월 29일까지", style: TextStyle(fontSize: 14)),
-                  Text("토리와의 대화에서 마음을 살펴보았어요", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                  Text('${DateFormat('yyyy.MM.dd').format(_startDate!)} ~ ${DateFormat('yyyy.MM.dd').format(_endDate!)}', style: TextStyle(fontSize: 16)),
                 ],
               ),
             ),
@@ -112,13 +159,14 @@ class _weekreport extends State<weekreport> {
                     scrollDirection: Axis.horizontal,
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.start,
-                      children: ["긍정적", "낙관적", "부정적", "비관적", "기타"].map((test) {
+                      children: emotions.map((test) {
                         return Padding(
                           padding: EdgeInsets.symmetric(horizontal: 4.0),
                           child: ElevatedButton(
                             onPressed: () {
                               setState(() {
                                 selectedEmotion = test;
+                                selectEmotionData(test);
                               });
                             },
                             style: ElevatedButton.styleFrom(
@@ -151,13 +199,7 @@ class _weekreport extends State<weekreport> {
                         backgroundColor: Color(0xFFEAEBF0),
                         lineBarsData: [
                           LineChartBarData(
-                            spots: [
-                              FlSpot(0, 20),
-                              FlSpot(1, 25),
-                              FlSpot(2, 30),
-                              FlSpot(3, 35),
-                              FlSpot(4, 50),
-                            ],
+                            spots: emotionSpots,
                             isCurved: true,
                             color: Color(0xFF8979FF),
                             barWidth: 2,
@@ -186,14 +228,14 @@ class _weekreport extends State<weekreport> {
                     spacing: 10,
                     runSpacing: 10,
                     children: [
-                      for (var text in ["1. 대인 관계 문제", "2. 진로 고민", "3. 스케줄 관리"])
+                      for (int i = 0; i < topTopics.length; i++)
                         Container(
                           padding: EdgeInsets.symmetric(vertical: 12, horizontal: 16),
                           decoration: BoxDecoration(
                             color: Colors.white,
                             borderRadius: BorderRadius.circular(16),
                           ),
-                          child: Text(text, style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold)),
+                          child: Text('${i + 1}. ${topTopics[i]}', style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold)),
                         ),
                     ],
                   ),
@@ -204,14 +246,14 @@ class _weekreport extends State<weekreport> {
                     spacing: 10,
                     runSpacing: 10,
                     children: [
-                      for (var text in ["1. 긍정적", "2. 낙관적", "3. 부정적", "4. 비관적", "5. 기타"])
+                      for (int i = 0; i < topKeywords.length; i++)
                         Container(
                           padding: EdgeInsets.symmetric(vertical: 12, horizontal: 16),
                           decoration: BoxDecoration(
                             color: Colors.white,
                             borderRadius: BorderRadius.circular(16),
                           ),
-                          child: Text(text, style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold)),
+                          child: Text('${i + 1}. ${topKeywords[i]}', style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold)),
                         ),
                     ],
                   ),
@@ -222,5 +264,52 @@ class _weekreport extends State<weekreport> {
         ),
       ),
     );
+  }
+
+  // 감정 강도 추이 변화
+  List<FlSpot> getEmotions(List<Map<String, dynamic>> data, String emotion) {
+    final filtered = data
+        .where((doc) => doc['emotion'] == emotion)
+        .toList();
+
+    filtered.sort((a, b) => (a['timestamp'] as Timestamp).compareTo(b['timestamp'] as Timestamp));
+    List<FlSpot> spots = [];
+
+    for (int i = 0; i < filtered.length; i++) {
+      final intensity = filtered[i]['emotion_intensity'] ?? 0.0;
+      spots.add(FlSpot(i.toDouble(), intensity.toDouble()));
+    }
+    return spots;
+  }
+
+  // 토픽 빈도 Top3
+  List<String> getTopTopics(List<Map<String, dynamic>> data, int n) {
+    final Map<String, int> topicCounts = {};
+    for (var doc in data) {
+      if (doc['topic'] != null) {
+        final topics = doc['topic'].split(',').map((t) => t.trim());
+        for (var topic in topics) {
+          topicCounts[topic] = (topicCounts[topic] ?? 0) + 1;
+        }
+      }
+    }
+    final sorted = topicCounts.entries.toList()
+      ..sort((a, b) => b.value.compareTo(a.value));
+    return sorted.take(n).map((e) => e.key).toList();
+  }
+
+  // 키워드 Top5
+  List<String> getTopKeywords(List<Map<String, dynamic>> data, int n) {
+    final Map<String, int> keywordCounts = {};
+    for (var doc in data) {
+      if (doc['keywords'] != null) {
+        for (String keword in List<String>.from(doc['keywords'])) {
+          keywordCounts[keword] = (keywordCounts[keword] ?? 0) + 1;
+        }
+      }
+    }
+    final sorted = keywordCounts.entries.toList()
+      ..sort((a, b) => b.value.compareTo(a.value));
+    return sorted.take(n).map((e) => e.key).toList();
   }
 }
