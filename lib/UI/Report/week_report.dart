@@ -4,6 +4,8 @@ import 'package:flutter/material.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:intl/intl.dart';
 import 'package:repos/UI/Report/report_date_range_selector.dart';
+import 'package:repos/UI/Report/report_date_service.dart';
+import 'package:repos/UI/Report/report_service.dart';
 import 'day_report.dart';
 
 class weekreport extends StatefulWidget {
@@ -16,8 +18,13 @@ class _weekreport extends State<weekreport> {
   List<String> topTopics = [];
   List<String> topKeywords = [];
   List<FlSpot> emotionSpots = [];
+
+  DateTime? selectedDate;
+  Set<DateTime> availableReportDates = {};
   DateTime? _startDate = DateTime.now().subtract(Duration(days: 7));
   DateTime? _endDate = DateTime.now();
+  final reportService = ReportService();
+
   String selectedEmotion = "두려움";
   final List<String> emotions = ["두려움", "슬픔", "놀람", "분노", "기쁨", "기타"];
   final TextEditingController percentController = TextEditingController();
@@ -25,43 +32,80 @@ class _weekreport extends State<weekreport> {
   @override
   void initState() {
     super.initState();
-    fetchAnalysisData();
+    // fetchAnalysisData();
+    loadAvailableDates(); // 선택 가능한 날짜 조회
   }
 
-  Future<void> selectEmotionData(String emotion) async {
-    List<Map<String, dynamic>> data = await loadAnalysisData(_startDate!, _endDate!);
-    setState(() {
-      selectedEmotion = emotion;
-      emotionSpots = getEmotions(data, emotion);
-    });
+  // Future<void> selectEmotionData(String emotion) async {
+  //   List<Map<String, dynamic>> data = await loadAnalysisData(_startDate!, _endDate!);
+  //   setState(() {
+  //     selectedEmotion = emotion;
+  //     emotionSpots = getEmotions(data, emotion);
+  //   });
+  // }
+
+  // Future<void> fetchAnalysisData() async {
+  //   List<Map<String, dynamic>> data = await loadAnalysisData(_startDate!, _endDate!);
+  //   setState(() {
+  //     topTopics = getTopTopics(data, 3);
+  //     topKeywords = getTopKeywords(data, 5);
+  //     emotionSpots = getEmotions(data, selectedEmotion);
+  //   });
+  // }
+
+
+  Map<String, dynamic>? emotionIntensitys; // key : 일반화된 감정 value : 카테고리 비율
+  String? feedback;                 // GPT 요약 피드백
+  List<String>? topics;             // 상위 3개의 키워드
+  List<String>? words;              // 상위 3개의 토픽
+
+  // 파이어베이스에서 리포트 불러오기
+  void loadReport(DateTime date) async { //DateTime startDate, DateTime endDate로 수정? DateRangeTime으로 설정?
+    final report = await reportService.fetchReport(date);
+    if (report != null) {
+      setState(() {
+        emotionIntensitys = report.emotionIntensitys;
+        topics = report.topics;
+        words = report.keywords;
+      });
+    } else {
+      setState(() {
+        emotionIntensitys = {};
+        feedback = null;
+        topics = null;
+        words = null;
+      });
+    }
   }
 
-  Future<void> fetchAnalysisData() async {
-    List<Map<String, dynamic>> data = await loadAnalysisData(_startDate!, _endDate!);
+  Future<void> loadAvailableDates() async {
+    final service = ReportDateService();
+    final dates = await service.fetchAvailableReportDates();
+    final latest = dates.toList()..sort();
     setState(() {
-      topTopics = getTopTopics(data, 3);
-      topKeywords = getTopKeywords(data, 5);
-      emotionSpots = getEmotions(data, selectedEmotion);
+      availableReportDates = dates;
+      final latest = dates.toList()..sort();
     });
+    loadReport(selectedDate!);
   }
 
   // 기간별 분석 데이터 조회
-  Future<List<Map<String, dynamic>>> loadAnalysisData(DateTime startDate, DateTime endDate) async {
-    final querySnapshot = await FirebaseFirestore.instance
-        .collection("register")
-        .doc(user?.uid)
-        .collection("chat")
-        .where("timestamp", isGreaterThanOrEqualTo: Timestamp.fromDate(startDate))
-        .where("timestamp", isLessThanOrEqualTo: Timestamp.fromDate(endDate))
-        .orderBy("timestamp")
-        .get();
-
-    final List<Map<String, dynamic>> analysisData = querySnapshot.docs.map((doc) {
-      return doc.data();
-    }).toList();
-
-    return analysisData;
-  }
+  // Future<List<Map<String, dynamic>>> loadAnalysisData(DateTime startDate, DateTime endDate) async {
+  //   final querySnapshot = await FirebaseFirestore.instance
+  //       .collection("register")
+  //       .doc(user?.uid)
+  //       .collection("chat")
+  //       .where("timestamp", isGreaterThanOrEqualTo: Timestamp.fromDate(startDate))
+  //       .where("timestamp", isLessThanOrEqualTo: Timestamp.fromDate(endDate))
+  //       .orderBy("timestamp")
+  //       .get();
+  //
+  //   final List<Map<String, dynamic>> analysisData = querySnapshot.docs.map((doc) {
+  //     return doc.data();
+  //   }).toList();
+  //
+  //   return analysisData;
+  // }
 
   @override
   Widget build(BuildContext context) {
@@ -70,7 +114,7 @@ class _weekreport extends State<weekreport> {
         leading: IconButton(
           icon: Icon(Icons.event, color: Colors.black),
           onPressed: () async {
-            final pickedRange = await DateRangePicker.selectDateRange(context);
+            final pickedRange = await ReportDateRangeSelector.selectDateRange(context, availableReportDates);
             if (pickedRange != null) {
               setState(() {
                 _startDate = pickedRange.start;
@@ -166,7 +210,7 @@ class _weekreport extends State<weekreport> {
                             onPressed: () {
                               setState(() {
                                 selectedEmotion = test;
-                                selectEmotionData(test);
+                                // selectEmotionData(test);
                               });
                             },
                             style: ElevatedButton.styleFrom(
@@ -283,32 +327,43 @@ class _weekreport extends State<weekreport> {
   }
 
   // 토픽 빈도 Top3
-  List<String> getTopTopics(List<Map<String, dynamic>> data, int n) {
-    final Map<String, int> topicCounts = {};
-    for (var doc in data) {
-      if (doc['topic'] != null) {
-        final topics = doc['topic'].split(',').map((t) => t.trim());
-        for (var topic in topics) {
-          topicCounts[topic] = (topicCounts[topic] ?? 0) + 1;
-        }
-      }
-    }
-    final sorted = topicCounts.entries.toList()
-      ..sort((a, b) => b.value.compareTo(a.value));
-    return sorted.take(n).map((e) => e.key).toList();
-  }
+  // List<String> getTopTopics(List<Map<String, dynamic>> data, int n) {
+  //   final Map<String, int> topicCounts = {};
+  //   for (var doc in data) {
+  //     if (doc['topic'] != null) {
+  //       final topics = doc['topic'].split(',').map((t) => t.trim());
+  //       for (var topic in topics) {
+  //         topicCounts[topic] = (topicCounts[topic] ?? 0) + 1;
+  //       }
+  //     }
+  //   }
+  //   final sorted = topicCounts.entries.toList()
+  //     ..sort((a, b) => b.value.compareTo(a.value));
+  //   return sorted.take(n).map((e) => e.key).toList();
+  // }
 
   // 키워드 Top5
-  List<String> getTopKeywords(List<Map<String, dynamic>> data, int n) {
-    final Map<String, int> keywordCounts = {};
-    for (var doc in data) {
-      if (doc['keywords'] != null) {
-        for (String keword in List<String>.from(doc['keywords'])) {
-          keywordCounts[keword] = (keywordCounts[keword] ?? 0) + 1;
-        }
-      }
+  // List<String> getTopKeywords(List<Map<String, dynamic>> data, int n) {
+  //   final Map<String, int> keywordCounts = {};
+  //   for (var doc in data) {
+  //     if (doc['keywords'] != null) {
+  //       for (String keword in List<String>.from(doc['keywords'])) {
+  //         keywordCounts[keword] = (keywordCounts[keword] ?? 0) + 1;
+  //       }
+  //     }
+  //   }
+  //   final sorted = keywordCounts.entries.toList()
+  //     ..sort((a, b) => b.value.compareTo(a.value));
+  //   return sorted.take(n).map((e) => e.key).toList();
+  // }
+
+  // 토픽 빈도 또는 키워드 빈도 topN개
+  List<String> _getTopN(List<String> items, int n) {
+    final freqMap = <String, int>{};
+    for (var item in items) {
+      freqMap[item] = (freqMap[item] ?? 0) + 1;
     }
-    final sorted = keywordCounts.entries.toList()
+    final sorted = freqMap.entries.toList()
       ..sort((a, b) => b.value.compareTo(a.value));
     return sorted.take(n).map((e) => e.key).toList();
   }

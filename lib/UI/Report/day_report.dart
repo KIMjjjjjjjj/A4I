@@ -18,10 +18,11 @@ class dayreport extends StatefulWidget {
 
 class _dayreport extends State<dayreport> {
   String nickname = "";
-  DateTime selectedDate = DateTime.now();
+  DateTime? selectedDate;
+  Set<DateTime> availableReportDates = {};
   final reportService = ReportService();
   final dateService = ReportDateService();
-  Set<DateTime> availableReportDates = {};
+
 
   final List<Color> fixedColors = [
     Color(0xFF7BD3EA), // 1위 감정
@@ -29,6 +30,7 @@ class _dayreport extends State<dayreport> {
     Color(0xFFEA7BDF), // 3위 감정
     Color(0xFFF6F7C4), // 4위 감정
     Color(0xFFF6D6D6), // 5위 감정
+    Color(0xFFFF8A00), // 6위 감정
   ];
 
   final random = Random();
@@ -60,7 +62,6 @@ class _dayreport extends State<dayreport> {
   void initState() {
     super.initState();
     loadNickname(); // 유저 닉네임 조회
-    loadReport(selectedDate); // 초기에는 오늘 날짜로 데이터 불러오기
     loadAvailableDates(); // 선택 가능한 날짜 조회
   }
 
@@ -106,12 +107,16 @@ class _dayreport extends State<dayreport> {
     }
   }
 
+
   Future<void> loadAvailableDates() async {
     final service = ReportDateService();
     final dates = await service.fetchAvailableReportDates();
+    final latest = dates.toList()..sort();
     setState(() {
       availableReportDates = dates;
+      selectedDate = latest.last;
     });
+    loadReport(selectedDate!); // 존재하는 날짜 중 가장 최근 날짜로 데이터 불러오기
   }
 
   // 차트 메서드
@@ -386,7 +391,7 @@ class _dayreport extends State<dayreport> {
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       ReportDateSelector(
-                        selectedDate: selectedDate,
+                        selectedDate: selectedDate!,
                         availableReportDates: availableReportDates,
                         onDateSelected: (pickedDate) {
                           setState(() {

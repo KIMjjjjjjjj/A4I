@@ -3,12 +3,14 @@ class Report {
   final String feedback;                 // GPT 요약 피드백
   final List<String> keywords;           // 상위 3개의 키워드
   final List<String> topics;             // 상위 3개의 토픽
+  final Map<String, List<double>> emotionIntensitys; // 감정 강도
 
   Report({
     required this.emotionData,
     required this.feedback,
     required this.keywords,
     required this.topics,
+    required this.emotionIntensitys,
   });
 
   factory Report.fromMap(Map<String, dynamic> map) {
@@ -17,6 +19,9 @@ class Report {
       feedback: map['feedback'] ?? '',
       keywords: List<String>.from(map['keywords'] ?? []),
       topics: List<String>.from(map['topics'] ?? []),
+      emotionIntensitys: (map['emotionIntensitys'] as Map<String, dynamic>?)
+          ?.map((k, v) => MapEntry(k, List<double>.from(v))) ??
+          {},
     );
   }
 
@@ -26,6 +31,7 @@ class Report {
       'feedback': feedback,
       'keywords': keywords,
       'topics': topics,
+      'emotionIntensitys': emotionIntensitys,
     };
   }
 }
