@@ -5,6 +5,7 @@ import 'package:http/http.dart' as http;
 import 'package:repos/UI/Chatbot/prompts.dart';
 import 'dart:convert';
 import 'dart:convert' as convert;
+import '../Report/day_report_process.dart';
 import 'chat_analyzer.dart';
 import 'voice_chat.dart';
 
@@ -237,6 +238,13 @@ class _ChatScreenState extends State<ChatScreen> {
         );
       },
     );
+  }
+
+  @override
+  void dispose() {
+    // chat 컬렉션에서 가장 최근 데이터의 timestamp 불러와서 일일보고서 생성
+    DayReportProcess.generateReportFromLastChat();
+    super.dispose();
   }
 
   @override

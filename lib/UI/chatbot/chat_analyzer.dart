@@ -5,6 +5,8 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:http/http.dart' as http;
 import 'package:repos/UI/Chatbot/prompts.dart';
 
+import '../Report/day_report_process.dart';
+
 class ChatAnalyzer {
   static List<String> unsavedMessages = [];
   static DateTime? lastMessageTime;
