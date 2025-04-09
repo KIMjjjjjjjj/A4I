@@ -1,103 +1,248 @@
-import 'package:firebase_auth/firebase_auth.dart';
+
 import 'package:flutter/material.dart';
 import 'package:fl_chart/fl_chart.dart';
-import 'package:intl/intl.dart';
-import 'package:repos/UI/Report/report_date_range_selector.dart';
-import 'package:repos/UI/Report/report_date_service.dart';
-import 'package:repos/UI/Report/report_service.dart';
+
 import 'day_report.dart';
+import 'report_date_range_selector.dart';
+import 'report_service.dart';
+import 'report_model.dart';
 
 class weekreport extends StatefulWidget {
   @override
   _weekreport createState() => _weekreport();
 }
 
-class _weekreport extends State<weekreport> {
-  final User? user = FirebaseAuth.instance.currentUser;
-  List<String> topTopics = [];
-  List<String> topKeywords = [];
-  List<FlSpot> emotionSpots = [];
+class _weekreport extends State<weekreport> with TickerProviderStateMixin {
+  late TabController _tabController;
 
-  DateTime? selectedDate;
-  Set<DateTime> availableReportDates = {};
-  DateTime? _startDate = DateTime.now().subtract(Duration(days: 7));
-  DateTime? _endDate = DateTime.now();
-  final reportService = ReportService();
-
-  String selectedEmotion = "두려움";
   final List<String> emotions = ["두려움", "슬픔", "놀람", "분노", "기쁨", "기타"];
+
+  String selectedEmotion = "두려움"; // 기본값
+
   final TextEditingController percentController = TextEditingController();
+
+  DateTime? startDate;
+  DateTime? endDate;
+  Set<DateTime> availableDates = {};
+  bool isLoading = true;
 
   @override
   void initState() {
     super.initState();
-    loadAvailableDates(); // 선택 가능한 날짜 조회
-  }
-
-  Future<void> loadAvailableDates() async {
-    final service = ReportDateService();
-    final dates = await service.fetchAvailableReportDates();
-    final sortedDates = dates.toList()..sort();
-
-    DateTime? lastDate = sortedDates.isNotEmpty ? sortedDates.last : null;
-
-    setState(() {
-      availableReportDates = dates;
-      selectedDate = lastDate;
-    });
-    await loadPeriodReport(lastDate!, lastDate);
-  }
-
-  Future<void> loadPeriodReport(DateTime start, DateTime end) async {
-    final reports = await reportService.loadReports(start, end);
-
-    final Map<String, List<double>> emotionIntensitys = {};
-    final Map<String, int> keywordCounts = {};
-    final Map<String, int> topicCounts = {};
-
-    for (final report in reports!) {
-      // 감정 강도 병합
-      report.emotionIntensitys.forEach((emotion, intensities) {
-        emotionIntensitys.putIfAbsent(emotion, () => []).addAll(List<double>.from(intensities));
+    _tabController = TabController(length: emotions.length, vsync: this);
+    _tabController.addListener(() {
+      setState(() {
+        selectedEmotion = emotions[_tabController.index];
       });
+    });
+    _initializeReportRange();
+  }
 
-      // 키워드 병합
-      for (final keyword in report.keywords) {
-        keywordCounts[keyword] = (keywordCounts[keyword] ?? 0) + 1;
-      }
+  Future<void> _initializeReportRange() async {
+    final service = ReportService();
+    final dates = await service.getAvailableReportDates();
 
-      // 토픽 병합
-      for (final topic in report.topics) {
-        topicCounts[topic] = (topicCounts[topic] ?? 0) + 1;
+    if (dates.isNotEmpty) {
+      final sorted = dates.toList()..sort();
+      final latest = sorted.last;
+      final sevenDaysAgo = latest.subtract(Duration(days: 6));
+
+      final filtered = sorted.where((d) => d.isAfter(sevenDaysAgo.subtract(Duration(days: 1)))).toList();
+      setState(() {
+        availableDates = dates;
+        startDate = filtered.first;
+        endDate = filtered.last;
+        isLoading = false;
+      });
+    } else {
+      setState(() {
+        isLoading = false;
+      });
+    }
+    await loadReports();
+  }
+
+  late List<Report> weeklyReports = [];
+
+  Future<void> loadReports() async {
+    if (startDate != null && endDate != null) {
+      weeklyReports = await fetchReportsInRange(startDate!, endDate!);
+      print("불러온 보고서 개수: ${weeklyReports.length}");
+      setState(() {}); // UI 업데이트
+    }
+  }
+
+  Future<List<Report>> fetchReportsInRange(DateTime start, DateTime end) async {
+    final service = ReportService();
+    List<Report> reports = [];
+
+    for (int i = 0; i <= end.difference(start).inDays; i++) {
+      final currentDate = start.add(Duration(days: i));
+      final report = await service.fetchReport(currentDate);
+      if (report != null) {
+        reports.add(report);
       }
     }
 
-    // FlSpot으로 변환
-    final emotionList = emotionIntensitys[selectedEmotion] ?? [];
-    final spots = List<FlSpot>.generate(
-      emotionList.length,
-          (i) => FlSpot(i.toDouble(), emotionList[i]),
-    );
-
-    // 키워드/토픽 상위 n개 정렬
-    final topKeywordList = keywordCounts.entries.toList()
-      ..sort((a, b) => b.value.compareTo(a.value));
-    final topTopicList = topicCounts.entries.toList()
-      ..sort((a, b) => b.value.compareTo(a.value));
-
-    setState(() {
-      emotionSpots = spots;
-      topKeywords = topKeywordList.take(5).map((e) => e.key).toList();
-      topTopics = topTopicList.take(3).map((e) => e.key).toList();
-    });
-    await selectEmotionData(selectedEmotion);
+    return reports;
   }
 
-  Future<void> selectEmotionData(String emotion) async {
-    setState(() {
-      selectedEmotion = emotion;
-    });
-    await loadPeriodReport(_startDate!, _endDate!);
+  Widget buildLineChart() {
+    List<FlSpot> spots = [];
+    Map<int, String> dateLabels = {};
+    int currentIndex = 0;
+
+    for (int i = 0; i < weeklyReports.length; i++) {
+      final report = weeklyReports[i];
+      final date = startDate!.add(Duration(days: i));
+      final dateLabel = "${date.month}/${date.day}";
+
+      final emotionList = report.emotionIntensityData?[selectedEmotion];
+      if (emotionList != null) {
+        for (int j = 0; j < emotionList.length; j++) {
+          spots.add(FlSpot(currentIndex.toDouble(), emotionList[j]));
+          if (j == 0) {
+            dateLabels[currentIndex] = dateLabel;
+          }
+          currentIndex++;
+        }
+      }
+    }
+
+    return SizedBox(
+      height: 200,
+      child: LineChart(
+        LineChartData(
+          gridData: FlGridData(show: false),
+          titlesData: FlTitlesData(
+            leftTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
+            bottomTitles: AxisTitles(
+              sideTitles: SideTitles(
+                showTitles: true,
+                getTitlesWidget: (value, meta) {
+                  int index = value.toInt();
+                  if (dateLabels.containsKey(index)) {
+                    return Text(dateLabels[index]!,
+                        style: TextStyle(fontSize: 10));
+                  } else {
+                    return SizedBox.shrink();
+                  }
+                },
+                interval: 1,
+                reservedSize: 30,
+              ),
+            ),
+            topTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
+            rightTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
+          ),
+          borderData: FlBorderData(show: false),
+          backgroundColor: Color(0xFFEAEBF0),
+          lineBarsData: [
+            LineChartBarData(
+              spots: spots,
+              isCurved: true,
+              color: Color(0xFF8979FF),
+              barWidth: 2,
+              dotData: FlDotData(show: false),
+              isStrokeCapRound: true,
+              belowBarData: BarAreaData(
+                show: true,
+                gradient: LinearGradient(
+                  colors: [
+                    Color(0xFF8979FF),
+                    Color(0xFFEAEBF0),
+                  ],
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // 토픽 빈도 계산 함수
+  List<String> getTopTopics({int topN = 3}) {
+    final Map<String, int> frequencyMap = {};
+
+    for (var report in weeklyReports) {
+      if (report.topics != null) {
+        for (var topic in report.topics!) {
+          frequencyMap[topic] = (frequencyMap[topic] ?? 0) + 1;
+        }
+      }
+    }
+
+    final sortedTopics = frequencyMap.entries.toList()
+      ..sort((a, b) => b.value.compareTo(a.value));
+
+    return sortedTopics.take(topN).map((entry) => entry.key).toList();
+  }
+
+  Widget buildTopicChips() {
+    final topTopics = getTopTopics(); // weeklyReports 내부에서 꺼내기
+
+    return Wrap(
+      spacing: 10,
+      runSpacing: 10,
+      children: [
+        for (var text in topTopics)
+          Container(
+            padding: EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(16),
+            ),
+            child: Text(
+              text,
+              style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
+            ),
+          ),
+      ],
+    );
+  }
+
+  // 키워드 빈도수
+  List<String> getTopKeywords({int topN = 5}) {
+    final Map<String, int> frequencyMap = {};
+
+    for (var report in weeklyReports) {
+      if (report.keywords != null) {
+        for (var keyword in report.keywords!) {
+          frequencyMap[keyword] = (frequencyMap[keyword] ?? 0) + 1;
+        }
+      }
+    }
+
+    final sortedKeywords = frequencyMap.entries.toList()
+      ..sort((a, b) => b.value.compareTo(a.value));
+
+    return sortedKeywords.take(topN).map((entry) => entry.key).toList();
+  }
+
+  Widget buildKeywordChips() {
+    final topKeywords = getTopKeywords();
+
+    return Wrap(
+      spacing: 10,
+      runSpacing: 10,
+      children: [
+        for (var text in topKeywords)
+          Container(
+            padding: EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(16),
+            ),
+            child: Text(
+              text,
+              style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
+            ),
+          ),
+      ],
+    );
   }
 
   @override
@@ -107,12 +252,15 @@ class _weekreport extends State<weekreport> {
         leading: IconButton(
           icon: Icon(Icons.event, color: Colors.black),
           onPressed: () async {
-            final pickedRange = await ReportDateRangeSelector.selectDateRange(context, availableReportDates);
-            if (pickedRange != null) {
+
+            final range = await DateRangePicker.showValidDateRangePicker(context);
+            if (range != null) {
               setState(() {
-                _startDate = pickedRange.start;
-                _endDate = pickedRange.end;
+                startDate = range.start;
+                endDate = range.end;
               });
+              print("선택된 범위: ${range.start} ~ ${range.end}");
+              await loadReports();
             }
           },
         ),
@@ -176,7 +324,14 @@ class _weekreport extends State<weekreport> {
                     backgroundImage: AssetImage("assets/images/character.png"),
                   ),
                   SizedBox(height: 10),
-                  Text('${DateFormat('yyyy.MM.dd').format(_startDate!)} ~ ${DateFormat('yyyy.MM.dd').format(_endDate!)}', style: TextStyle(fontSize: 16)),
+                  Text(
+                    startDate != null && endDate != null
+                        ? "${startDate!.year}년 ${startDate!.month.toString().padLeft(2, '0')}월 ${startDate!.day.toString().padLeft(2, '0')}일부터 "
+                        "${endDate!.year}년 ${endDate!.month.toString().padLeft(2, '0')}월 ${endDate!.day.toString().padLeft(2, '0')}일까지"
+                        : "로딩 중...",
+                    style: TextStyle(fontSize: 14),
+                  ),
+                  Text("토리와의 대화에서 마음을 살펴보았어요", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
                 ],
               ),
             ),
@@ -194,106 +349,39 @@ class _weekreport extends State<weekreport> {
                   SizedBox(height: 10),
                   SingleChildScrollView(
                     scrollDirection: Axis.horizontal,
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.start,
-                      children: emotions.map((test) {
-                        return Padding(
-                          padding: EdgeInsets.symmetric(horizontal: 4.0),
-                          child: ElevatedButton(
-                            onPressed: () {
-                              setState(() {
-                                selectedEmotion = test;
-                                selectEmotionData(test);
-                              });
-                            },
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: selectedEmotion == test ? Colors.white : Color(0xFFEAEBF0),
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-                              fixedSize: Size(90, 40),
-                            ),
-                            child: Text(
-                              test,
-                              style: TextStyle(fontSize: 12, color: Color(0xFFAAA4A5), fontWeight: FontWeight.bold),
-                            ),
-                          ),
-                        );
-                      }).toList(),
-                    ),
+                    child: TabBar(
+                            controller: _tabController,
+                            isScrollable: true,
+                            labelColor: Colors.black,
+                            unselectedLabelColor: Color(0xFFAAA4A5),
+                            indicatorColor: Colors.transparent,
+                            tabs: emotions.map((emotion) {
+                              return Tab(
+                                child: Container(
+                                  padding: EdgeInsets.symmetric(vertical: 10, horizontal: 10),
+                                  decoration: BoxDecoration(
+                                    color: selectedEmotion == emotion ? Colors.white : Color(0xFFEAEBF0),
+                                    borderRadius: BorderRadius.circular(20),
+                                  ),
+                                  child: Text(
+                                    emotion,
+                                    style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
+                                  ),
+                                ),
+                              );
+                            }).toList(),
+                          )
                   ),
                   SizedBox(height: 30),
-                  SizedBox(
-                    height: 200,
-                    child: LineChart(
-                      LineChartData(
-                        gridData: FlGridData(show: false),
-                        titlesData: FlTitlesData(
-                          leftTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
-                          bottomTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
-                          topTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
-                          rightTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
-                        ),
-                        borderData: FlBorderData(show: false),
-                        backgroundColor: Color(0xFFEAEBF0),
-                        lineBarsData: [
-                          LineChartBarData(
-                            spots: emotionSpots,
-                            isCurved: true,
-                            color: Color(0xFF8979FF),
-                            barWidth: 2,
-                            dotData: FlDotData(show: false),
-                            isStrokeCapRound: true,
-                            belowBarData: BarAreaData(
-                              show: true,
-                              gradient: LinearGradient(
-                                colors: [
-                                  Color(0xFF8979FF),
-                                  Color(0xFFEAEBF0),
-                                ],
-                                begin: Alignment.topCenter,
-                                end: Alignment.bottomCenter,
-                              ),
-                            )
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
+                  buildLineChart(),
                   SizedBox(height: 20),
                   Text("대화 주제", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
                   SizedBox(height: 10),
-                  Wrap(
-                    spacing: 10,
-                    runSpacing: 10,
-                    children: [
-                      for (int i = 0; i < topTopics.length; i++)
-                        Container(
-                          padding: EdgeInsets.symmetric(vertical: 12, horizontal: 16),
-                          decoration: BoxDecoration(
-                            color: Colors.white,
-                            borderRadius: BorderRadius.circular(16),
-                          ),
-                          child: Text('${i + 1}. ${topTopics[i]}', style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold)),
-                        ),
-                    ],
-                  ),
+                  buildTopicChips(),
                   SizedBox(height: 20),
                   Text("가장 많이 사용한 단어", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
                   SizedBox(height: 10),
-                  Wrap(
-                    spacing: 10,
-                    runSpacing: 10,
-                    children: [
-                      for (int i = 0; i < topKeywords.length; i++)
-                        Container(
-                          padding: EdgeInsets.symmetric(vertical: 12, horizontal: 16),
-                          decoration: BoxDecoration(
-                            color: Colors.white,
-                            borderRadius: BorderRadius.circular(16),
-                          ),
-                          child: Text('${i + 1}. ${topKeywords[i]}', style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold)),
-                        ),
-                    ],
-                  ),
+                  buildKeywordChips(),
                 ],
               ),
             ),
@@ -303,3 +391,4 @@ class _weekreport extends State<weekreport> {
     );
   }
 }
+

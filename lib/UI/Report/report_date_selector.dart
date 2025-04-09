@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-// 날짜 선택 위젯 메서드
+
 class ReportDateSelector extends StatelessWidget {
   final DateTime selectedDate;
   final Set<DateTime> availableReportDates;
@@ -12,13 +12,30 @@ class ReportDateSelector extends StatelessWidget {
     required this.onDateSelected,
   }) : super(key: key);
 
+  DateTime normalizeDate(DateTime date) {
+    return DateTime(date.year, date.month, date.day);
+  }
+
   @override
   Widget build(BuildContext context) {
+    // 날짜 정규화
+    final normalizedDates = availableReportDates.map(normalizeDate).toSet();
+    final sortedDates = normalizedDates.toList()..sort();
+    final firstAvailable = sortedDates.first;
+    final lastAvailable = sortedDates.last;
+
+    final normalizedSelected = normalizeDate(selectedDate);
+
+    // selectedDate가 유효하지 않으면 가장 최근 날짜로 fallback
+    final initialDate = normalizedDates.contains(normalizedSelected)
+        ? normalizedSelected
+        : lastAvailable;
+
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
         Text(
-          "${selectedDate.year}년 ${selectedDate.month.toString().padLeft(2, '0')}월 ${selectedDate.day.toString().padLeft(2, '0')}일",
+          "${initialDate.year}년 ${initialDate.month.toString().padLeft(2, '0')}월 ${initialDate.day.toString().padLeft(2, '0')}일",
           style: const TextStyle(fontSize: 16),
         ),
         IconButton(
@@ -26,15 +43,15 @@ class ReportDateSelector extends StatelessWidget {
           onPressed: () async {
             final picked = await showDatePicker(
               context: context,
-              initialDate: selectedDate,
-              firstDate: DateTime(2020),
-              lastDate: DateTime(2030),
+              initialDate: initialDate,
+              firstDate: firstAvailable,
+              lastDate: lastAvailable,
               selectableDayPredicate: (day) {
-                return availableReportDates.contains(DateTime(day.year, day.month, day.day));
+                return normalizedDates.contains(normalizeDate(day));
               },
             );
-            if (picked != null && picked != selectedDate) {
-              onDateSelected(picked);
+            if (picked != null && normalizeDate(picked) != normalizedSelected) {
+              onDateSelected(normalizeDate(picked));
             }
           },
         ),
