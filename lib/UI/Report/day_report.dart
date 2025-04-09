@@ -64,8 +64,6 @@ class _dayreport extends State<dayreport> {
     super.initState();
     initializeReportDates();
     loadNickname(); // 유저 닉네임 조회
-    loadAvailableDates(); // 선택 가능한 날짜 조회
-    loadReport(normalizeDate(selectedDate)); // 초기에는 오늘 날짜로 데이터 불러오기
   }
   Future<void> initializeReportDates() async {
     final dates = await reportService.getAvailableReportDates(); // Firestore에서 날짜 가져오는 함수
@@ -138,16 +136,6 @@ class _dayreport extends State<dayreport> {
   }
 
 
-  Future<void> loadAvailableDates() async {
-    final service = ReportDateService();
-    final dates = await service.fetchAvailableReportDates();
-    final latest = dates.toList()..sort();
-    setState(() {
-      availableReportDates = dates;
-      selectedDate = latest.last;
-    });
-    loadReport(selectedDate!); // 존재하는 날짜 중 가장 최근 날짜로 데이터 불러오기
-  }
 
   // 차트 메서드
   Widget buildPieChart() {
@@ -155,16 +143,18 @@ class _dayreport extends State<dayreport> {
       return Text("데이터가 없습니다");
     }
 
-    // 감정 비율 높은 순으로 정렬
+// 감정 비율 높은 순으로 정렬
     final entries = emotionData!.entries.toList()
       ..sort((a, b) => b.value.compareTo(a.value));
 
-    final topEmotion = entries.first.key;
-    final topPercentage = (entries.first.value * 100).round();
+// 최대 6개의 감정까지만 표시 (fixedColors에 맞춰)
+    final displayEntries = entries.take(6).toList();
+
+/*    final topEmotion = entries.first.key;
+    final topPercentage = (entries.first.value * 100).round();*/
 
     return Column(
       children: [
-        // ✅ Stack으로 차트와 중앙 텍스트를 겹쳐서 표시
         Stack(
           alignment: Alignment.center,
           children: [
@@ -173,8 +163,8 @@ class _dayreport extends State<dayreport> {
               width: 200,
               child: PieChart(
                 PieChartData(
-                  sections: List.generate(entries.length, (index) {
-                    final entry = entries[index];
+                  sections: List.generate(displayEntries.length, (index) {
+                    final entry = displayEntries[index];
                     return PieChartSectionData(
                       value: entry.value,
                       color: fixedColors[index],
@@ -187,12 +177,11 @@ class _dayreport extends State<dayreport> {
                 ),
               ),
             ),
-            // ✅ 차트 중앙 텍스트
             Column(
               mainAxisSize: MainAxisSize.min,
               children: [
                 Text(
-                  "${topPercentage}%",
+                  "${(displayEntries.first.value * 100).round()}%",
                   style: TextStyle(
                     fontSize: 28,
                     fontWeight: FontWeight.bold,
@@ -200,27 +189,24 @@ class _dayreport extends State<dayreport> {
                   ),
                 ),
                 Text(
-                  topEmotion,
+                  displayEntries.first.key,
                   style: TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.w500,
-                    color: Color(0xFFA5A5A5), // 연한 회색
+                    color: Color(0xFFA5A5A5),
                   ),
                 ),
               ],
             ),
           ],
         ),
-
         SizedBox(height: 20),
-
-        // ✅ 감정 라벨과 색상 표시
         Wrap(
           spacing: 10,
           runSpacing: 8,
           alignment: WrapAlignment.center,
-          children: List.generate(entries.length, (index) {
-            final entry = entries[index];
+          children: List.generate(displayEntries.length, (index) {
+            final entry = displayEntries[index];
             return Row(
               mainAxisSize: MainAxisSize.min,
               children: [
@@ -359,6 +345,12 @@ class _dayreport extends State<dayreport> {
 
   @override
   Widget build(BuildContext context) {
+    if (selectedDate == null || isLoading) {
+      return Scaffold(
+        appBar: AppBar(title: Text("종합 심리 평가")),
+        body: Center(child: CircularProgressIndicator()),
+      );
+    }
     return Scaffold(
       appBar: AppBar(
           title: Row(
@@ -422,7 +414,7 @@ class _dayreport extends State<dayreport> {
                     children: [
                       ReportDateSelector(
 
-                        selectedDate: normalizeDate(selectedDate),
+                        selectedDate: normalizeDate(selectedDate!),
 
                         availableReportDates: availableReportDates,
                         onDateSelected: (pickedDate) {

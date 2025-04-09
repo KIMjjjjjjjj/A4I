@@ -5,7 +5,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:http/http.dart' as http;
 import 'package:repos/UI/Report/report_model.dart';
 import 'package:repos/UI/Report/report_service.dart';
-
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import '../Chatbot/prompts.dart';
 
 class DayReportProcess {
@@ -73,9 +73,9 @@ class DayReportProcess {
     final updatedReport = Report(
       emotionData: existingReport != null ? mergeEmotions(existingReport.emotionData, emotions) : emotions,
       feedback: await feedback,
-      topics: existingReport != null ? mergeList(existingReport.topics, topics, max: 3) : topics,
-      keywords: existingReport != null ? mergeList(existingReport.keywords, keywords, max: 5) : keywords,
-      emotionIntensitys: intensity,
+      topics: existingReport != null ? mergeList(existingReport.topics ?? [], topics, max: 3) : topics,
+      keywords: existingReport != null ? mergeList(existingReport.keywords ?? [], keywords, max: 5) : keywords,
+      emotionIntensityData: intensity,
     );
     await reportService.saveReport(date, updatedReport);
   }
@@ -184,7 +184,7 @@ class DayReportProcess {
   //// summary로 피드백 생성
   static Future<String> generateFeedback(List<Map<String, dynamic>> chats) async {
     Map<String, String> prompts = await loadPrompts();
-    final String _apiKey = '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';
+    final String _apiKey = dotenv.env['OPENAI_API_KEY'] ?? '';
 
     final summaries = chats.map((chat) => chat['summary'] as String).toList();
     final userContent = summaries.join('\n');
