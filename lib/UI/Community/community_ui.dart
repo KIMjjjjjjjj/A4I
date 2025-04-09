@@ -6,6 +6,53 @@ import 'board_ui.dart';
 class CommunityScreen extends StatelessWidget {
   const CommunityScreen({super.key});
 
+  Future<Map<String, int>> getPostCounts(String postId) async {
+    Map<String, int> counts = {
+      'likeCount': 0,
+      'commentCount': 0,
+      'viewCount': 0,
+    };
+
+    try {
+      // 좋아요 수 가져오기
+      QuerySnapshot likeSnapshot = await FirebaseFirestore.instance
+          .collection("community")
+          .doc("AjeagqxuQCcafNgotPhV")
+          .collection("posts")
+          .doc(postId)
+          .collection("like")
+          .get();
+
+      counts['likeCount'] = likeSnapshot.docs.length;
+
+      // 댓글 수 가져오기
+      QuerySnapshot commentSnapshot = await FirebaseFirestore.instance
+          .collection("community")
+          .doc("AjeagqxuQCcafNgotPhV")
+          .collection("posts")
+          .doc(postId)
+          .collection("comments")
+          .get();
+
+      counts['commentCount'] = commentSnapshot.docs.length;
+
+      // 조회수 가져오기
+      QuerySnapshot viewSnapshot = await FirebaseFirestore.instance
+          .collection("community")
+          .doc("AjeagqxuQCcafNgotPhV")
+          .collection("posts")
+          .doc(postId)
+          .collection("view")
+          .get();
+
+      counts['viewCount'] = viewSnapshot.docs.length;
+    } catch (e) {
+      print("Error getting post counts: $e");
+    }
+
+    return counts;
+  }
+
   @override
   Widget build(BuildContext context) {
     final double screenWidth = MediaQuery.of(context).size.width;
@@ -59,8 +106,6 @@ class CommunityScreen extends StatelessWidget {
                       .doc("AjeagqxuQCcafNgotPhV")
                       .collection("posts")
                       .orderBy("likeCount", descending: true)
-                      //.orderBy("commentCount", descending: true)
-                      //.orderBy("viewCount", descending: true)
                       .limit(3)
                       .get(),
                   builder: (context, snapshot){
@@ -78,36 +123,65 @@ class CommunityScreen extends StatelessWidget {
                       print("Title: ${doc["title"]}, LikeCount: ${doc["likeCount"]}");
                     });
 
-                    List<Widget> postWidgets = snapshot.data!.docs.map((doc) {
-                      return GestureDetector(
-                        onTap: () {
-                          // 게시글 상세 페이지로 이동
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) => PostDetailScreen(postId: doc.id), // 게시글 ID 전달
+
+
+                    return FutureBuilder<List<Map<String, dynamic>>>(
+                      future: Future.wait(
+                        snapshot.data!.docs.map((doc) async {
+                          Map<String, int> counts = await getPostCounts(doc.id);
+                          return {
+                            'doc': doc,
+                            'counts': counts,
+                          };
+                        }).toList(),
+                      ),
+                      builder: (context, postsWithCountsSnapshot) {
+                        if (postsWithCountsSnapshot.connectionState == ConnectionState.waiting) {
+                          return Center(child: CircularProgressIndicator());
+                        }
+
+                        if (!postsWithCountsSnapshot.hasData) {
+                          return Center(child: Text("데이터를 가져오는 중 오류가 발생했습니다."));
+                        }
+
+                        List<Widget> postWidgets = postsWithCountsSnapshot.data!.map((item) {
+                          var doc = item['doc'];
+                          var counts = item['counts'];
+
+                          return GestureDetector(
+                            onTap: () {
+                              // 게시글 상세 페이지로 이동
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => PostDetailScreen(postId: doc.id), // 게시글 ID 전달
+                                ),
+                              );
+                            },
+                            child: postPanel(
+                              doc["title"],
+                              doc["boardName"],
+                              panelHeight * 0.8 / 3,
+                              panelWidth * 0.9,
+                              counts['viewCount']!,
+                              counts['likeCount']!,
+                              counts['commentCount']!,
                             ),
                           );
-                        },
-                        child: postPanel(
-                          doc["title"],
-                          doc["boardName"],
-                          panelHeight * 0.8 / 3,
-                          panelWidth * 0.9,
-                        ),
-                      );
-                    }).toList();
+                        }).toList();
 
-                    // 게시글 수에 따라 Divider 추가
-                    List<Widget> finalWidgets = [];
-                    for (int i = 0; i < postWidgets.length; i++) {
-                      finalWidgets.add(postWidgets[i]);
-                      if (i < postWidgets.length - 1) {
-                        finalWidgets.add(Divider(color: Colors.black, thickness: 1, indent: 10, endIndent: 10)); // 마지막 게시글 뒤에는 Divider 추가 안 함
-                      }
-                    }
+                        // 게시글 수에 따라 Divider 추가
+                        List<Widget> finalWidgets = [];
+                        for (int i = 0; i < postWidgets.length; i++) {
+                          finalWidgets.add(postWidgets[i]);
+                          if (i < postWidgets.length - 1) {
+                            finalWidgets.add(Divider(color: Colors.black, thickness: 1, indent: 10, endIndent: 10));
+                          }
+                        }
 
-                    return Column(children: finalWidgets);
+                        return Column(children: finalWidgets);
+                      },
+                    );
                   }
                 )
               ),
@@ -141,7 +215,8 @@ class CommunityScreen extends StatelessWidget {
     );
   }
 
-  Widget postPanel(String title, String category, double height, double width) {
+  Widget postPanel(String title, String category, double height, double width, int viewCount, int likeCount, int commentCount) {
+    print(viewCount);
     return Container(
       height: height,
       width: width,
@@ -181,15 +256,15 @@ class CommunityScreen extends StatelessWidget {
                 children: [
                   Icon(Icons.remove_red_eye, size: 16, color: Colors.grey),
                   SizedBox(width: 5),
-                  Text("0", style: TextStyle(fontSize: 14, color: Colors.black)),
+                  Text(viewCount.toString(), style: TextStyle(fontSize: 14, color: Colors.black)),
                   SizedBox(width: 10),
                   Icon(Icons.thumb_up, size: 16, color: Colors.grey),
                   SizedBox(width: 5),
-                  Text("0", style: TextStyle(fontSize: 14, color: Colors.black)),
+                  Text(likeCount.toString(), style: TextStyle(fontSize: 14, color: Colors.black)),
                   SizedBox(width: 10),
                   Icon(Icons.comment, size: 16, color: Colors.grey),
                   SizedBox(width: 5),
-                  Text("0", style: TextStyle(fontSize: 14, color: Colors.black)),
+                  Text(commentCount.toString(), style: TextStyle(fontSize: 14, color: Colors.black)),
                 ],
               )
             ],

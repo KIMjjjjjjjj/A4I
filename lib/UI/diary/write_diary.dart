@@ -190,131 +190,133 @@ class _DiaryEntryPageState extends State<DiaryEntryPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Color(0xFFE3F3FF),
-      body: Padding(
-        padding: EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            SizedBox(height: 40),
-            Container(
-              padding: EdgeInsets.all(16),
-              width: double.infinity,
-              height: 800,
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(16),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Row(
-                        children: [
-                          GestureDetector(
-                            onTap: _showEmojiPicker,
-                            child: Container(
-                              child: Center(
-                                child: selectedFace.isNotEmpty
-                                    ? Image.asset(
-                                  selectedFace,
-                                  width: 30,
-                                  height: 30,
-                                  fit: BoxFit.cover,
-                                )
-                                    : Icon(
-                                  Icons.add_circle,
-                                  color: Colors.grey,
-                                  size: 30,
+      body: SingleChildScrollView(
+        child: Padding(
+          padding: EdgeInsets.all(16.0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              SizedBox(height: 40),
+              Container(
+                padding: EdgeInsets.all(16),
+                width: double.infinity,
+                height: 800,
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Row(
+                          children: [
+                            GestureDetector(
+                              onTap: _showEmojiPicker,
+                              child: Container(
+                                child: Center(
+                                  child: selectedFace.isNotEmpty
+                                      ? Image.asset(
+                                    selectedFace,
+                                    width: 30,
+                                    height: 30,
+                                    fit: BoxFit.cover,
+                                  )
+                                      : Icon(
+                                    Icons.add_circle,
+                                    color: Colors.grey,
+                                    size: 30,
+                                  ),
                                 ),
                               ),
                             ),
-                          ),
-                          SizedBox(width: 10),
-                          Text('${widget.month}월 ${widget.day}일', style: TextStyle(fontSize: 18)),
-                        ],
-                      ),
-                    ],
-                  ),
-                  SizedBox(height: 16),
-                  Container(
-                    height: 300,
-                    color: Colors.grey[200],
-                    child: GestureDetector(
-                      onTap: _pickImage,
-                      child: Center(
-                        child: _selectedImage != null
-                            ? Image.file(
-                          _selectedImage!,
-                          fit: BoxFit.cover,
-                          width: double.infinity,
-                          height: 300,
-                        )
-                            : Icon(Icons.image, size: 50, color: Colors.grey),
-                      ),
+                            SizedBox(width: 10),
+                            Text('${widget.month}월 ${widget.day}일', style: TextStyle(fontSize: 18)),
+                          ],
+                        ),
+                      ],
                     ),
-                  ),
-                  SizedBox(height: 16),
-                  TextField(
-                    controller: _titleController,
-                    decoration: InputDecoration(
-                      labelText: '제목',
-                      labelStyle: TextStyle(
-                        color: Colors.black,
-                        fontSize: 28,
-                        fontWeight: FontWeight.bold,
-                      ),
-                      border: InputBorder.none,
-                    ),
-                  ),
-                  SizedBox(height: 1),
-                  TextField(
-                    controller: _contentController,
-                    decoration: InputDecoration(
-                      labelText: '일기를 작성해보세요',
-                      labelStyle: TextStyle(
-                        color: Colors.grey,
-                        fontSize: 25,
-                        fontWeight: FontWeight.bold,
-                      ),
-                      border: InputBorder.none,
-                      contentPadding: EdgeInsets.symmetric(vertical: 16.0, horizontal: 12.0),
-                    ),
-                  ),
-                  Spacer(),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.end,
-                    children: [
-                      SizedBox(
-                        width: 100,
-                        child: OutlinedButton(
-                          onPressed: () {
-                            Navigator.pop(context);
-                          },
-                          style: OutlinedButton.styleFrom(
-                            side: BorderSide(color: Color(0xFF71ABE8), width: 1.5),
-                          ),
-                          child: Text('취소', style: TextStyle(color: Colors.black54)),
+                    SizedBox(height: 16),
+                    Container(
+                      height: 300,
+                      color: Colors.grey[200],
+                      child: GestureDetector(
+                        onTap: _pickImage,
+                        child: Center(
+                          child: _selectedImage != null
+                              ? Image.file(
+                            _selectedImage!,
+                            fit: BoxFit.cover,
+                            width: double.infinity,
+                            height: 300,
+                          )
+                              : Icon(Icons.image, size: 50, color: Colors.grey),
                         ),
                       ),
-                      SizedBox(width: 8),
-                      SizedBox(
-                        width: 100,
-                        child: ElevatedButton(
-                          onPressed: SaveDiary,
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.blue[200],
-                          ),
-                          child: Text('저장'),
+                    ),
+                    SizedBox(height: 16),
+                    TextField(
+                      controller: _titleController,
+                      decoration: InputDecoration(
+                        labelText: '제목',
+                        labelStyle: TextStyle(
+                          color: Colors.black,
+                          fontSize: 28,
+                          fontWeight: FontWeight.bold,
                         ),
+                        border: InputBorder.none,
                       ),
-                    ],
-                  )
-                ],
+                    ),
+                    SizedBox(height: 1),
+                    TextField(
+                      controller: _contentController,
+                      decoration: InputDecoration(
+                        labelText: '일기를 작성해보세요',
+                        labelStyle: TextStyle(
+                          color: Colors.grey,
+                          fontSize: 25,
+                          fontWeight: FontWeight.bold,
+                        ),
+                        border: InputBorder.none,
+                        contentPadding: EdgeInsets.symmetric(vertical: 16.0, horizontal: 12.0),
+                      ),
+                    ),
+                    Spacer(),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.end,
+                      children: [
+                        SizedBox(
+                          width: 100,
+                          child: OutlinedButton(
+                            onPressed: () {
+                              Navigator.pop(context);
+                            },
+                            style: OutlinedButton.styleFrom(
+                              side: BorderSide(color: Color(0xFF71ABE8), width: 1.5),
+                            ),
+                            child: Text('취소', style: TextStyle(color: Colors.black54)),
+                          ),
+                        ),
+                        SizedBox(width: 8),
+                        SizedBox(
+                          width: 100,
+                          child: ElevatedButton(
+                            onPressed: SaveDiary,
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.blue[200],
+                            ),
+                            child: Text('저장'),
+                          ),
+                        ),
+                      ],
+                    )
+                  ],
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );

@@ -18,6 +18,8 @@ class LoginFormScreen extends State<LoginPage> {
   final TextEditingController passwordController = TextEditingController();
   final FirebaseAuth auth = FirebaseAuth.instance;
 
+  bool _obscureText = true;
+
   String errorText = "";
   String? emailErrorMessage;
   String? passwordErrorMessage;
@@ -66,16 +68,25 @@ class LoginFormScreen extends State<LoginPage> {
         password: passwordController.text.trim(),
       );
 
-      String username = emailController.text;
-      String password = passwordController.text;
+      String uid = userCredential.user!.uid;
 
-      Navigator.push(
-        context,
-        MaterialPageRoute(builder: (context) => SurveyExplainPage()),
-      );
+      final firstTestCollection = FirebaseFirestore.instance
+          .collection('test')
+          .doc(uid)
+          .collection('firsttest');
 
-      print('Username: $username');
-      print('Password: $password');
+      final snapshot = await firstTestCollection.limit(1).get();
+
+      if (snapshot.docs.isNotEmpty) {
+        // firsttest 컬렉션에 문서가 있으면 mainDisplay로 이동
+        Navigator.pushReplacementNamed(context, '/navigation'); // 또는 push if not named
+      } else {
+        // 문서가 없으면 설문 페이지로 이동
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (context) => SurveyExplainPage()),
+        );
+      }
 
       emailController.clear();
       passwordController.clear();
@@ -140,12 +151,25 @@ class LoginFormScreen extends State<LoginPage> {
             padding: const EdgeInsets.symmetric(horizontal: 40),
             child: TextField(
               controller: passwordController,
-              obscureText: true,
+              obscureText: _obscureText,
               style: TextStyle(color: Color(0xFF000000), fontSize: 20),
               decoration: InputDecoration(
                 hintText: '비밀번호 입력',
                 hintStyle: TextStyle(color: Color(0xFFCECECE), fontSize: 20),
                 border: InputBorder.none,
+
+                suffixIcon: GestureDetector(
+                  onTap: () {
+                    setState(() {
+                      _obscureText = !_obscureText;
+                    });
+                  },
+                  child: Icon(
+                    _obscureText ? Icons.visibility_off : Icons.visibility,
+                    color: Color(0xFFCECECE),
+                    size: 24,
+                  ),
+                ),
               ),
             ),
           ),
@@ -196,36 +220,38 @@ class LoginFormScreen extends State<LoginPage> {
     return Scaffold(
       backgroundColor: Color(0xFFFAF8F8),
       appBar: AppBar(),
-      body: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.start,
-          crossAxisAlignment: CrossAxisAlignment.center,
-          children: [
-            SizedBox(height: 98),
-            // 로고 이미지
-            Image.asset(
-              'assets/Widget/Login/logo.png',
-              fit: BoxFit.cover,
-            ),
-            SizedBox(height: 20), // 로고와 아이디 입력 필드 간격
-            loginWidget(),
-            SizedBox(height: 20), // 아이디와 비밀번호 입력 필드 간격
-            passwordWidget(),// 입력 필드와 버튼 간격
-            if (errorText.isNotEmpty)
-              Align(
-                alignment: Alignment.centerLeft,
-                child: Padding(
-                  padding: EdgeInsets.only(left: 35),
-                  child: Text(
-                    errorText,
-                    style: TextStyle(color: Color(0xFFFF6C6C), fontSize: 14),
+      body: SingleChildScrollView(
+        child: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.start,
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              SizedBox(height: 98),
+              // 로고 이미지
+              Image.asset(
+                'assets/Widget/Login/logo.png',
+                fit: BoxFit.cover,
+              ),
+              SizedBox(height: 20), // 로고와 아이디 입력 필드 간격
+              loginWidget(),
+              SizedBox(height: 20), // 아이디와 비밀번호 입력 필드 간격
+              passwordWidget(),// 입력 필드와 버튼 간격
+              if (errorText.isNotEmpty)
+                Align(
+                  alignment: Alignment.centerLeft,
+                  child: Padding(
+                    padding: EdgeInsets.only(left: 35),
+                    child: Text(
+                      errorText,
+                      style: TextStyle(color: Color(0xFFFF6C6C), fontSize: 14),
+                    ),
                   ),
                 ),
-              ),
-            SizedBox(height: 20),
-            loginButton(),
-            findPassword(),
-          ],
+              SizedBox(height: 20),
+              loginButton(),
+              findPassword(),
+            ],
+          ),
         ),
       ),
     );

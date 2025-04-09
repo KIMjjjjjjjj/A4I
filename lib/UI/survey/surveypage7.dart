@@ -13,11 +13,19 @@ class SurveyPage7 extends StatefulWidget {
 class _SurveyPage7State extends State<SurveyPage7> {
   Set<String> selectedEmotions = {};
   TextEditingController TextController = TextEditingController();
+  bool _showError = false;
 
   final FirebaseAuth _auth = FirebaseAuth.instance;
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
   Future<void> AddEmotionData() async {
+    if (selectedEmotions.isEmpty) {
+      setState(() {
+        _showError = true;
+      });
+      return;
+    }
+
     try {
       User? user = _auth.currentUser;
       String? uid = user?.uid;
@@ -57,91 +65,103 @@ class _SurveyPage7State extends State<SurveyPage7> {
         centerTitle: true,
         elevation: 0,
       ),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            LinearProgressIndicator(
-              value: 7 / 7,
-              backgroundColor: Colors.grey[200],
-              color: Colors.green,
-            ),
-            const SizedBox(height: 16),
-            const Center(
-              child: Text(
-                '7/7',
-                style: TextStyle(fontSize: 16, color: Colors.grey),
+      body: SingleChildScrollView(
+        child: Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              LinearProgressIndicator(
+                value: 7 / 7,
+                backgroundColor: Colors.grey[200],
+                color: Colors.green,
               ),
-            ),
-            const SizedBox(height: 32),
-            const Center(
-              child: Text(
-                '요즘 당신의 감정을 한 단어로 표현한다면?',
-                style: TextStyle(fontSize: 21, fontWeight: FontWeight.bold),
+              const SizedBox(height: 16),
+              const Center(
+                child: Text(
+                  '7/7',
+                  style: TextStyle(fontSize: 16, color: Colors.grey),
+                ),
               ),
-            ),
-            const SizedBox(height: 4),
-            const Center(
-              child: Text(
-                '편하게 선택해주세요!',
-                style: TextStyle(fontSize: 16, color: Colors.grey),
+              const SizedBox(height: 32),
+              const Center(
+                child: Text(
+                  '요즘 당신의 감정을 한 단어로 표현한다면?',
+                  style: TextStyle(fontSize: 21, fontWeight: FontWeight.bold),
+                ),
               ),
-            ),
-            const SizedBox(height: 32),
-            CheckboxTile('행복'),
-            const SizedBox(height: 10),
-            CheckboxTile('불안'),
-            const SizedBox(height: 10),
-            CheckboxTile('슬픔'),
-            const SizedBox(height: 10),
-            CheckboxTile('지침'),
-            const SizedBox(height: 10),
-            CheckboxTile('외로움'),
-            const SizedBox(height: 10),
-            CheckboxTile('기타(직접 입력)'),
-            Visibility(
-              visible: selectedEmotions.contains('기타(직접 입력)'),
-              child: Padding(
-                padding: const EdgeInsets.only(top: 10.0),
-                child: TextField(
-                  controller: TextController,
-                  decoration: InputDecoration(
-                    hintText: '내용을 입력하세요',
-                    filled: true,
-                    fillColor: Colors.green[50],
-                    enabledBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(20.0),
-                      borderSide: BorderSide(color: Colors.green),
-                    ),
-                    focusedBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(20.0),
-                      borderSide: BorderSide(color: Colors.green),
+              const SizedBox(height: 4),
+              const Center(
+                child: Text(
+                  '편하게 선택해주세요!',
+                  style: TextStyle(fontSize: 16, color: Colors.grey),
+                ),
+              ),
+              const SizedBox(height: 32),
+              CheckboxTile('행복'),
+              const SizedBox(height: 10),
+              CheckboxTile('불안'),
+              const SizedBox(height: 10),
+              CheckboxTile('슬픔'),
+              const SizedBox(height: 10),
+              CheckboxTile('지침'),
+              const SizedBox(height: 10),
+              CheckboxTile('외로움'),
+              const SizedBox(height: 10),
+              CheckboxTile('기타(직접 입력)'),
+              Visibility(
+                visible: selectedEmotions.contains('기타(직접 입력)'),
+                child: Padding(
+                  padding: const EdgeInsets.only(top: 10.0),
+                  child: TextField(
+                    controller: TextController,
+                    decoration: InputDecoration(
+                      hintText: '내용을 입력하세요',
+                      filled: true,
+                      fillColor: Colors.green[50],
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(20.0),
+                        borderSide: BorderSide(color: Colors.green),
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(20.0),
+                        borderSide: BorderSide(color: Colors.green),
+                      ),
                     ),
                   ),
                 ),
               ),
-            ),
-            const Spacer(),
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton(
-                onPressed: AddEmotionData,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.green,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12.0),
+              if (_showError)
+                Padding(
+                  padding: const EdgeInsets.only(top: 10.0),
+                  child: Center(
+                    child: Text(
+                      '적어도 하나 이상 선택해주세요',
+                      style: TextStyle(color: Colors.red, fontSize: 14),
+                    ),
                   ),
-                  padding: const EdgeInsets.all(16.0),
                 ),
-                child: const Text(
-                  '다음',
-                  style: TextStyle(fontSize: 18, color: Colors.white),
+              const Spacer(),
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  onPressed: AddEmotionData,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.green,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12.0),
+                    ),
+                    padding: const EdgeInsets.all(16.0),
+                  ),
+                  child: const Text(
+                    '다음',
+                    style: TextStyle(fontSize: 18, color: Colors.white),
+                  ),
                 ),
               ),
-            ),
-            const SizedBox(height: 16),
-          ],
+              const SizedBox(height: 16),
+            ],
+          ),
         ),
       ),
     );
@@ -166,6 +186,9 @@ class _SurveyPage7State extends State<SurveyPage7> {
             selectedEmotions.add(emotion);
           } else {
             selectedEmotions.remove(emotion);
+          }
+          if (_showError) {
+            _showError = false;
           }
         });
       },

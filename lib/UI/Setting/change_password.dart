@@ -104,78 +104,80 @@ class _ChangePasswordPageState extends State<ChangePasswordPage> {
         centerTitle: true,
       ),
       backgroundColor: Colors.grey[200],
-      body: Column(
-        children: [
-          const SizedBox(height: 10),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 20),
-            child: Container(
-              padding: const EdgeInsets.all(20),
-              width: double.infinity,
-              height: 700,
-              decoration: BoxDecoration(
-                color: Colors.white,
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  const Text('현재 비밀번호', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-                  const SizedBox(height: 8),
-                  TextField(
-                    obscureText: true,
-                    controller: _currentPasswordController,
-                    decoration: InputDecoration(
-                      hintText: '현재 비밀번호',
-                      filled: true,
-                      fillColor: Colors.grey[200],
-                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide.none),
-                    ),
-                  ),
-                  const SizedBox(height: 20),
-                  const Text('새 비밀번호', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-                  const SizedBox(height: 8),
-                  TextField(
-                    obscureText: true,
-                    controller: _newPasswordController,
-                    decoration: InputDecoration(
-                      hintText: '새 비밀번호',
-                      filled: true,
-                      fillColor: Colors.grey[200],
-                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide.none),
-                    ),
-                  ),
-                  const SizedBox(height: 10),
-                  TextField(
-                    obscureText: true,
-                    controller: _confirmPasswordController,
-                    decoration: InputDecoration(
-                      hintText: '새 비밀번호 확인',
-                      filled: true,
-                      fillColor: Colors.grey[200],
-                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide.none),
-                    ),
-                  ),
-                  const SizedBox(height: 30),
-                  SizedBox(
-                    width: double.infinity,
-                    height: 50,
-                    child: ElevatedButton(
-                      onPressed: _changePassword,
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Color(0xFF99A8DA),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+      body: SingleChildScrollView(
+        child: Column(
+          children: [
+            const SizedBox(height: 10),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20),
+              child: Container(
+                padding: const EdgeInsets.all(20),
+                width: double.infinity,
+                height: 700,
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Text('현재 비밀번호', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                    const SizedBox(height: 8),
+                    TextField(
+                      obscureText: true,
+                      controller: _currentPasswordController,
+                      decoration: InputDecoration(
+                        hintText: '현재 비밀번호',
+                        filled: true,
+                        fillColor: Colors.grey[200],
+                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide.none),
                       ),
-                      child: const Text('비밀번호 변경', style: TextStyle(color: Colors.white, fontSize: 16)),
                     ),
-                  ),
-                  SizedBox(height: 40),
-                  Text('                   비밀번호를 잊으셨나요?', style: TextStyle(fontSize: 16, color: Colors.red, fontWeight: FontWeight.bold)),
-                ],
+                    const SizedBox(height: 20),
+                    const Text('새 비밀번호', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                    const SizedBox(height: 8),
+                    TextField(
+                      obscureText: true,
+                      controller: _newPasswordController,
+                      decoration: InputDecoration(
+                        hintText: '새 비밀번호',
+                        filled: true,
+                        fillColor: Colors.grey[200],
+                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide.none),
+                      ),
+                    ),
+                    const SizedBox(height: 10),
+                    TextField(
+                      obscureText: true,
+                      controller: _confirmPasswordController,
+                      decoration: InputDecoration(
+                        hintText: '새 비밀번호 확인',
+                        filled: true,
+                        fillColor: Colors.grey[200],
+                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide.none),
+                      ),
+                    ),
+                    const SizedBox(height: 30),
+                    SizedBox(
+                      width: double.infinity,
+                      height: 50,
+                      child: ElevatedButton(
+                        onPressed: _changePassword,
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Color(0xFF99A8DA),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                        ),
+                        child: const Text('비밀번호 변경', style: TextStyle(color: Colors.white, fontSize: 16)),
+                      ),
+                    ),
+                    SizedBox(height: 40),
+                    Text('                   비밀번호를 잊으셨나요?', style: TextStyle(fontSize: 16, color: Colors.red, fontWeight: FontWeight.bold)),
+                  ],
+                ),
               ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
