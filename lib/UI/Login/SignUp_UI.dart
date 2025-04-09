@@ -20,6 +20,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
   final TextEditingController textController = TextEditingController();
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   SignUpStep currentStep = SignUpStep.emailVerification;
+  bool _obscureText = false;
 
   String statusText = "안녕하세요!\n이메일을 입력해 주세요.";
   String additionalText = "";

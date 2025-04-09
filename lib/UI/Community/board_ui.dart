@@ -258,14 +258,7 @@ class _BoardScreenState extends State<BoardScreen> {
                             FutureBuilder<int>(
                               future: getViewCount(postIdForView), // 조회수 가져오기
                               builder: (context, snapshot) {
-                                if (snapshot.connectionState == ConnectionState.waiting) {
-                                  return const CircularProgressIndicator();
-                                }
-                                if (snapshot.hasData) {
-                                  return Text("${snapshot.data}");
-                                } else {
-                                  return const Text("0");
-                                }
+                                return Text("${snapshot.data ?? 0}");
                               },
                             ),
                             const SizedBox(width: 5,),
@@ -274,14 +267,7 @@ class _BoardScreenState extends State<BoardScreen> {
                             FutureBuilder<int>(
                               future: getLikeCount(postIdForView), // 좋아요 개수 가져오기
                               builder: (context, snapshot) {
-                                if (snapshot.connectionState == ConnectionState.waiting) {
-                                  return const CircularProgressIndicator();
-                                }
-                                if (snapshot.hasData) {
-                                  return Text("${snapshot.data}");
-                                } else {
-                                  return const Text("0");
-                                }
+                                return Text("${snapshot.data ?? 0}");
                               },
                             ),
                             const SizedBox(width: 5,),
@@ -290,14 +276,7 @@ class _BoardScreenState extends State<BoardScreen> {
                             FutureBuilder<int>(
                               future: getCommentCount(postIdForView), // 댓글 개수 가져오기
                               builder: (context, snapshot) {
-                                if (snapshot.connectionState == ConnectionState.waiting) {
-                                  return const CircularProgressIndicator();
-                                }
-                                if (snapshot.hasData) {
-                                  return Text("${snapshot.data}");
-                                } else {
-                                  return const Text("0");
-                                }
+                                return Text("${snapshot.data ?? 0}");
                               },
                             ),
                           ],

@@ -12,11 +12,19 @@ class SurveyPage6 extends StatefulWidget {
 
 class _SurveyPage6State extends State<SurveyPage6> {
   Set<String> selectedHelps = {};
+  bool _showError = false;
 
   final FirebaseAuth _auth = FirebaseAuth.instance;
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
   Future<void> AddHelpData() async {
+    if (selectedHelps.isEmpty) {
+      setState(() {
+        _showError = true;
+      });
+      return;
+    }
+
     try {
       User? user = _auth.currentUser;
       String? uid = user?.uid;
@@ -51,66 +59,78 @@ class _SurveyPage6State extends State<SurveyPage6> {
         centerTitle: true,
         elevation: 0,
       ),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            LinearProgressIndicator(
-              value: 6 / 7,
-              backgroundColor: Colors.grey[200],
-              color: Colors.green,
-            ),
-            const SizedBox(height: 16),
-            const Center(
-              child: Text(
-                '6/7',
-                style: TextStyle(fontSize: 16, color: Colors.grey),
+      body: SingleChildScrollView(
+        child: Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              LinearProgressIndicator(
+                value: 6 / 7,
+                backgroundColor: Colors.grey[200],
+                color: Colors.green,
               ),
-            ),
-            const SizedBox(height: 32),
-            const Center(
-              child: Text(
-                '상담 외에 추가로 받고 싶은 도움이 있으신가요?',
-                style: TextStyle(fontSize: 19, fontWeight: FontWeight.bold),
+              const SizedBox(height: 16),
+              const Center(
+                child: Text(
+                  '6/7',
+                  style: TextStyle(fontSize: 16, color: Colors.grey),
+                ),
               ),
+              const SizedBox(height: 32),
+              const Center(
+                child: Text(
+                  '상담 외에 추가로 받고 싶은 도움이 있으신가요?',
+                  style: TextStyle(fontSize: 19, fontWeight: FontWeight.bold),
+                ),
 
-            ),
-            const SizedBox(height: 4),
-            const Center(
-              child: Text(
-                '도움이 될만한 것이 궁금해요!',
-                style: TextStyle(fontSize: 16, color: Colors.grey),
               ),
-            ),
-            const SizedBox(height: 32),
-            CheckboxTile('스트레스 관리 방법'),
-            const SizedBox(height: 10),
-            CheckboxTile('마음을 다스리는 활동 추천'),
-            const SizedBox(height: 10),
-            CheckboxTile('명상이나 호흡법 안내'),
-            const SizedBox(height: 10),
-            CheckboxTile('자기계발 팁 제공'),
-            const Spacer(),
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton(
-                onPressed: AddHelpData,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.green,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12.0),
+              const SizedBox(height: 4),
+              const Center(
+                child: Text(
+                  '도움이 될만한 것이 궁금해요!',
+                  style: TextStyle(fontSize: 16, color: Colors.grey),
+                ),
+              ),
+              const SizedBox(height: 32),
+              CheckboxTile('스트레스 관리 방법'),
+              const SizedBox(height: 10),
+              CheckboxTile('마음을 다스리는 활동 추천'),
+              const SizedBox(height: 10),
+              CheckboxTile('명상이나 호흡법 안내'),
+              const SizedBox(height: 10),
+              CheckboxTile('자기계발 팁 제공'),
+              if (_showError)
+                Padding(
+                  padding: const EdgeInsets.only(top: 10.0),
+                  child: Center(
+                    child: Text(
+                      '적어도 하나 이상 선택해주세요',
+                      style: TextStyle(color: Colors.red, fontSize: 14),
+                    ),
                   ),
-                  padding: const EdgeInsets.all(16.0),
                 ),
-                child: const Text(
-                  '다음',
-                  style: TextStyle(fontSize: 18, color: Colors.white),
+              const Spacer(),
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  onPressed: AddHelpData,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.green,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12.0),
+                    ),
+                    padding: const EdgeInsets.all(16.0),
+                  ),
+                  child: const Text(
+                    '다음',
+                    style: TextStyle(fontSize: 18, color: Colors.white),
+                  ),
                 ),
               ),
-            ),
-            const SizedBox(height: 16),
-          ],
+              const SizedBox(height: 16),
+            ],
+          ),
         ),
       ),
     );
@@ -135,6 +155,10 @@ class _SurveyPage6State extends State<SurveyPage6> {
             selectedHelps.add(emotion);
           } else {
             selectedHelps.remove(emotion);
+          }
+
+          if (_showError) {
+            _showError = false;
           }
         });
       },

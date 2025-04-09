@@ -76,24 +76,29 @@ class _VoiceChatScreenState extends State<VoiceChatScreen> with SingleTickerProv
             mainAxisAlignment: MainAxisAlignment.start,
             children: [
               Padding(
-                padding: EdgeInsets.symmetric(horizontal: screenWidth * 0.025),
-                child: Stack(
-                  alignment: Alignment.topLeft,
-                  children: [
-                    Image.asset(
-                      'assets/images/Chatbot/bubbleChat.png',
-                      width: screenWidth * 0.95,
-                      fit: BoxFit.fitWidth,
+                padding: EdgeInsets.symmetric(horizontal: screenWidth * 0.025, vertical: 10),
+                child: Container(
+                  width: screenWidth * 0.95,
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(20),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.1),
+                        spreadRadius: 1,
+                        blurRadius: 3,
+                        offset: Offset(0,2),
+                      )
+                    ]
+                  ),
+                  child: Padding(
+                    padding: EdgeInsets.all(15),
+                    child: Text(
+                      '오늘 기분은 어떤가요? 고민이 있으면 편하게 이야기 해주세요.\n',
+                      textAlign: TextAlign.left,
+                      style: TextStyle(fontSize: 16,color: Colors.black),
                     ),
-                    Padding(
-                      padding: EdgeInsets.only(left: 25, top: 10, right: 25),
-                      child: Text(
-                        '오늘 기분은 어떤가요? 고민이 있으면 편하게 이야기해주세요.\n',
-                        textAlign: TextAlign.left,
-                        style: TextStyle(fontSize: 16, color: Colors.black),
-                      ),
-                    ),
-                  ],
+                  ),
                 ),
               ),
               SizedBox(height: 10),
