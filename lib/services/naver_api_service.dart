@@ -1,10 +1,11 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 class NaverApiService {
   static const String baseUrl = "https://naveropenapi.apigw.ntruss.com/map-place/v1/search";
-  static const String apiKeyId = "lnluw3cz1n";
-  static const String apiKey = "24MTUdfj2votPiXDY3Vqbv0uPsBem1LTffX9KC1z";
+  static final String apiKeyId = dotenv.env['NAVER_MAPS_API_KEY_ID'] ?? '';
+  static final String apiKey = dotenv.env['NAVER_MAPS_API_KEY'] ?? '';
 
   static Future<List<Map<String, dynamic>>> fetchCounselingCenters(double lat, double lng) async {
     final String requestUrl = "$baseUrl?query=상담센터&coordinate=$lng,$lat"; // 경도, 위도 순서

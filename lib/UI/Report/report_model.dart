@@ -1,31 +1,45 @@
 class Report {
-  final Map<String, double> emotionData; // key : 일반화된 감정 value : 카테고리 비율
-  final String feedback;                 // GPT 요약 피드백
-  final List<String> keywords;           // 상위 3개의 키워드
-  final List<String> topics;             // 상위 3개의 토픽
+  final Map<String, double> emotionData;
+  final String? feedback;
+  final List<String>? keywords;
+  final List<String>? topics;
+  final Map<String, List<double>>? emotionIntensityData;
 
   Report({
     required this.emotionData,
-    required this.feedback,
-    required this.keywords,
-    required this.topics,
+    this.feedback,
+    this.keywords,
+    this.topics,
+    this.emotionIntensityData,
   });
 
   factory Report.fromMap(Map<String, dynamic> map) {
     return Report(
       emotionData: Map<String, double>.from(map['emotionData'] ?? {}),
-      feedback: map['feedback'] ?? '',
-      keywords: List<String>.from(map['keywords'] ?? []),
-      topics: List<String>.from(map['topics'] ?? []),
+      feedback: map['feedback'],
+      keywords: map['keywords'] != null ? List<String>.from(map['keywords']) : null,
+      topics: map['topics'] != null ? List<String>.from(map['topics']) : null,
+      emotionIntensityData: map['emotionIntensityData'] != null
+          ? (map['emotionIntensityData'] as Map<String, dynamic>).map(
+            (key, value) => MapEntry(
+          key,
+          List<double>.from(value),
+        ),
+      )
+          : null,
     );
   }
 
   Map<String, dynamic> toMap() {
     return {
       'emotionData': emotionData,
-      'feedback': feedback,
-      'keywords': keywords,
-      'topics': topics,
+      if (feedback != null) 'feedback': feedback,
+      if (keywords != null) 'keywords': keywords,
+      if (topics != null) 'topics': topics,
+      if (emotionIntensityData != null)
+        'emotionIntensityData': emotionIntensityData!.map(
+              (key, value) => MapEntry(key, value),
+        ),
     };
   }
 }

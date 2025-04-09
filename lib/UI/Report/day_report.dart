@@ -55,18 +55,45 @@ class _dayreport extends State<dayreport> {
   String? feedback;                 // GPT 요약 피드백
   List<String>? topics;             // 상위 3개의 키워드
   List<String>? words;              // 상위 3개의 토픽
+  bool isLoading = true;
 
   @override
   void initState() {
     super.initState();
+    initializeReportDates();
     loadNickname(); // 유저 닉네임 조회
-    loadReport(selectedDate); // 초기에는 오늘 날짜로 데이터 불러오기
     loadAvailableDates(); // 선택 가능한 날짜 조회
+    loadReport(normalizeDate(selectedDate)); // 초기에는 오늘 날짜로 데이터 불러오기
   }
+  Future<void> initializeReportDates() async {
+    final dates = await reportService.getAvailableReportDates(); // Firestore에서 날짜 가져오는 함수
+    if (dates.isNotEmpty) {
+      final normalizedToday = DateTime.now();
+      final normalizedDates = dates.map((d) => DateTime(d.year, d.month, d.day)).toSet();
 
+      // 오늘 날짜가 포함되어 있으면 선택, 아니면 가장 최근 날짜
+      final initial = normalizedDates.contains(normalizedToday)
+          ? normalizedToday
+          : normalizedDates.reduce((a, b) => a.isAfter(b) ? a : b);
+
+      setState(() {
+        availableReportDates = normalizedDates;
+        selectedDate = initial;
+        isLoading = false;
+      });
+
+      loadReport(initial);
+    } else {
+      // 리포트가 하나도 없는 경우
+      setState(() {
+        isLoading = false;
+      });
+    }
+  }
   // 파이어베이스에서 리포트 불러오기
   void loadReport(DateTime date) async {
-    final report = await reportService.fetchReport(date);
+    final normalizedDate = DateTime(date.year, date.month, date.day);
+    final report = await reportService.fetchReport(normalizedDate);
     if (report != null) {
       setState(() {
         emotionData = report.emotionData;
@@ -83,7 +110,9 @@ class _dayreport extends State<dayreport> {
       });
     }
   }
-
+  DateTime normalizeDate(DateTime date) {
+    return DateTime(date.year, date.month, date.day);
+  }
 
   Future<void> loadNickname() async {
     try {
@@ -386,13 +415,14 @@ class _dayreport extends State<dayreport> {
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       ReportDateSelector(
-                        selectedDate: selectedDate,
+                        selectedDate: normalizeDate(selectedDate),
                         availableReportDates: availableReportDates,
                         onDateSelected: (pickedDate) {
+                          final normalized = normalizeDate(pickedDate);
                           setState(() {
-                            selectedDate = pickedDate;
+                            selectedDate = normalized;
                           });
-                          loadReport(pickedDate);
+                          loadReport(normalized);
                         },
                       ),
                     ],

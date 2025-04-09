@@ -4,6 +4,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:http/http.dart' as http;
 import 'package:repos/UI/Chatbot/prompts.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 class ChatAnalyzer {
   static List<String> unsavedMessages = [];
@@ -14,7 +15,7 @@ class ChatAnalyzer {
   static Future<void> analyzeAndSaveMessage(String message) async {
     Map<String, String> prompts = await loadPrompts();
     final User? user = FirebaseAuth.instance.currentUser;
-    final String _apiKey = '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';
+    final String _apiKey = dotenv.env['OPENAI_API_KEY'] ?? '';
 
     unsavedMessages.add(message);
     String combinedMessages = unsavedMessages.join(" ");
