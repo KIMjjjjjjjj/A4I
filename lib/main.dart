@@ -7,6 +7,7 @@ import 'bottom_navigation_bar.dart';
 import 'UI/survey/Firstsurvey_explain.dart';
 import 'UI/MainDisplay/mainDisplay.dart';
 import 'package:flutter_naver_map/flutter_naver_map.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
@@ -32,10 +33,12 @@ class MyApp extends StatelessWidget {
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  await dotenv.load(fileName: ".env"); // api 파일 로드
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
   );
-  await NaverMapSdk.instance.initialize(clientId: 'lnluw3cz1n');
-
+  await NaverMapSdk.instance.initialize(
+    clientId: dotenv.env['NAVER_MAPS_API_KEY_ID'] ?? '',
+  );
   runApp(MyApp());
 }

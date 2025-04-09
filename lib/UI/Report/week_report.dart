@@ -1,20 +1,249 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
+
 import 'package:flutter/material.dart';
 import 'package:fl_chart/fl_chart.dart';
+
 import 'day_report.dart';
+import 'report_date_range_selector.dart';
+import 'report_service.dart';
+import 'report_model.dart';
 
 class weekreport extends StatefulWidget {
   @override
   _weekreport createState() => _weekreport();
 }
 
-class _weekreport extends State<weekreport> {
-  String selectedEmotion = "긍정적";
-  final List<String> emotions = ["긍정적", "낙관적", "부정적", "비관적", "기타"];
+class _weekreport extends State<weekreport> with TickerProviderStateMixin {
+  late TabController _tabController;
+
+  final List<String> emotions = ["두려움", "슬픔", "놀람", "분노", "기쁨", "기타"];
+
+  String selectedEmotion = "두려움"; // 기본값
 
   final TextEditingController percentController = TextEditingController();
 
+  DateTime? startDate;
+  DateTime? endDate;
+  Set<DateTime> availableDates = {};
+  bool isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _tabController = TabController(length: emotions.length, vsync: this);
+    _tabController.addListener(() {
+      setState(() {
+        selectedEmotion = emotions[_tabController.index];
+      });
+    });
+    _initializeReportRange();
+  }
+
+  Future<void> _initializeReportRange() async {
+    final service = ReportService();
+    final dates = await service.getAvailableReportDates();
+
+    if (dates.isNotEmpty) {
+      final sorted = dates.toList()..sort();
+      final latest = sorted.last;
+      final sevenDaysAgo = latest.subtract(Duration(days: 6));
+
+      final filtered = sorted.where((d) => d.isAfter(sevenDaysAgo.subtract(Duration(days: 1)))).toList();
+      setState(() {
+        availableDates = dates;
+        startDate = filtered.first;
+        endDate = filtered.last;
+        isLoading = false;
+      });
+    } else {
+      setState(() {
+        isLoading = false;
+      });
+    }
+    await loadReports();
+  }
+
+  late List<Report> weeklyReports = [];
+
+  Future<void> loadReports() async {
+    if (startDate != null && endDate != null) {
+      weeklyReports = await fetchReportsInRange(startDate!, endDate!);
+      print("불러온 보고서 개수: ${weeklyReports.length}");
+      setState(() {}); // UI 업데이트
+    }
+  }
+
+  Future<List<Report>> fetchReportsInRange(DateTime start, DateTime end) async {
+    final service = ReportService();
+    List<Report> reports = [];
+
+    for (int i = 0; i <= end.difference(start).inDays; i++) {
+      final currentDate = start.add(Duration(days: i));
+      final report = await service.fetchReport(currentDate);
+      if (report != null) {
+        reports.add(report);
+      }
+    }
+
+    return reports;
+  }
+
+  Widget buildLineChart() {
+    List<FlSpot> spots = [];
+    Map<int, String> dateLabels = {};
+    int currentIndex = 0;
+
+    for (int i = 0; i < weeklyReports.length; i++) {
+      final report = weeklyReports[i];
+      final date = startDate!.add(Duration(days: i));
+      final dateLabel = "${date.month}/${date.day}";
+
+      final emotionList = report.emotionIntensityData?[selectedEmotion];
+      if (emotionList != null) {
+        for (int j = 0; j < emotionList.length; j++) {
+          spots.add(FlSpot(currentIndex.toDouble(), emotionList[j]));
+          if (j == 0) {
+            dateLabels[currentIndex] = dateLabel;
+          }
+          currentIndex++;
+        }
+      }
+    }
+
+    return SizedBox(
+      height: 200,
+      child: LineChart(
+        LineChartData(
+          gridData: FlGridData(show: false),
+          titlesData: FlTitlesData(
+            leftTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
+            bottomTitles: AxisTitles(
+              sideTitles: SideTitles(
+                showTitles: true,
+                getTitlesWidget: (value, meta) {
+                  int index = value.toInt();
+                  if (dateLabels.containsKey(index)) {
+                    return Text(dateLabels[index]!,
+                        style: TextStyle(fontSize: 10));
+                  } else {
+                    return SizedBox.shrink();
+                  }
+                },
+                interval: 1,
+                reservedSize: 30,
+              ),
+            ),
+            topTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
+            rightTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
+          ),
+          borderData: FlBorderData(show: false),
+          backgroundColor: Color(0xFFEAEBF0),
+          lineBarsData: [
+            LineChartBarData(
+              spots: spots,
+              isCurved: true,
+              color: Color(0xFF8979FF),
+              barWidth: 2,
+              dotData: FlDotData(show: false),
+              isStrokeCapRound: true,
+              belowBarData: BarAreaData(
+                show: true,
+                gradient: LinearGradient(
+                  colors: [
+                    Color(0xFF8979FF),
+                    Color(0xFFEAEBF0),
+                  ],
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // 토픽 빈도 계산 함수
+  List<String> getTopTopics({int topN = 3}) {
+    final Map<String, int> frequencyMap = {};
+
+    for (var report in weeklyReports) {
+      if (report.topics != null) {
+        for (var topic in report.topics!) {
+          frequencyMap[topic] = (frequencyMap[topic] ?? 0) + 1;
+        }
+      }
+    }
+
+    final sortedTopics = frequencyMap.entries.toList()
+      ..sort((a, b) => b.value.compareTo(a.value));
+
+    return sortedTopics.take(topN).map((entry) => entry.key).toList();
+  }
+
+  Widget buildTopicChips() {
+    final topTopics = getTopTopics(); // weeklyReports 내부에서 꺼내기
+
+    return Wrap(
+      spacing: 10,
+      runSpacing: 10,
+      children: [
+        for (var text in topTopics)
+          Container(
+            padding: EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(16),
+            ),
+            child: Text(
+              text,
+              style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
+            ),
+          ),
+      ],
+    );
+  }
+
+  // 키워드 빈도수
+  List<String> getTopKeywords({int topN = 5}) {
+    final Map<String, int> frequencyMap = {};
+
+    for (var report in weeklyReports) {
+      if (report.keywords != null) {
+        for (var keyword in report.keywords!) {
+          frequencyMap[keyword] = (frequencyMap[keyword] ?? 0) + 1;
+        }
+      }
+    }
+
+    final sortedKeywords = frequencyMap.entries.toList()
+      ..sort((a, b) => b.value.compareTo(a.value));
+
+    return sortedKeywords.take(topN).map((entry) => entry.key).toList();
+  }
+
+  Widget buildKeywordChips() {
+    final topKeywords = getTopKeywords();
+
+    return Wrap(
+      spacing: 10,
+      runSpacing: 10,
+      children: [
+        for (var text in topKeywords)
+          Container(
+            padding: EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(16),
+            ),
+            child: Text(
+              text,
+              style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
+            ),
+          ),
+      ],
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -23,12 +252,16 @@ class _weekreport extends State<weekreport> {
         leading: IconButton(
           icon: Icon(Icons.event, color: Colors.black),
           onPressed: () async {
-            final selectedDate  = await showDatePicker(
-              context: context,
-              initialDate: DateTime(2025, 1, 1),
-              firstDate: DateTime(2020),
-              lastDate: DateTime(2030),
-            );
+
+            final range = await DateRangePicker.showValidDateRangePicker(context);
+            if (range != null) {
+              setState(() {
+                startDate = range.start;
+                endDate = range.end;
+              });
+              print("선택된 범위: ${range.start} ~ ${range.end}");
+              await loadReports();
+            }
           },
         ),
         title: Row(
@@ -91,7 +324,13 @@ class _weekreport extends State<weekreport> {
                     backgroundImage: AssetImage("assets/images/character.png"),
                   ),
                   SizedBox(height: 10),
-                  Text("2025년 01월 22일부터 2025년 01월 29일까지", style: TextStyle(fontSize: 14)),
+                  Text(
+                    startDate != null && endDate != null
+                        ? "${startDate!.year}년 ${startDate!.month.toString().padLeft(2, '0')}월 ${startDate!.day.toString().padLeft(2, '0')}일부터 "
+                        "${endDate!.year}년 ${endDate!.month.toString().padLeft(2, '0')}월 ${endDate!.day.toString().padLeft(2, '0')}일까지"
+                        : "로딩 중...",
+                    style: TextStyle(fontSize: 14),
+                  ),
                   Text("토리와의 대화에서 마음을 살펴보았어요", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
                 ],
               ),
@@ -110,111 +349,39 @@ class _weekreport extends State<weekreport> {
                   SizedBox(height: 10),
                   SingleChildScrollView(
                     scrollDirection: Axis.horizontal,
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.start,
-                      children: ["긍정적", "낙관적", "부정적", "비관적", "기타"].map((test) {
-                        return Padding(
-                          padding: EdgeInsets.symmetric(horizontal: 4.0),
-                          child: ElevatedButton(
-                            onPressed: () {
-                              setState(() {
-                                selectedEmotion = test;
-                              });
-                            },
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: selectedEmotion == test ? Colors.white : Color(0xFFEAEBF0),
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-                              fixedSize: Size(90, 40),
-                            ),
-                            child: Text(
-                              test,
-                              style: TextStyle(fontSize: 12, color: Color(0xFFAAA4A5), fontWeight: FontWeight.bold),
-                            ),
-                          ),
-                        );
-                      }).toList(),
-                    ),
+                    child: TabBar(
+                            controller: _tabController,
+                            isScrollable: true,
+                            labelColor: Colors.black,
+                            unselectedLabelColor: Color(0xFFAAA4A5),
+                            indicatorColor: Colors.transparent,
+                            tabs: emotions.map((emotion) {
+                              return Tab(
+                                child: Container(
+                                  padding: EdgeInsets.symmetric(vertical: 10, horizontal: 10),
+                                  decoration: BoxDecoration(
+                                    color: selectedEmotion == emotion ? Colors.white : Color(0xFFEAEBF0),
+                                    borderRadius: BorderRadius.circular(20),
+                                  ),
+                                  child: Text(
+                                    emotion,
+                                    style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
+                                  ),
+                                ),
+                              );
+                            }).toList(),
+                          )
                   ),
                   SizedBox(height: 30),
-                  SizedBox(
-                    height: 200,
-                    child: LineChart(
-                      LineChartData(
-                        gridData: FlGridData(show: false),
-                        titlesData: FlTitlesData(
-                          leftTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
-                          bottomTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
-                          topTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
-                          rightTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
-                        ),
-                        borderData: FlBorderData(show: false),
-                        backgroundColor: Color(0xFFEAEBF0),
-                        lineBarsData: [
-                          LineChartBarData(
-                            spots: [
-                              FlSpot(0, 20),
-                              FlSpot(1, 25),
-                              FlSpot(2, 30),
-                              FlSpot(3, 35),
-                              FlSpot(4, 50),
-                            ],
-                            isCurved: true,
-                            color: Color(0xFF8979FF),
-                            barWidth: 2,
-                            dotData: FlDotData(show: false),
-                            isStrokeCapRound: true,
-                            belowBarData: BarAreaData(
-                              show: true,
-                              gradient: LinearGradient(
-                                colors: [
-                                  Color(0xFF8979FF),
-                                  Color(0xFFEAEBF0),
-                                ],
-                                begin: Alignment.topCenter,
-                                end: Alignment.bottomCenter,
-                              ),
-                            )
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
+                  buildLineChart(),
                   SizedBox(height: 20),
                   Text("대화 주제", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
                   SizedBox(height: 10),
-                  Wrap(
-                    spacing: 10,
-                    runSpacing: 10,
-                    children: [
-                      for (var text in ["1. 대인 관계 문제", "2. 진로 고민", "3. 스케줄 관리"])
-                        Container(
-                          padding: EdgeInsets.symmetric(vertical: 12, horizontal: 16),
-                          decoration: BoxDecoration(
-                            color: Colors.white,
-                            borderRadius: BorderRadius.circular(16),
-                          ),
-                          child: Text(text, style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold)),
-                        ),
-                    ],
-                  ),
+                  buildTopicChips(),
                   SizedBox(height: 20),
                   Text("가장 많이 사용한 단어", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
                   SizedBox(height: 10),
-                  Wrap(
-                    spacing: 10,
-                    runSpacing: 10,
-                    children: [
-                      for (var text in ["1. 긍정적", "2. 낙관적", "3. 부정적", "4. 비관적", "5. 기타"])
-                        Container(
-                          padding: EdgeInsets.symmetric(vertical: 12, horizontal: 16),
-                          decoration: BoxDecoration(
-                            color: Colors.white,
-                            borderRadius: BorderRadius.circular(16),
-                          ),
-                          child: Text(text, style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold)),
-                        ),
-                    ],
-                  ),
+                  buildKeywordChips(),
                 ],
               ),
             ),
@@ -224,3 +391,4 @@ class _weekreport extends State<weekreport> {
     );
   }
 }
+

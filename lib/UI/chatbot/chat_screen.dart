@@ -5,6 +5,7 @@ import 'package:http/http.dart' as http;
 import 'package:repos/UI/Chatbot/prompts.dart';
 import 'dart:convert';
 import 'dart:convert' as convert;
+import '../Report/day_report_process.dart';
 import 'chat_analyzer.dart';
 import 'voice_chat.dart';
 
@@ -193,6 +194,13 @@ class _ChatScreenState extends State<ChatScreen> {
     }
   }
 
+  @override
+  void dispose() {
+    // chat 컬렉션에서 가장 최근 데이터의 timestamp 불러와서 일일보고서 생성
+    DayReportProcess.generateReportFromLastChat();
+    super.dispose();
+  }
+
   void ChatHistory() {
     showGeneralDialog(
       context: context,
@@ -241,174 +249,180 @@ class _ChatScreenState extends State<ChatScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: widget.topicFilter != null
-            ? Text('${widget.topicFilter} 대화', style: TextStyle(fontWeight: FontWeight.bold))
-            : Text('토리의 채팅방', style: TextStyle(fontWeight: FontWeight.bold)),
-        backgroundColor: Color(0xFFDFF8FF),
-        actions: [
-          IconButton(
-            icon: Icon(Icons.save),
-            onPressed: () {
-              // 대화 내용 저장 함수 호출
-              _summarizeAndSaveChat();
-            },
-          ),
-          IconButton(
-            icon: Icon(Icons.menu),
-            onPressed: ChatHistory,
-          )
-        ],
-      ),
+    return WillPopScope ( // 리포트 생성 후 뒤로가기 허용
+      onWillPop: () async {
+        await DayReportProcess.generateReportFromLastChat();
+        return true; // 페이지 이동 허용
+      },
+      child: Scaffold(
+        appBar: AppBar(
+          title: widget.topicFilter != null
+              ? Text('${widget.topicFilter} 대화', style: TextStyle(fontWeight: FontWeight.bold))
+              : Text('토리의 채팅방', style: TextStyle(fontWeight: FontWeight.bold)),
+          backgroundColor: Color(0xFFDFF8FF),
+          actions: [
+            IconButton(
+              icon: Icon(Icons.save),
+              onPressed: () {
+                // 대화 내용 저장 함수 호출
+                _summarizeAndSaveChat();
+              },
+            ),
+            IconButton(
+              icon: Icon(Icons.menu),
+              onPressed: ChatHistory,
+            )
+          ],
+        ),
 
-      body: Stack(
-        children: [
-          Container(
-            decoration: BoxDecoration(
-              color: Color(0xFFDFF8FF),
+        body: Stack(
+          children: [
+            Container(
+              decoration: BoxDecoration(
+                color: Color(0xFFDFF8FF),
+              ),
             ),
-          ),
-          Positioned(
-            top: 15,
-            left: 15,
-            child: Column(
-              children: [
-                Container(
-                  padding: EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color: Colors.yellow[100],
-                    borderRadius: BorderRadius.circular(15),
+            Positioned(
+              top: 15,
+              left: 15,
+              child: Column(
+                children: [
+                  Container(
+                    padding: EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: Colors.yellow[100],
+                      borderRadius: BorderRadius.circular(15),
+                    ),
+                    child: Text(
+                      "오늘 기분은 어떤가요? 고민이 있다면 편하게 이야기해주세요.",
+                      style: TextStyle(fontSize: 14),
+                    ),
                   ),
-                  child: Text(
-                    "오늘 기분은 어떤가요? 고민이 있다면 편하게 이야기해주세요.",
-                    style: TextStyle(fontSize: 14),
+                  SizedBox(height: 10),
+                  Image.asset(
+                    'assets/Widget/Login/character.png',
+                    width: 150,
+                    height: 150,
                   ),
-                ),
-                SizedBox(height: 10),
-                Image.asset(
-                  'assets/Widget/Login/character.png',
-                  width: 150,
-                  height: 150,
-                ),
-              ],
+                ],
+              ),
             ),
-          ),
-          drawCloud(),
-          Positioned.fill(
-            top: 220,
-            child: Column(
-              children: [
-                Expanded(
-                  child: ListView.builder(
-                    controller: _scrollController,
-                    itemCount: messages.length,
-                    padding: EdgeInsets.only(top: 10),
-                    itemBuilder: (context, index) {
-                      final msg = messages[index];
-                      bool isBot = msg["sender"] == "bot";
-                      return Padding(
-                        padding: EdgeInsets.symmetric(vertical: 5, horizontal: 10),
-                        child: Row(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          mainAxisAlignment:
-                          isBot ? MainAxisAlignment.start : MainAxisAlignment.end,
-                          children: isBot
-                              ? [
-                            CircleAvatar(
-                              radius: 20,
-                              backgroundImage: AssetImage('assets/Widget/Login/character.png'),
-                            ),
-                            SizedBox(width: 8),
-                            Flexible(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text('토리', style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold)),
-                                  SizedBox(height: 3),
-                                  Container(
-                                    padding: EdgeInsets.all(10),
-                                    decoration: BoxDecoration(
-                                      color: Colors.white,
-                                      borderRadius: BorderRadius.circular(15),
+            drawCloud(),
+            Positioned.fill(
+              top: 220,
+              child: Column(
+                children: [
+                  Expanded(
+                    child: ListView.builder(
+                      controller: _scrollController,
+                      itemCount: messages.length,
+                      padding: EdgeInsets.only(top: 10),
+                      itemBuilder: (context, index) {
+                        final msg = messages[index];
+                        bool isBot = msg["sender"] == "bot";
+                        return Padding(
+                          padding: EdgeInsets.symmetric(vertical: 5, horizontal: 10),
+                          child: Row(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            mainAxisAlignment:
+                            isBot ? MainAxisAlignment.start : MainAxisAlignment.end,
+                            children: isBot
+                                ? [
+                              CircleAvatar(
+                                radius: 20,
+                                backgroundImage: AssetImage('assets/Widget/Login/character.png'),
+                              ),
+                              SizedBox(width: 8),
+                              Flexible(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text('토리', style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold)),
+                                    SizedBox(height: 3),
+                                    Container(
+                                      padding: EdgeInsets.all(10),
+                                      decoration: BoxDecoration(
+                                        color: Colors.white,
+                                        borderRadius: BorderRadius.circular(15),
+                                      ),
+                                      child: Text(
+                                        msg["text"]!,
+                                        style: TextStyle(fontSize: 16),
+                                      ),
                                     ),
-                                    child: Text(
-                                      msg["text"]!,
-                                      style: TextStyle(fontSize: 16),
-                                    ),
-                                  ),
-                                ],
+                                  ],
+                                ),
                               ),
-                            ),
-                          ]
-                              : [
-                            Container(
-                              padding: EdgeInsets.all(10),
-                              decoration: BoxDecoration(
-                                color: Colors.white,
-                                borderRadius: BorderRadius.circular(15),
+                            ]
+                                : [
+                              Container(
+                                padding: EdgeInsets.all(10),
+                                decoration: BoxDecoration(
+                                  color: Colors.white,
+                                  borderRadius: BorderRadius.circular(15),
+                                ),
+                                child: Text(
+                                  msg["text"]!,
+                                  style: TextStyle(fontSize: 16),
+                                ),
                               ),
-                              child: Text(
-                                msg["text"]!,
-                                style: TextStyle(fontSize: 16),
-                              ),
-                            ),
-                          ],
-                        ),
-                      );
-                    },
+                            ],
+                          ),
+                        );
+                      },
+                    ),
                   ),
-                ),
-                Padding(
-                  padding: EdgeInsets.all(10),
-                  child: Row(
-                    children: [
-                      // 마이크 아이콘
-                      CircleAvatar(
-                        backgroundColor: Colors.pink[100],
-                        child: IconButton(
-                          icon: Icon(Icons.mic, color: Colors.white),
-                          onPressed: () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(builder: (context) => VoiceChatScreen(messages: messages)),
-                            );
-                          },
-                        ),
-                      ),
-                      SizedBox(width: 10),
-                      // TextField
-                      Expanded(
-                        child: TextField(
-                          controller: _controller,
-                          decoration: InputDecoration(
-                            hintText: '메시지를 입력하세요...',
-                            filled: true,
-                            fillColor: Colors.pink[100],
-                            border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(25),
-                            ),
-                            contentPadding: EdgeInsets.symmetric(horizontal: 15, vertical: 10),
+                  Padding(
+                    padding: EdgeInsets.all(10),
+                    child: Row(
+                      children: [
+                        // 마이크 아이콘
+                        CircleAvatar(
+                          backgroundColor: Colors.pink[100],
+                          child: IconButton(
+                            icon: Icon(Icons.mic, color: Colors.white),
+                            onPressed: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(builder: (context) => VoiceChatScreen(messages: messages)),
+                              );
+                            },
                           ),
                         ),
-                      ),
-                      SizedBox(width: 10),
-                      // 전송 버튼
-                      CircleAvatar(
-                        backgroundColor: Colors.pink[100],
-                        child: IconButton(
-                          icon: Icon(Icons.send, color: Colors.white),
-                          onPressed: sendMessage,
+                        SizedBox(width: 10),
+                        // TextField
+                        Expanded(
+                          child: TextField(
+                            controller: _controller,
+                            decoration: InputDecoration(
+                              hintText: '메시지를 입력하세요...',
+                              filled: true,
+                              fillColor: Colors.pink[100],
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(25),
+                              ),
+                              contentPadding: EdgeInsets.symmetric(horizontal: 15, vertical: 10),
+                            ),
+                          ),
                         ),
-                      ),
-                    ],
-                  ),
-                )
+                        SizedBox(width: 10),
+                        // 전송 버튼
+                        CircleAvatar(
+                          backgroundColor: Colors.pink[100],
+                          child: IconButton(
+                            icon: Icon(Icons.send, color: Colors.white),
+                            onPressed: sendMessage,
+                          ),
+                        ),
+                      ],
+                    ),
+                  )
 
-              ],
+                ],
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
