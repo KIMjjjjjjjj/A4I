@@ -22,9 +22,6 @@ class ReportService {
     return Report.fromMap(doc.data()!);
   }
 
-  // 대화 종료 후에 보고서 저장하는 메서드를 호출하는 것이 바람직함
-  // 감정 -> '불안' -> '걱정', '좌절' -> '슬픔' 감정을 일반화 한 뒤 상위 4~5개 (감정, 비율), 나머지 (기타, 비율) 로 저장
-
   Future<void> saveReport(DateTime date, Report report) async {
     final uid = _auth.currentUser?.uid;
     if (uid == null) return;
@@ -36,6 +33,27 @@ class ReportService {
         .doc(docId)
         .set(report.toMap());
   }
+
+  // 기간별 분석 데이터 조회
+  Future<List<Report>?> loadReports(DateTime startDate, DateTime endDate) async {
+    final uid = _auth.currentUser?.uid;
+    if (uid == null) return null;
+    final query = await _firestore
+        .collection('register')
+        .doc(uid)
+        .collection('report')
+        .get();
+
+    final filteredDocs = query.docs.where((doc) {
+      final docDate = DateTime.tryParse(doc.id);
+      if (docDate == null) return false;
+      return docDate.isAfter(startDate.subtract(const Duration(days: 1))) &&
+          docDate.isBefore(endDate.add(const Duration(days: 1)));
+    }).toList();
+
+    return filteredDocs.map((doc) => Report.fromMap(doc.data())).toList();
+  }
+
 }
 
 

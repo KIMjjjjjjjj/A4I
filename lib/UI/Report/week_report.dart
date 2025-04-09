@@ -1,4 +1,3 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:fl_chart/fl_chart.dart';
@@ -32,80 +31,74 @@ class _weekreport extends State<weekreport> {
   @override
   void initState() {
     super.initState();
-    // fetchAnalysisData();
     loadAvailableDates(); // 선택 가능한 날짜 조회
-  }
-
-  // Future<void> selectEmotionData(String emotion) async {
-  //   List<Map<String, dynamic>> data = await loadAnalysisData(_startDate!, _endDate!);
-  //   setState(() {
-  //     selectedEmotion = emotion;
-  //     emotionSpots = getEmotions(data, emotion);
-  //   });
-  // }
-
-  // Future<void> fetchAnalysisData() async {
-  //   List<Map<String, dynamic>> data = await loadAnalysisData(_startDate!, _endDate!);
-  //   setState(() {
-  //     topTopics = getTopTopics(data, 3);
-  //     topKeywords = getTopKeywords(data, 5);
-  //     emotionSpots = getEmotions(data, selectedEmotion);
-  //   });
-  // }
-
-
-  Map<String, dynamic>? emotionIntensitys; // key : 일반화된 감정 value : 카테고리 비율
-  String? feedback;                 // GPT 요약 피드백
-  List<String>? topics;             // 상위 3개의 키워드
-  List<String>? words;              // 상위 3개의 토픽
-
-  // 파이어베이스에서 리포트 불러오기
-  void loadReport(DateTime date) async { //DateTime startDate, DateTime endDate로 수정? DateRangeTime으로 설정?
-    final report = await reportService.fetchReport(date);
-    if (report != null) {
-      setState(() {
-        emotionIntensitys = report.emotionIntensitys;
-        topics = report.topics;
-        words = report.keywords;
-      });
-    } else {
-      setState(() {
-        emotionIntensitys = {};
-        feedback = null;
-        topics = null;
-        words = null;
-      });
-    }
   }
 
   Future<void> loadAvailableDates() async {
     final service = ReportDateService();
     final dates = await service.fetchAvailableReportDates();
-    final latest = dates.toList()..sort();
+    final sortedDates = dates.toList()..sort();
+
+    DateTime? lastDate = sortedDates.isNotEmpty ? sortedDates.last : null;
+
     setState(() {
       availableReportDates = dates;
-      final latest = dates.toList()..sort();
+      selectedDate = lastDate;
     });
-    loadReport(selectedDate!);
+    await loadPeriodReport(lastDate!, lastDate);
   }
 
-  // 기간별 분석 데이터 조회
-  // Future<List<Map<String, dynamic>>> loadAnalysisData(DateTime startDate, DateTime endDate) async {
-  //   final querySnapshot = await FirebaseFirestore.instance
-  //       .collection("register")
-  //       .doc(user?.uid)
-  //       .collection("chat")
-  //       .where("timestamp", isGreaterThanOrEqualTo: Timestamp.fromDate(startDate))
-  //       .where("timestamp", isLessThanOrEqualTo: Timestamp.fromDate(endDate))
-  //       .orderBy("timestamp")
-  //       .get();
-  //
-  //   final List<Map<String, dynamic>> analysisData = querySnapshot.docs.map((doc) {
-  //     return doc.data();
-  //   }).toList();
-  //
-  //   return analysisData;
-  // }
+  Future<void> loadPeriodReport(DateTime start, DateTime end) async {
+    final reports = await reportService.loadReports(start, end);
+
+    final Map<String, List<double>> emotionIntensitys = {};
+    final Map<String, int> keywordCounts = {};
+    final Map<String, int> topicCounts = {};
+
+    for (final report in reports!) {
+      // 감정 강도 병합
+      report.emotionIntensitys.forEach((emotion, intensities) {
+        emotionIntensitys.putIfAbsent(emotion, () => []).addAll(List<double>.from(intensities));
+      });
+
+      // 키워드 병합
+      for (final keyword in report.keywords) {
+        keywordCounts[keyword] = (keywordCounts[keyword] ?? 0) + 1;
+      }
+
+      // 토픽 병합
+      for (final topic in report.topics) {
+        topicCounts[topic] = (topicCounts[topic] ?? 0) + 1;
+      }
+    }
+
+    // FlSpot으로 변환
+    final emotionList = emotionIntensitys[selectedEmotion] ?? [];
+    final spots = List<FlSpot>.generate(
+      emotionList.length,
+          (i) => FlSpot(i.toDouble(), emotionList[i]),
+    );
+
+    // 키워드/토픽 상위 n개 정렬
+    final topKeywordList = keywordCounts.entries.toList()
+      ..sort((a, b) => b.value.compareTo(a.value));
+    final topTopicList = topicCounts.entries.toList()
+      ..sort((a, b) => b.value.compareTo(a.value));
+
+    setState(() {
+      emotionSpots = spots;
+      topKeywords = topKeywordList.take(5).map((e) => e.key).toList();
+      topTopics = topTopicList.take(3).map((e) => e.key).toList();
+    });
+    await selectEmotionData(selectedEmotion);
+  }
+
+  Future<void> selectEmotionData(String emotion) async {
+    setState(() {
+      selectedEmotion = emotion;
+    });
+    await loadPeriodReport(_startDate!, _endDate!);
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -210,7 +203,7 @@ class _weekreport extends State<weekreport> {
                             onPressed: () {
                               setState(() {
                                 selectedEmotion = test;
-                                // selectEmotionData(test);
+                                selectEmotionData(test);
                               });
                             },
                             style: ElevatedButton.styleFrom(
@@ -308,63 +301,5 @@ class _weekreport extends State<weekreport> {
         ),
       ),
     );
-  }
-
-  // 감정 강도 추이 변화
-  List<FlSpot> getEmotions(List<Map<String, dynamic>> data, String emotion) {
-    final filtered = data
-        .where((doc) => doc['emotion'] == emotion)
-        .toList();
-
-    filtered.sort((a, b) => (a['timestamp'] as Timestamp).compareTo(b['timestamp'] as Timestamp));
-    List<FlSpot> spots = [];
-
-    for (int i = 0; i < filtered.length; i++) {
-      final intensity = filtered[i]['emotion_intensity'] ?? 0.0;
-      spots.add(FlSpot(i.toDouble(), intensity.toDouble()));
-    }
-    return spots;
-  }
-
-  // 토픽 빈도 Top3
-  // List<String> getTopTopics(List<Map<String, dynamic>> data, int n) {
-  //   final Map<String, int> topicCounts = {};
-  //   for (var doc in data) {
-  //     if (doc['topic'] != null) {
-  //       final topics = doc['topic'].split(',').map((t) => t.trim());
-  //       for (var topic in topics) {
-  //         topicCounts[topic] = (topicCounts[topic] ?? 0) + 1;
-  //       }
-  //     }
-  //   }
-  //   final sorted = topicCounts.entries.toList()
-  //     ..sort((a, b) => b.value.compareTo(a.value));
-  //   return sorted.take(n).map((e) => e.key).toList();
-  // }
-
-  // 키워드 Top5
-  // List<String> getTopKeywords(List<Map<String, dynamic>> data, int n) {
-  //   final Map<String, int> keywordCounts = {};
-  //   for (var doc in data) {
-  //     if (doc['keywords'] != null) {
-  //       for (String keword in List<String>.from(doc['keywords'])) {
-  //         keywordCounts[keword] = (keywordCounts[keword] ?? 0) + 1;
-  //       }
-  //     }
-  //   }
-  //   final sorted = keywordCounts.entries.toList()
-  //     ..sort((a, b) => b.value.compareTo(a.value));
-  //   return sorted.take(n).map((e) => e.key).toList();
-  // }
-
-  // 토픽 빈도 또는 키워드 빈도 topN개
-  List<String> _getTopN(List<String> items, int n) {
-    final freqMap = <String, int>{};
-    for (var item in items) {
-      freqMap[item] = (freqMap[item] ?? 0) + 1;
-    }
-    final sorted = freqMap.entries.toList()
-      ..sort((a, b) => b.value.compareTo(a.value));
-    return sorted.take(n).map((e) => e.key).toList();
   }
 }
