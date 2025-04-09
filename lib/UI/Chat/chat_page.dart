@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'dart:convert' as convert;
-
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 class ChatPage extends StatefulWidget {
   @override
@@ -16,7 +16,7 @@ class _ChatPageState extends State<ChatPage> {
   ];
   TextEditingController _controller = TextEditingController();
   final ScrollController _scrollController = ScrollController();
-  final String _apiKey = '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 '; // ← 여기 바꿔줘
+  final String _apiKey = dotenv.env['OPENAI_API_KEY'] ?? '';
 
   void sendMessage() async {
     String userMessage = _controller.text.trim();
