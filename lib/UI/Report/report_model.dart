@@ -1,4 +1,5 @@
 class Report {
+
   final Map<String, double> emotionData;
   final String? feedback;
   final List<String>? keywords;

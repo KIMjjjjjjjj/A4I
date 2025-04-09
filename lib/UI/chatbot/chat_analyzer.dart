@@ -75,15 +75,19 @@ class ChatAnalyzer {
 
     // 주제 전환이 발생한 경우 주제별로 개별 저장
     for (var entry in analysis) {
-      await FirebaseFirestore.instance.collection("register").doc(userId).collection("chat").doc().set({
-        "timestamp": FieldValue.serverTimestamp(),
-        "keywords": List<String>.from(entry["keywords"]),
-        "topic": entry["topic"],
-        "emotion": entry["emotion"],
-        "emotion_intensity": entry["emotion_intensity"],
-        "summary": entry["summary"],
-        //"embedding": embedding
-      });
+      try {
+        await FirebaseFirestore.instance.collection("register").doc(userId).collection("chat").doc().set({
+          "timestamp": FieldValue.serverTimestamp(),
+          "keywords": List<String>.from(entry["keywords"]),
+          "topic": entry["topic"] ?? "",
+          "emotion": entry["emotion"] ?? "",
+          "emotion_intensity": entry["emotion_intensity"] ?? 0.0,
+          "summary": entry["summary"] ?? "",
+          //"embedding": embedding
+        });
+      } catch (e) {
+        print("문서 저장 실패: $e");
+      }
     }
   }
 
