@@ -16,17 +16,21 @@ class Report {
 
   factory Report.fromMap(Map<String, dynamic> map) {
     return Report(
-      emotionData: Map<String, double>.from(map['emotionData'] ?? {}),
+      emotionData: map['emotionData'] != null
+          ? (map['emotionData'] as Map<String, dynamic>).map(
+            (key, value) => MapEntry(key, (value as num).toDouble()),
+            )
+          : {},
       feedback: map['feedback'],
       keywords: map['keywords'] != null ? List<String>.from(map['keywords']) : null,
       topics: map['topics'] != null ? List<String>.from(map['topics']) : null,
       emotionIntensityData: map['emotionIntensityData'] != null
           ? (map['emotionIntensityData'] as Map<String, dynamic>).map(
             (key, value) => MapEntry(
-          key,
-          List<double>.from(value),
-        ),
-      )
+              key,
+              List<double>.from(value),
+            ),
+          )
           : null,
     );
   }

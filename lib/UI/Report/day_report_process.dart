@@ -108,7 +108,12 @@ class DayReportProcess {
     }
     final sorted = freq.entries.toList()
       ..sort((a, b) => b.value.compareTo(a.value));
-    return sorted.take(max).map((e) => e.key).toList();
+    final result = sorted.take(max).map((e) => e.key).toList();
+
+    while (result.length < max) {
+      result.add("");
+    }
+    return result;
   }
 
   //// 두 경우 동일
@@ -160,7 +165,12 @@ class DayReportProcess {
     }
     final sorted = topicCounts.entries.toList()
       ..sort((a, b) => b.value.compareTo(a.value));
-    return sorted.take(n).map((e) => e.key).toList();
+    final result =  sorted.take(n).map((e) => e.key).toList();
+
+    while (result.length < n) {
+      result.add("");
+    }
+    return result;
   }
 
   // 6. 키워드 빈도 Top5
@@ -178,7 +188,12 @@ class DayReportProcess {
     }
     final sorted = keywordCounts.entries.toList()
       ..sort((a, b) => b.value.compareTo(a.value));
-    return sorted.take(n).map((e) => e.key).toList();
+    final result = sorted.take(n).map((e) => e.key).toList();
+
+    while (result.length < n) {
+      result.add("");
+    }
+    return result;
   }
 
   //// summary로 피드백 생성

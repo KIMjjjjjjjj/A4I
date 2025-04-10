@@ -170,7 +170,7 @@ class _MainScreenState extends State<MainScreen> {
     return GestureDetector(
       onTap: onTap, // 버튼 클릭 시 실행할 함수
       child: Container(
-        width: 174,
+        width: 160,
         height: 155,
         decoration: BoxDecoration(
           color: Colors.white,

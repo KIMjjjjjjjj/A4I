@@ -218,7 +218,7 @@ class _ChallengeBadgePageState extends State<ChallengeBadgePage> {
                     Text('도전과제 달성률 : ${(progress * 100).toStringAsFixed(0)}%'),
                     SizedBox(height: 5),
                     SizedBox(
-                      width: 230,
+                      width: 180,
                       child: LinearProgressIndicator(
                         value: progress,
                         backgroundColor: Colors.white,
@@ -387,7 +387,7 @@ class _ChallengeBadgePageState extends State<ChallengeBadgePage> {
         Container(
           width: 170,
           height: 200,
-          padding: EdgeInsets.all(7),
+          padding: EdgeInsets.all(5),
           decoration: BoxDecoration(
               color: Color(0xFF7BD3EA),
               borderRadius: BorderRadius.circular(40)
@@ -395,7 +395,7 @@ class _ChallengeBadgePageState extends State<ChallengeBadgePage> {
           child: Container(
             width: 165,
             height: 195,
-            padding: EdgeInsets.all(10),
+            padding: EdgeInsets.all(5),
             decoration: BoxDecoration(
                 color: Color(0xFFE6FFFD),
                 borderRadius: BorderRadius.circular(40)
@@ -435,8 +435,8 @@ class _ChallengeBadgePageState extends State<ChallengeBadgePage> {
         ),
         if (success) ...[
           Positioned(
-            top: 90,
-            left: 75,
+            top: 70,
+            left: 65,
             child: Image(
               image: AssetImage('assets/images/success.png'),
               height: 110,
@@ -451,7 +451,7 @@ class _ChallengeBadgePageState extends State<ChallengeBadgePage> {
   // 칭호 카드
   Widget _buildBadgeCard(String title, bool isAchieved) {
     return Container(
-      padding: EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+      padding: EdgeInsets.symmetric(horizontal: 10),
       decoration: BoxDecoration(
         color: isAchieved ? Color(0xFFE6FFFD) : Colors.grey[400],
         borderRadius: BorderRadius.circular(40),
