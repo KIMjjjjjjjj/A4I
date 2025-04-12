@@ -35,7 +35,12 @@ class DayReportProcess {
         .where("timestamp", isLessThan: Timestamp.fromDate(endDate))
         .orderBy("timestamp")
         .get();
-    return querySnapshot.docs.map((doc) => doc.data()).toList();
+
+    // keywords, topic, summary가 있는 데이터만 추출(감정만 있는 데이터는 가져오지 않음)
+    return querySnapshot.docs
+        .map((doc) => doc.data())
+        .where((entry) => entry.containsKey("keywords") && entry.containsKey("topic") && entry.containsKey("summary"))
+        .toList();
   }
 
   // chat 컬렉션에서 가장 최근 데이터의 기준으로 리포트 생성
