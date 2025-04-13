@@ -2,6 +2,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:fl_chart/fl_chart.dart';
+import '../HelpCenter/help_center_ui.dart';
 import 'week_report.dart';
 import 'report_service.dart';
 import 'dart:math';
@@ -34,23 +35,81 @@ class _dayreport extends State<dayreport> {
   ];
 
   final random = Random();
-  final options = [
-    {
+  final options = {
+    "기쁨":[
+      {
       "label": "오늘의 일기 쓰러가기",
-      "text": "오늘 감정을 기록해보는 건 어떨까요?",
+      "text": "오늘의 좋은 감정을 일기에 기록해보는 건 어때요?",
       "route": CalendarPage(),
-    },
-    {
+      },
+      {
       "label": "오늘 한줄 쓰러가기",
-      "text": "오늘의 나에게 짧게 한 줄 남겨보는 건 어떨까요?",
+      "text": "오늘의 좋은 기분을 더 오래 간직하고 싶지 않나요? 오늘의 한 줄을 작성해보세요.",
       "route": DayLineScreen(),
-    },
-    {
+      },
+      {
       "label": "커뮤니티로 이동하기",
-      "text": "다른 사람들과 이야기를 나눠보는 건 어떨까요?",
+      "text": "행복은 나눌수록 커져요. 다른 사람들과 기쁨을 나눠보는 건 어떤가요?",
       "route": CommunityScreen(),
-    },
-  ];
+      }
+    ],
+    "슬픔": [
+      {
+      "label": "오늘 한줄 쓰러가기",
+      "text": "마음이 무거운 날엔 짧은 글 한 줄이 위로가 되어줄 수 있어요. 오늘의 나에게 짧게 한 줄 남겨보는 건 어때요?",
+      "route": DayLineScreen(),
+      },
+      {
+      "label": "커뮤니티로 이동하기",
+      "text": "슬픔은 나눌수록 가벼워져요. 다른 사람들과 마음을 나누어보세요.",
+      "route": CommunityScreen(),
+      },
+      {
+      "label": "근처 도움센터 찾아보기",
+      "text": "도움이 필요하다면 근처 도움센터를 안내해드릴게요. 전문가에게 도움을 받아보는 건 어떨까요?",
+      "route": HelpCenterPage(),
+      },
+    ],
+    "분노": [
+      {
+      "label": "오늘 한줄 쓰러가기",
+      "text": "분노는 자연스러운 감정이에요. 짧은 문장이 마음을 정리하는 데 도움이 될 수 있어요.",
+      "route": DayLineScreen(),
+      },
+      {
+      "label": "근처 도움센터로 찾아보기",
+      "text": "도저히 감당하기 힘든 마음이라면 근처 도움센터를 안내해드릴요. 전문가에게 도움을 받아보는 건 어떨까요?",
+      "route": HelpCenterPage(),
+      },
+    ],
+    "두려움": [
+      {
+      "label": "커뮤니티로 이동하기",
+      "text": "오늘 느낀 감정에 대해 다른 사람들과 이야기를 나눠보는 건 어떨까요?",
+      "route": CommunityScreen(),
+      },
+      {
+      "label": "근처 도움센터로 찾아보기",
+      "text": "두려운 마음이 크다면, 전문가에게 도움을 받아보는 건 어떨까요? 근처 도움센터를 안내해드릴요.",
+      "route": HelpCenterPage(),
+      },
+    ],
+    "놀람": [
+      {
+        "label": "오늘의 일기 쓰러가기",
+        "text": "오늘의 놀란 마음을 차분하게 일기로 써보세요. 감정을 정리하는 데 도움이 될 거예요.",
+        "route": CalendarPage(),
+      },
+      {
+        "label": "커뮤니티로 이동하기",
+        "text": "비슷한 경험을 나눈 사람들의 이야기를 들어보는 것도 도움이 될 거예요. 다른 사람들과 이야기를 나눠보세요.",
+        "route": CommunityScreen(),
+      },
+    ],
+    "default": [
+      { "label": "오늘의 일기 쓰러가기", "text": "오늘도 수고했어요. 감정을 정리해볼까요?", "route": CalendarPage() },
+    ]
+  };
 
 
   Map<String, double>? emotionData; // key : 일반화된 감정 value : 카테고리 비율
@@ -134,8 +193,6 @@ class _dayreport extends State<dayreport> {
       print("오류");
     }
   }
-
-
 
   // 차트 메서드
   Widget buildPieChart() {
@@ -237,7 +294,6 @@ class _dayreport extends State<dayreport> {
       return const SizedBox.shrink();
     }
 
-    final randomOption = options[random.nextInt(options.length)];
     final sortedEmotions = emotionData!.entries.toList()
       ..sort((a, b) => b.value.compareTo(a.value));
     final topEmotion = sortedEmotions.first.key;
@@ -257,14 +313,51 @@ class _dayreport extends State<dayreport> {
               children: [
                 Text("${nickname}님의 오늘의 마음은 ${topEmotion}이에요!"),
                 Text(feedback!, style: const TextStyle(fontSize: 14),),
-                Text(randomOption["text"] as String),
-                SizedBox(height: 10),
+              ],
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  // 추천활동 UI
+  Widget buildRecommendation() {
+    if (feedback == null || emotionData == null || emotionData!.isEmpty) {
+      return const SizedBox.shrink();
+    }
+
+    final sortedEmotions = emotionData!.entries.toList()
+    ..sort((a, b) => b.value.compareTo(a.value));
+    final topEmotion = sortedEmotions.first.key;
+
+    final emotionBasedOptions = options[topEmotion] ?? options["default"]!;
+    final randomOption = emotionBasedOptions.isNotEmpty
+        ? emotionBasedOptions[random.nextInt(emotionBasedOptions.length)]
+        : null;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Center(
+          child: Container(
+            padding: EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(16),
+            ),
+            constraints: BoxConstraints(maxWidth: 300),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(randomOption?["text"] as String),
+                SizedBox(height: 5),
                 Center(
                   child: ElevatedButton(
                     onPressed: () {
                       Navigator.push(
                         context,
-                        MaterialPageRoute(builder: (context) =>  randomOption["route"] as Widget),
+                        MaterialPageRoute(builder: (context) =>  randomOption?["route"] as Widget),
                       );
                     },
                     style: ElevatedButton.styleFrom(
@@ -272,7 +365,7 @@ class _dayreport extends State<dayreport> {
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                     ),
                     child: Text(
-                      randomOption["label"] as String,
+                      randomOption?["label"] as String,
                       style: const TextStyle(color: Colors.white),
                     ),
                   ),
@@ -286,6 +379,30 @@ class _dayreport extends State<dayreport> {
   }
 
   // 토픽 UI
+  Widget buildTopicChips() {
+    if (topics == null || topics!.isEmpty) return const SizedBox.shrink();
+    final topTopics = topics!.take(3).toList();
+
+    return Wrap(
+      spacing: 5,
+      runSpacing: 10,
+      children: [
+        for (var text in topTopics)
+          Container(
+            padding: EdgeInsets.symmetric(vertical: 8, horizontal: 16),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(16),
+            ),
+            child: Text(
+              text,
+              style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
+            ),
+          ),
+      ],
+    );
+  }
+
   Widget buildTopics() {
     if (topics == null || topics!.isEmpty) return const SizedBox.shrink();
     return Column(
@@ -302,9 +419,9 @@ class _dayreport extends State<dayreport> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text("${nickname}님은 오늘 ${topics![0]}에 대한 고민을 상담했어요!"),
-                Text("또 ${topics![1]}와 ${topics![2]} 대한 고민을 상담했네요!"),
-                Text("다음에는 저랑 더 많은 얘기 나눠요"),
+                Text("${nickname}님은 오늘 ${topics![0]}에 대한 고민을 상담했어요! "
+                    "이외에도 ${topics![1]}와 ${topics![2]} 대해 이야기했네요! "
+                    "다음에는 저랑 더 많은 얘기 나눠요😊"),
               ],
             ),
           ),
@@ -314,6 +431,30 @@ class _dayreport extends State<dayreport> {
   }
 
   // 키워드 UI
+  Widget buildKeywordChips() {
+    if (words == null || words!.isEmpty) return const SizedBox.shrink();
+    final topKeywords = words!.take(3).toList();
+
+    return Wrap(
+      spacing: 5,
+      runSpacing: 10,
+      children: [
+        for (var text in topKeywords)
+          Container(
+            padding: EdgeInsets.symmetric(vertical: 8, horizontal: 16),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(16),
+            ),
+            child: Text(
+              text,
+              style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
+            ),
+          ),
+      ],
+    );
+  }
+
   Widget buildKeywords() {
     if (words == null || words!.isEmpty) return const SizedBox.shrink();
     return Column(
@@ -459,12 +600,20 @@ class _dayreport extends State<dayreport> {
                   SizedBox(height: 8),
                   buildFeedback(),
                   SizedBox(height: 20),
-                  Text("토픽", style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+                  Text("추천활동", style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
                   SizedBox(height: 8),
+                  buildRecommendation(),
+                  SizedBox(height: 20),
+                  Text("오늘의 토픽", style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+                  SizedBox(height: 8),
+                  buildTopicChips(),
+                  SizedBox(height: 5),
                   buildTopics(),
                   SizedBox(height: 20),
-                  Text("키워드", style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+                  Text("자주 사용한 단어", style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
                   SizedBox(height: 8),
+                  buildKeywordChips(),
+                  SizedBox(height: 5),
                   buildKeywords(),
                 ],
               ),
