@@ -11,7 +11,7 @@ class ChatAnalyzer {
   static DateTime? lastMessageTime;
   static Timer? inactivityTimer;
 
-  static Future<void> handleCombineMessage(String message) async { //analyzeAndSaveMessage
+  static Future<void> handleCombineMessage(String message) async {
     unsavedMessages.add(message);
 
     lastMessageTime = DateTime.now();
@@ -96,7 +96,9 @@ class ChatAnalyzer {
           : result["emotion_intensity"] ?? 0.0;
 
       if (emotionIntensity >= 0.7) {
-        await createEmotionDocument(user!.uid, result);
+        Future.microtask(() async {
+          await createEmotionDocument(user!.uid, result);
+        });
       }
       return {
         "emotion": emotion,

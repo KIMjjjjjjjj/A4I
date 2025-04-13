@@ -137,20 +137,22 @@ class _VoiceChatScreenState extends State<VoiceChatScreen> with SingleTickerProv
         final utfDecoded = convert.utf8.decode(response.bodyBytes);
         final data = jsonDecode(utfDecoded);
         final reply = data['choices'][0]['message']['content'];
-
-        final result = await ChatAnalyzer.analyzeSingleMessage(message);
-        final emotion = result["emotion"];
-        final intensity = result["emotion_intensity"];
-
-        _updateEmotionCharacter(emotion, intensity);
+        final trimmedReply = reply.trim();
 
         setState(() {
-          _botResponse = reply.trim();
+          _botResponse = trimmedReply;
           // 봇 응답 메시지도 저장
-          _messages.add({"sender": "bot", "text": reply.trim()});
+          _messages.add({"sender": "bot", "text": trimmedReply});
           _isProcessing = false;
         });
-        Future.microtask(() => textToSpeech(_botResponse));
+
+        Future.microtask(() => textToSpeech(trimmedReply));
+        Future.microtask(() async {
+          final result = await ChatAnalyzer.analyzeSingleMessage(message);
+          final emotion = result["emotion"];
+          final intensity = result["emotion_intensity"];
+          _updateEmotionCharacter(emotion, intensity);
+        });
         ChatAnalyzer.handleCombineMessage(message);
       } else {
         setState(() {
