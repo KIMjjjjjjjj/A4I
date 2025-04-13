@@ -25,9 +25,9 @@ class ChatAnalyzer {
 
   // 그동안 저장되지 않은 메시지들 합쳐서 분석
   static Future<void> analyzeCombinedMessages() async {
-    Map<String, String> prompts = await loadPrompts();
-    final User? user = FirebaseAuth.instance.currentUser;
     final String _apiKey = dotenv.env['OPENAI_API_KEY'] ?? '';
+    final User? user = FirebaseAuth.instance.currentUser;
+    Map<String, String> prompts = await loadPrompts();
 
     String combinedMessages = unsavedMessages.join(" ");
 
@@ -61,9 +61,9 @@ class ChatAnalyzer {
 
   // 단일 메시지에서 강한 감정이 발생하는 경우 저장
   static Future<Map<String, dynamic>> analyzeSingleMessage(String message) async {
-    Map<String, String> prompts = await loadPrompts();
-    final User? user = FirebaseAuth.instance.currentUser;
     final String _apiKey = dotenv.env['OPENAI_API_KEY'] ?? '';
+    final User? user = FirebaseAuth.instance.currentUser;
+    Map<String, String> prompts = await loadPrompts();
 
     final response = await http.post(
       Uri.parse("https://api.openai.com/v1/chat/completions"),
@@ -76,7 +76,7 @@ class ChatAnalyzer {
         "temperature": 0.85,
         "top_p": 0.9,
         "messages": [
-          {"role": "system", "content": prompts["analyzerPrompt"]},
+          {"role": "system", "content": prompts["emotionAnalyzerPrompt"]},
           {"role": "user", "content": message}
         ]
       }),
@@ -87,8 +87,10 @@ class ChatAnalyzer {
       Map<String, dynamic> apiResponse = jsonDecode(utfDecoded);
 
       String responseBody = apiResponse["choices"][0]["message"]["content"];
+      print("🧠 GPT 응답: $responseBody");
       Map<String, dynamic> result = jsonDecode(responseBody);
 
+      final emotion = result["emotion"] ?? "neutral";
       final emotionIntensity = result["emotion_intensity"] is String
           ? double.tryParse(result["emotion_intensity"]) ?? 0.0
           : result["emotion_intensity"] ?? 0.0;
@@ -97,7 +99,7 @@ class ChatAnalyzer {
         await createEmotionDocument(user!.uid, result);
       }
       return {
-        "emotion": result["emotion"] ?? "neutral",
+        "emotion": emotion,
         "emotion_intensity": emotionIntensity
       };
     } else {

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:repos/UI/Chatbot/prompts.dart';
 import 'package:flutter_tts/flutter_tts.dart';
 import 'chat_analyzer.dart';
@@ -96,6 +97,7 @@ class _VoiceChatScreenState extends State<VoiceChatScreen> with SingleTickerProv
   }
 
   Future<void> _sendToChatbot(String message) async {
+    final String _apiKey = dotenv.env['OPENAI_API_KEY'] ?? '';
     Map<String, String> prompts = await loadPrompts();
     if (message.isEmpty || _isProcessing) return;
 
@@ -105,8 +107,6 @@ class _VoiceChatScreenState extends State<VoiceChatScreen> with SingleTickerProv
       _messages.add({"sender": "user", "text": message});
       _botResponse = "생각 중...";
     });
-
-    final String _apiKey = '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';
 
     try {
       final response = await http.post(

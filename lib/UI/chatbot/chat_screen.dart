@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:http/http.dart' as http;
 import 'package:repos/UI/Chatbot/prompts.dart';
 import 'dart:convert';
@@ -26,7 +27,6 @@ class _ChatScreenState extends State<ChatScreen> {
   late List<Map<String, String>> messages;
   TextEditingController _controller = TextEditingController();
   final ScrollController _scrollController = ScrollController();
-  final String _apiKey = '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 ';
   String _detectedEmotion = 'neutral';
   double _detectedIntensity = 0.0;
   bool isLoading = false;
@@ -135,6 +135,7 @@ class _ChatScreenState extends State<ChatScreen> {
   }
 
   void sendMessage() async {
+    final String _apiKey = dotenv.env['OPENAI_API_KEY'] ?? '';
     Map<String, String> prompts = await loadPrompts();
     String userMessage = _controller.text.trim();
     if (userMessage.isEmpty) return;
