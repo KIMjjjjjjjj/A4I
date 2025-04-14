@@ -2,6 +2,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:fl_chart/fl_chart.dart';
+import '../../bottom_navigation_bar.dart';
 import '../HelpCenter/help_center_ui.dart';
 import 'week_report.dart';
 import 'report_service.dart';
@@ -217,7 +218,6 @@ class _dayreport extends State<dayreport> {
           children: [
             SizedBox(
               height: 200,
-              width: 200,
               child: PieChart(
                 PieChartData(
                   sections: List.generate(displayEntries.length, (index) {
@@ -307,7 +307,6 @@ class _dayreport extends State<dayreport> {
               color: Colors.white,
               borderRadius: BorderRadius.circular(16),
             ),
-            constraints: BoxConstraints(maxWidth: 300),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -346,7 +345,6 @@ class _dayreport extends State<dayreport> {
               color: Colors.white,
               borderRadius: BorderRadius.circular(16),
             ),
-            constraints: BoxConstraints(maxWidth: 300),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -415,7 +413,6 @@ class _dayreport extends State<dayreport> {
               color: Colors.white,
               borderRadius: BorderRadius.circular(16),
             ),
-            constraints: BoxConstraints(maxWidth: 300),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -467,7 +464,6 @@ class _dayreport extends State<dayreport> {
               color: Colors.white,
               borderRadius: BorderRadius.circular(16),
             ),
-            constraints: BoxConstraints(maxWidth: 300),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -494,6 +490,15 @@ class _dayreport extends State<dayreport> {
     }
     return Scaffold(
       appBar: AppBar(
+          leading: IconButton(
+            icon: Icon(Icons.arrow_back),
+            onPressed: () {
+              Navigator.pushReplacement(
+                context,
+                MaterialPageRoute(builder: (context) => CustomNavigationBar()),
+              );
+            },
+          ),
           title: Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
@@ -574,7 +579,7 @@ class _dayreport extends State<dayreport> {
             ),
             SizedBox(height: 20),
             Container(
-              padding: EdgeInsets.all(16),
+              padding: EdgeInsets.all(25),
               decoration: BoxDecoration(
                 color: Color(0xFFEAEBF0),
                 borderRadius: BorderRadius.circular(16),
@@ -582,7 +587,7 @@ class _dayreport extends State<dayreport> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text("감정", style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+                  Text("감정", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
                   SizedBox(height: 10),
                   Center(
                     child: Container(
@@ -591,26 +596,25 @@ class _dayreport extends State<dayreport> {
                         color: Colors.white,
                         borderRadius: BorderRadius.circular(16),
                       ),
-                      constraints: BoxConstraints(maxWidth: 330),
                       child: buildPieChart(),
                     ),
                   ),
                   SizedBox(height: 20),
-                  Text("피드백", style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+                  Text("피드백", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
                   SizedBox(height: 8),
                   buildFeedback(),
                   SizedBox(height: 20),
-                  Text("추천활동", style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+                  Text("추천활동", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
                   SizedBox(height: 8),
                   buildRecommendation(),
                   SizedBox(height: 20),
-                  Text("오늘의 토픽", style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+                  Text("오늘의 토픽", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
                   SizedBox(height: 8),
                   buildTopicChips(),
                   SizedBox(height: 5),
                   buildTopics(),
                   SizedBox(height: 20),
-                  Text("자주 사용한 단어", style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+                  Text("자주 사용한 단어", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
                   SizedBox(height: 8),
                   buildKeywordChips(),
                   SizedBox(height: 5),
