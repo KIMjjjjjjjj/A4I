@@ -137,7 +137,7 @@ class ChatAnalyzer {
   static Future<void> createEmotionDocument(String userId, Map<String, dynamic> result) async {
     // 강한 감정이 발생한 경우 감정만 저장
     try {
-      await FirebaseFirestore.instance.collection("register").doc(userId).collection("chat").doc().set({
+      await FirebaseFirestore.instance.collection("register").doc(userId).collection("chatEmotion").doc().set({
         "timestamp": FieldValue.serverTimestamp(),
         "emotion": result["emotion"] ?? "",
         "emotion_intensity": result["emotion_intensity"] ?? 0.0,
