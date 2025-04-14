@@ -51,7 +51,13 @@ class _RecordingChatButtonState extends State<RecordingChatButton> {
   /// 🛠 음성 인식 초기화
   Future<void> _initializeSpeech() async {
     bool available = await _speech.initialize(
-      onStatus: (status) => print("📢 상태 변경: $status"),
+      onStatus: (status) {
+        print("📢 상태 변경: $status");
+        if (status == 'notListening' && _isListening) {
+          // 자동 종료 감지
+          _stopListening();
+        }
+      },
       onError: (error) => print("🚨 오류 발생: ${error.errorMsg}"),
     );
 
