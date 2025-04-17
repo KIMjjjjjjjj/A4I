@@ -115,7 +115,7 @@ class _HelpCenterPageState extends State<HelpCenterPage> {
         double lng = double.tryParse(record["경도"].toString()) ?? 0.0;
         double distance = Geolocator.distanceBetween(
             position.latitude, position.longitude, lat, lng);
-        if (distance <= 3000) {
+        if (distance <= 5000) {
           record["distance"] = distance; // 계산된 거리 정보를 추가
           filteredCenters.add(record);
         }
@@ -180,7 +180,7 @@ class _HelpCenterPageState extends State<HelpCenterPage> {
             // 3km 이내 센터들을 스크롤 리스트로 표시 (세로 스크롤)
             Expanded(
               child: _filteredCenters.isEmpty
-                  ? const Center(child: Text("내 위치로부터 3km 이내의 센터가 없습니다."))
+                  ? const Center(child: Text("내 위치로부터 5km 이내의 센터가 없습니다."))
                   : ListView.builder(
                 itemCount: _filteredCenters.length,
                 itemBuilder: (context, i) {
