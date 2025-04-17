@@ -1,7 +1,12 @@
 
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
 import 'package:fl_chart/fl_chart.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:http/http.dart' as http;
 
+import '../Chatbot/prompts.dart';
 import 'day_report.dart';
 import 'report_date_range_selector.dart';
 import 'report_service.dart';
@@ -14,11 +19,8 @@ class weekreport extends StatefulWidget {
 
 class _weekreport extends State<weekreport> with TickerProviderStateMixin {
   late TabController _tabController;
-
   final List<String> emotions = ["두려움", "슬픔", "놀람", "분노", "기쁨", "기타"];
-
   String selectedEmotion = "두려움";
-
   final TextEditingController percentController = TextEditingController();
 
   DateTime? startDate;
@@ -110,7 +112,7 @@ class _weekreport extends State<weekreport> with TickerProviderStateMixin {
   Future<List<Report>> fetchReportsInRange(DateTime start, DateTime end) async {
     final service = ReportService();
     final filteredDates = availableDates
-        .where((d) => !d.isBefore(startDate!) && !d.isAfter(endDate!))
+        .where((date) => !date.isBefore(startDate!) && !date.isAfter(endDate!))
         .toList()
       ..sort();
     List<Report> reports = [];
@@ -216,7 +218,6 @@ class _weekreport extends State<weekreport> with TickerProviderStateMixin {
         }
       }
     }
-
     final sortedTopics = frequencyMap.entries.toList()
       ..sort((a, b) => b.value.compareTo(a.value));
     return sortedTopics.take(topN).map((entry) => entry.key).toList();
@@ -418,6 +419,76 @@ class _weekreport extends State<weekreport> with TickerProviderStateMixin {
     );
   }
 
+  // 기간 피드백
+  static Future<String> generatePeriodFeedback(List<Report> reports) async {
+    Map<String, String> prompts = await loadPrompts();
+    final String _apiKey = dotenv.env['OPENAI_API_KEY'] ?? '';
+
+    final userContent = reports
+        .where((report) => report.feedback != null && report.feedback!.isNotEmpty)
+        .map((report) => "- ${report.feedback}")
+        .join("\n");
+
+    final response = await http.post(
+      Uri.parse("https://api.openai.com/v1/chat/completions"),
+      headers: {
+        "Authorization": "Bearer $_apiKey",
+        "Content-Type": "application/json"
+      },
+      body: jsonEncode({
+        "model": "gpt-3.5-turbo",
+        "temperature": 0.85,
+        "top_p": 0.9,
+        "messages": [
+          {
+            "role": "system",
+            "content": prompts["periodFeedbackPrompt"]
+          },
+          {
+            "role": "user",
+            "content": userContent
+          }
+        ]
+      }),
+    );
+
+    if (response.statusCode == 200) {
+      final data = jsonDecode(utf8.decode(response.bodyBytes));
+      final periodSummary = data['choices'][0]['message']['content'];
+      return periodSummary;
+    } else {
+      print('❌ Error: ${response.statusCode}');
+      return "error";
+    }
+  }
+
+  Widget buildPeriodFeedback() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Center(
+          child: Container(
+            padding: EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(16),
+            ),
+            child: FutureBuilder<String>(
+              future: generatePeriodFeedback(weeklyReports),
+              builder: (context, snapshot) {
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return const Text("요약 생성 중...", style: TextStyle(fontSize: 14));
+                } else {
+                  return Text(snapshot.data ?? '', style: const TextStyle(fontSize: 14));
+                }
+              },
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -537,27 +608,27 @@ class _weekreport extends State<weekreport> with TickerProviderStateMixin {
                   SingleChildScrollView(
                     scrollDirection: Axis.horizontal,
                     child: TabBar(
-                            controller: _tabController,
-                            isScrollable: true,
-                            labelColor: Colors.black,
-                            unselectedLabelColor: Color(0xFFAAA4A5),
-                            indicatorColor: Colors.transparent,
-                            tabs: emotions.map((emotion) {
-                              return Tab(
-                                child: Container(
-                                  padding: EdgeInsets.symmetric(vertical: 10, horizontal: 10),
-                                  decoration: BoxDecoration(
-                                    color: selectedEmotion == emotion ? Colors.white : Color(0xFFEAEBF0),
-                                    borderRadius: BorderRadius.circular(20),
-                                  ),
-                                  child: Text(
-                                    emotion,
-                                    style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
-                                  ),
-                                ),
-                              );
-                            }).toList(),
-                          )
+                      controller: _tabController,
+                      isScrollable: true,
+                      labelColor: Colors.black,
+                      unselectedLabelColor: Color(0xFFAAA4A5),
+                      indicatorColor: Colors.transparent,
+                      tabs: emotions.map((emotion) {
+                        return Tab(
+                          child: Container(
+                            padding: EdgeInsets.symmetric(vertical: 10, horizontal: 10),
+                            decoration: BoxDecoration(
+                              color: selectedEmotion == emotion ? Colors.white : Color(0xFFEAEBF0),
+                              borderRadius: BorderRadius.circular(20),
+                            ),
+                            child: Text(
+                              emotion,
+                              style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
+                            ),
+                          ),
+                        );
+                      }).toList(),
+                    )
                   ),
                   SizedBox(height: 30),
                   buildLineChart(),
@@ -573,6 +644,10 @@ class _weekreport extends State<weekreport> with TickerProviderStateMixin {
                   Text("감정 타임라인", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
                   SizedBox(height: 10),
                   buildTimelineChart(),
+                  SizedBox(height: 25),
+                  Text("기간 피드백", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                  SizedBox(height: 10),
+                  buildPeriodFeedback(),
                   SizedBox(height: 10),
                 ],
               ),
