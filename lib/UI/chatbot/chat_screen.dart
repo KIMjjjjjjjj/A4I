@@ -182,7 +182,7 @@ class _ChatScreenState extends State<ChatScreen> {
         final utfDecoded = convert.utf8.decode(response.bodyBytes);
         final data = jsonDecode(utfDecoded);
         final reply = data['choices'][0]['message']['content'];
-
+        
         setState(() {
           messages.add({"sender": "bot", "text": reply.trim()});
         });
@@ -268,8 +268,12 @@ class _ChatScreenState extends State<ChatScreen> {
   Widget build(BuildContext context) {
     return WillPopScope ( // 리포트 생성 후 뒤로가기 허용
       onWillPop: () async {
+        final user = FirebaseAuth.instance.currentUser;
+        if (user != null && !await ChatAnalyzer.timecheck(user.uid)) {
+          await ChatAnalyzer.analyzeCombinedMessages();
+        } 
         await DayReportProcess.generateReportFromLastChat();
-        return true; // 페이지 이동 허용
+        return true;
       },
       child: Scaffold(
         appBar: AppBar(
@@ -280,9 +284,9 @@ class _ChatScreenState extends State<ChatScreen> {
           actions: [
             IconButton(
               icon: Icon(Icons.save),
-              onPressed: () {
+              onPressed: ()  {
                 // 대화 분석 저장 함수 호출
-                // ChatAnalyzer.createDocument(user!.uid, result);
+                ChatAnalyzer.analyzeVisibleMessages(messages, user!.uid);
               },
             ),
             IconButton(

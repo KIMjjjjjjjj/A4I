@@ -112,6 +112,46 @@ class ChatAnalyzer {
     }
   }
 
+  static Future<void> analyzeVisibleMessages(List<Map<String, String>> messages, String uid) async {
+    final String _apiKey = dotenv.env['OPENAI_API_KEY'] ?? '';
+    final User? user = FirebaseAuth.instance.currentUser;
+    Map<String, String> prompts = await loadPrompts();
+
+    String combinedMessages = messages
+        .where((msg) => msg["sender"] == "user")
+        .map((msg) => msg["text"])
+        .join(" ");
+
+    if (combinedMessages.trim().isEmpty) return;
+
+    final response = await http.post(
+      Uri.parse("https://api.openai.com/v1/chat/completions"),
+      headers: {
+        "Authorization": "Bearer $_apiKey",
+        "Content-Type": "application/json"
+      },
+      body: jsonEncode({
+        "model": "gpt-3.5-turbo",
+        "temperature": 0.85,
+        "top_p": 0.9,
+        "messages": [
+          {"role": "system", "content": prompts["analyzerPrompt"]},
+          {"role": "user", "content": combinedMessages}
+        ]
+      }),
+    );
+
+    if (response.statusCode == 200) {
+      String utfDecoded = utf8.decode(response.bodyBytes);
+      Map<String, dynamic> apiResponse = jsonDecode(utfDecoded);
+
+      String responseBody = apiResponse["choices"][0]["message"]["content"];
+      Map<String, dynamic> result = jsonDecode(responseBody);
+
+      await createDocument(user!.uid, result);
+    }
+  }
+
   // 전체 대화 분석 저장하는 함수
   static Future<void> createDocument(String userId, Map<String, dynamic> result)async { // List<double> embedding 추가
     List<dynamic> analysis = result["analysis"] ?? [];
@@ -146,8 +186,31 @@ class ChatAnalyzer {
       print("문서 저장 실패: $e");
     }
   }
+
+  static Future<bool> timecheck(String userId) async {
+    try {
+      final snapshot = await FirebaseFirestore.instance
+          .collection("register")
+          .doc(userId)
+          .collection("chat")
+          .orderBy("timestamp", descending: true)
+          .limit(1)
+          .get();
+
+      if (snapshot.docs.isEmpty) return false;
+
+      final latest = snapshot.docs.first.data();
+      final Timestamp? timestamp = latest["timestamp"];
+      if (timestamp == null) return false;
+
+      final now = DateTime.now();
+      final savedTime = timestamp.toDate();
+      final difference = now.difference(savedTime).inSeconds;
+
+      return difference <= 60;
+    } catch (e) {
+      return false;
+    }
+  }
 }
-
-
-
 
