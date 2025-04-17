@@ -53,7 +53,7 @@ class _RecordingChatButtonState extends State<RecordingChatButton> {
     bool available = await _speech.initialize(
       onStatus: (status) {
         print("📢 상태 변경: $status");
-        if (status == 'notListening' && _isListening) {
+        if (status == 'notListening') {
           // 자동 종료 감지
           _stopListening();
         }
@@ -108,6 +108,10 @@ class _RecordingChatButtonState extends State<RecordingChatButton> {
                 : "말을 인식하지 못했어요.";
           });
           widget.onTextRecognized(_recognizedText);
+          if (val.finalResult) {
+            print("✅ 최종 결과 도달, 음성 인식 중지");
+            _stopListening();
+          }
         },
         listenFor: Duration(seconds: 60),  // 최대 60초까지 듣기
         pauseFor: Duration(seconds: 10),    // 2초 동안 무음이면 종료

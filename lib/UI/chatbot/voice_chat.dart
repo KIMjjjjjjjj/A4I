@@ -218,13 +218,12 @@ class _VoiceChatScreenState extends State<VoiceChatScreen> with SingleTickerProv
           _isProcessing = false;
         });
 
+
+        final result = await ChatAnalyzer.analyzeSingleMessage(message);
+        final emotion = result["emotion"];
+        final intensity = result["emotion_intensity"];
+        _updateEmotionCharacter(emotion, intensity);
         Future.microtask(() => textToSpeech(trimmedReply));
-        Future.microtask(() async {
-          final result = await ChatAnalyzer.analyzeSingleMessage(message);
-          final emotion = result["emotion"];
-          final intensity = result["emotion_intensity"];
-          _updateEmotionCharacter(emotion, intensity);
-        });
         ChatAnalyzer.handleCombineMessage(message);
       } else {
         setState(() {
