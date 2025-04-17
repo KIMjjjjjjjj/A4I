@@ -81,11 +81,14 @@ class _weekreport extends State<weekreport> with TickerProviderStateMixin {
     if (dates.isNotEmpty) {
       final sorted = dates.toList()..sort();
       final latest = sorted.last;
-      final sevenDaysAgo = latest.subtract(Duration(days: 6));
+      final rangeStart  = latest.subtract(Duration(days: 6));
 
-      final filtered = sorted.where((d) => d.isAfter(sevenDaysAgo.subtract(Duration(days: 1)))).toList();
+      final filtered = sorted.where((date) =>
+      !date.isBefore(rangeStart) && !date.isAfter(latest)
+      ).toList();
+
       setState(() {
-        availableDates = dates;
+        availableDates = filtered.toSet();
         startDate = filtered.first;
         endDate = filtered.last;
         isLoading = false;
@@ -100,24 +103,23 @@ class _weekreport extends State<weekreport> with TickerProviderStateMixin {
 
   late List<Report> weeklyReports = [];
 
+  // 날짜 범위에 있는 리포트 불러와 리스트에 저장
   Future<void> loadReports() async {
     if (startDate != null && endDate != null) {
-      weeklyReports = await fetchReportsInRange(startDate!, endDate!);
+      final reports = await fetchReportsInRange(startDate!, endDate!);
       print("불러온 보고서 개수: ${weeklyReports.length}");
-      if(mounted)
-        setState(() {}); // UI 업데이트
+      setState(() {
+        weeklyReports = reports;
+      });
     }
   }
 
+  // 날짜마다 리포트 불러오는 함수
   Future<List<Report>> fetchReportsInRange(DateTime start, DateTime end) async {
     final service = ReportService();
-    final filteredDates = availableDates
-        .where((date) => !date.isBefore(startDate!) && !date.isAfter(endDate!))
-        .toList()
-      ..sort();
     List<Report> reports = [];
 
-    for (final date in filteredDates) {
+    for (DateTime date = start; !date.isAfter(end); date = date.add(Duration(days: 1))) {
       final report = await service.fetchReport(date);
       if (report != null) {
         reports.add(report);
@@ -126,12 +128,24 @@ class _weekreport extends State<weekreport> with TickerProviderStateMixin {
     return reports;
   }
 
+  // 날짜 리스트만 생성 (UI 표시에 사용)
+  List<DateTime> generateDateList(DateTime start, DateTime end) {
+    List<DateTime> list = [];
+
+    for (DateTime date = start;
+    !date.isAfter(end);
+    date = date.add(Duration(days: 1))) {
+      list.add(date);
+    }
+    return list;
+  }
+
   // 라인차트
   Widget buildLineChart() {
     List<FlSpot> spots = [];
     Map<int, String> dateLabels = {};
     int currentIndex = 0;
-    final dateList = availableDates.toList()..sort();
+    final dateList =generateDateList(startDate!, endDate!);
 
     for (int i = 0; i < weeklyReports.length; i++) {
       final report = weeklyReports[i];
@@ -374,7 +388,7 @@ class _weekreport extends State<weekreport> with TickerProviderStateMixin {
   // 감정 타임라인
   List<Map<String, dynamic>> getEmotionTimeline() {
     final List<Map<String, dynamic>> timeline = [];
-    final dateList = availableDates.toList()..sort();
+    final dateList = generateDateList(startDate!, endDate!);
 
     for (int i = 0; i < weeklyReports.length; i++) {
       final report = weeklyReports[i];
