@@ -1,7 +1,12 @@
 
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
 import 'package:fl_chart/fl_chart.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:http/http.dart' as http;
 
+import '../Chatbot/prompts.dart';
 import 'day_report.dart';
 import 'report_date_range_selector.dart';
 import 'report_service.dart';
@@ -14,17 +19,48 @@ class weekreport extends StatefulWidget {
 
 class _weekreport extends State<weekreport> with TickerProviderStateMixin {
   late TabController _tabController;
-
   final List<String> emotions = ["두려움", "슬픔", "놀람", "분노", "기쁨", "기타"];
-
-  String selectedEmotion = "두려움"; // 기본값
-
+  String selectedEmotion = "두려움";
   final TextEditingController percentController = TextEditingController();
 
   DateTime? startDate;
   DateTime? endDate;
   Set<DateTime> availableDates = {};
   bool isLoading = true;
+
+  Color getEmotionColor(String emotion) {
+    switch (emotion) {
+      case '기쁨':
+        return Color(0xFFFF8A00);
+      case '두려움':
+        return Color(0xFFA1EEBD);
+      case '슬픔':
+        return Color(0xFF7BD3EA);
+      case '분노':
+        return Color(0xFFEA7BDF);
+      case '놀람':
+        return Color(0xFFF6D6D6);
+      default:
+        return Color(0xFFF6F7C4);
+    }
+  }
+
+  String getEmotionEmoji(String emotion) {
+    switch (emotion) {
+      case '기쁨':
+        return '😊';
+      case '두려움':
+        return '😰';
+      case '슬픔':
+        return '😢';
+      case '분노':
+        return '😡';
+      case '놀람':
+        return '😲';
+      default:
+        return '😐';
+    }
+  }
 
   @override
   void initState() {
@@ -68,36 +104,42 @@ class _weekreport extends State<weekreport> with TickerProviderStateMixin {
     if (startDate != null && endDate != null) {
       weeklyReports = await fetchReportsInRange(startDate!, endDate!);
       print("불러온 보고서 개수: ${weeklyReports.length}");
-      setState(() {}); // UI 업데이트
+      if(mounted)
+        setState(() {}); // UI 업데이트
     }
   }
 
   Future<List<Report>> fetchReportsInRange(DateTime start, DateTime end) async {
     final service = ReportService();
+    final filteredDates = availableDates
+        .where((date) => !date.isBefore(startDate!) && !date.isAfter(endDate!))
+        .toList()
+      ..sort();
     List<Report> reports = [];
 
-    for (int i = 0; i <= end.difference(start).inDays; i++) {
-      final currentDate = start.add(Duration(days: i));
-      final report = await service.fetchReport(currentDate);
+    for (final date in filteredDates) {
+      final report = await service.fetchReport(date);
       if (report != null) {
         reports.add(report);
       }
     }
-
     return reports;
   }
 
+  // 라인차트
   Widget buildLineChart() {
     List<FlSpot> spots = [];
     Map<int, String> dateLabels = {};
     int currentIndex = 0;
+    final dateList = availableDates.toList()..sort();
 
     for (int i = 0; i < weeklyReports.length; i++) {
       final report = weeklyReports[i];
-      final date = startDate!.add(Duration(days: i));
+      final date = dateList[i];
       final dateLabel = "${date.month}/${date.day}";
 
       final emotionList = report.emotionIntensityData?[selectedEmotion];
+      print("✅ Report $i - Date: $dateLabel, Emotion List: $emotionList");
       if (emotionList != null) {
         for (int j = 0; j < emotionList.length; j++) {
           spots.add(FlSpot(currentIndex.toDouble(), emotionList[j]));
@@ -172,14 +214,14 @@ class _weekreport extends State<weekreport> with TickerProviderStateMixin {
     for (var report in weeklyReports) {
       if (report.topics != null) {
         for (var topic in report.topics!) {
-          frequencyMap[topic] = (frequencyMap[topic] ?? 0) + 1;
+          if (topic.trim().isNotEmpty) {
+            frequencyMap[topic] = (frequencyMap[topic] ?? 0) + 1;
+          }
         }
       }
     }
-
     final sortedTopics = frequencyMap.entries.toList()
       ..sort((a, b) => b.value.compareTo(a.value));
-
     return sortedTopics.take(topN).map((entry) => entry.key).toList();
   }
 
@@ -206,43 +248,245 @@ class _weekreport extends State<weekreport> with TickerProviderStateMixin {
     );
   }
 
-  // 키워드 빈도수
-  List<String> getTopKeywords({int topN = 5}) {
-    final Map<String, int> frequencyMap = {};
+  // 감정별 상위 키워드 맵
+  Map<String, List<String>> getTopKeywordsByEmotion({int topNEmotion = 3, int topNKeyword = 3}) {
+    final Map<String, int> emotionFrequencyMap = {};
+    final Map<String, Map<String, int>> emotionKeywordMap = {};
 
     for (var report in weeklyReports) {
-      if (report.keywords != null) {
-        for (var keyword in report.keywords!) {
-          frequencyMap[keyword] = (frequencyMap[keyword] ?? 0) + 1;
+      final emotions = report.emotionData;
+      final keywords = report.keywords;
+
+      if (emotions != null && keywords != null) {
+        // 가장 높은 점수의 감정 선택
+        final topEmotion = emotions.entries.reduce((a, b) => a.value > b.value ? a : b,).key;
+        // 감정 빈도 증가
+        emotionFrequencyMap[topEmotion] = (emotionFrequencyMap[topEmotion] ?? 0) + 1;
+        // 감정별 키워드 누적
+        emotionKeywordMap.putIfAbsent(topEmotion, () => {});
+        for (var keyword in keywords) {
+          if (keyword != null && keyword.trim().isNotEmpty) {
+            emotionKeywordMap[topEmotion]![keyword] = (emotionKeywordMap[topEmotion]?[keyword] ?? 0) + 1;
+          }
         }
       }
     }
-
-    final sortedKeywords = frequencyMap.entries.toList()
+    // 상위 감정 추출
+    final topEmotions = emotionFrequencyMap.entries.toList()
       ..sort((a, b) => b.value.compareTo(a.value));
+    final topEmotionKeys = topEmotions.take(topNEmotion).map((entry) => entry.key).toList();
+    // 감정별 상위 키워드 추출
+    final Map<String, List<String>> result = {};
 
-    return sortedKeywords.take(topN).map((entry) => entry.key).toList();
+    for (var emotion in topEmotionKeys) {
+      final keywordMap = emotionKeywordMap[emotion]!;
+      final sortedKeywords = keywordMap.entries.toList()
+        ..sort((a, b) => b.value.compareTo(a.value));
+      result[emotion] = sortedKeywords.take(topNKeyword).map((entry) => entry.key).toList();
+    }
+
+    return result;
   }
 
-  Widget buildKeywordChips() {
-    final topKeywords = getTopKeywords();
+  Widget buildEmotionKeywordMap() {
+    final emotionKeywordMap = getTopKeywordsByEmotion();
 
-    return Wrap(
-      spacing: 10,
-      runSpacing: 10,
+    return SizedBox(
+      height: 180,
+      child: ListView.separated(
+        scrollDirection: Axis.horizontal,
+        itemCount: emotionKeywordMap.length,
+        separatorBuilder: (_, __) => SizedBox(width: 12),
+        itemBuilder: (context, index) {
+          final entry = emotionKeywordMap.entries.elementAt(index);
+          final emotion = entry.key;
+          final keywords = entry.value;
+          final color = getEmotionColor(emotion);
+
+          return Container(
+            width: 250,
+            padding: EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                colors: [color.withOpacity(0.85), color.withOpacity(0.65)],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
+              borderRadius: BorderRadius.circular(24),
+              boxShadow: [
+                BoxShadow(
+                  color: color.withOpacity(0.3),
+                  blurRadius: 12,
+                  offset: Offset(0, 6),
+                ),
+              ],
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                    children: [
+                      Text(
+                        getEmotionEmoji(emotion),
+                        style: TextStyle(fontSize: 20),
+                      ),
+                      SizedBox(width: 5),
+                      Text(
+                        emotion,
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.white,
+                        ),
+                      )
+                    ]
+                ),
+                SizedBox(height: 12),
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: keywords.map((k) {
+                    return Container(
+                      padding:
+                      EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withOpacity(0.9),
+                        borderRadius: BorderRadius.circular(20),
+                      ),
+                      child: Text(
+                        k,
+                        style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            color: color
+                        ),
+                      ),
+                    );
+                  }).toList(),
+                )
+              ],
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+  // 감정 타임라인
+  List<Map<String, dynamic>> getEmotionTimeline() {
+    final List<Map<String, dynamic>> timeline = [];
+    final dateList = availableDates.toList()..sort();
+
+    for (int i = 0; i < weeklyReports.length; i++) {
+      final report = weeklyReports[i];
+      final date = dateList[i];
+      final dateLabel = "${date!.month.toString().padLeft(2, '0')}/${date!.day.toString().padLeft(2, '0')}";
+
+      if (report.emotionData != null) {
+        final topEmotion = report.emotionData.entries
+            .reduce((a, b) => a.value > b.value ? a : b);
+
+        timeline.add({
+          "date": dateLabel,
+          "emotion": topEmotion.key,
+          "value": topEmotion.value,
+        });
+      }
+    }
+    return timeline.reversed.toList();
+  }
+
+  Widget buildTimelineChart(){
+    final List<Map<String, dynamic>> timeline = getEmotionTimeline();
+
+    return Column(
+      children: timeline.map((item) {
+        final day = item["date"] as String;
+        final emotion = item["emotion"] as String;
+        final emoji = getEmotionEmoji(emotion);
+
+        return Card(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          color:  Colors.white,
+          elevation: 3,
+          margin: EdgeInsets.symmetric(vertical: 5),
+          child: ListTile(
+            leading: Text(emoji, style: TextStyle(fontSize: 25)),
+            title: Text(
+              "$day - $emotion",
+              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+            ),
+          ),
+        );
+      }).toList(),
+    );
+  }
+
+  // 기간 피드백
+  static Future<String> generatePeriodFeedback(List<Report> reports) async {
+    Map<String, String> prompts = await loadPrompts();
+    final String _apiKey = dotenv.env['OPENAI_API_KEY'] ?? '';
+
+    final userContent = reports
+        .where((report) => report.feedback != null && report.feedback!.isNotEmpty)
+        .map((report) => "- ${report.feedback}")
+        .join("\n");
+
+    final response = await http.post(
+      Uri.parse("https://api.openai.com/v1/chat/completions"),
+      headers: {
+        "Authorization": "Bearer $_apiKey",
+        "Content-Type": "application/json"
+      },
+      body: jsonEncode({
+        "model": "gpt-3.5-turbo",
+        "temperature": 0.85,
+        "top_p": 0.9,
+        "messages": [
+          {
+            "role": "system",
+            "content": prompts["periodFeedbackPrompt"]
+          },
+          {
+            "role": "user",
+            "content": userContent
+          }
+        ]
+      }),
+    );
+
+    if (response.statusCode == 200) {
+      final data = jsonDecode(utf8.decode(response.bodyBytes));
+      final periodSummary = data['choices'][0]['message']['content'];
+      return periodSummary;
+    } else {
+      print('❌ Error: ${response.statusCode}');
+      return "error";
+    }
+  }
+
+  Widget buildPeriodFeedback() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        for (var text in topKeywords)
-          Container(
-            padding: EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+        Center(
+          child: Container(
+            padding: EdgeInsets.all(16),
             decoration: BoxDecoration(
               color: Colors.white,
               borderRadius: BorderRadius.circular(16),
             ),
-            child: Text(
-              text,
-              style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
+            child: FutureBuilder<String>(
+              future: generatePeriodFeedback(weeklyReports),
+              builder: (context, snapshot) {
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return const Text("요약 생성 중...", style: TextStyle(fontSize: 14));
+                } else {
+                  return Text(snapshot.data ?? '', style: const TextStyle(fontSize: 14));
+                }
+              },
             ),
           ),
+        ),
       ],
     );
   }
@@ -252,18 +496,12 @@ class _weekreport extends State<weekreport> with TickerProviderStateMixin {
     return Scaffold(
       appBar: AppBar(
         leading: IconButton(
-          icon: Icon(Icons.event, color: Colors.black),
-          onPressed: () async {
-
-            final range = await DateRangePicker.showValidDateRangePicker(context);
-            if (range != null) {
-              setState(() {
-                startDate = range.start;
-                endDate = range.end;
-              });
-              print("선택된 범위: ${range.start} ~ ${range.end}");
-              await loadReports();
-            }
+          icon: Icon(Icons.arrow_back),
+          onPressed: () {
+            Navigator.pushReplacement(
+              context,
+              MaterialPageRoute(builder: (context) => dayreport()),
+            );
           },
         ),
         title: Row(
@@ -326,12 +564,31 @@ class _weekreport extends State<weekreport> with TickerProviderStateMixin {
                     backgroundImage: AssetImage("assets/images/character.png"),
                   ),
                   SizedBox(height: 10),
-                  Text(
-                    startDate != null && endDate != null
-                        ? "${startDate!.year}년 ${startDate!.month.toString().padLeft(2, '0')}월 ${startDate!.day.toString().padLeft(2, '0')}일부터 "
-                        "${endDate!.year}년 ${endDate!.month.toString().padLeft(2, '0')}월 ${endDate!.day.toString().padLeft(2, '0')}일까지"
-                        : "로딩 중...",
-                    style: TextStyle(fontSize: 14),
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        startDate != null && endDate != null
+                            ? "${startDate!.year}.${startDate!.month.toString().padLeft(2, '0')}.${startDate!.day.toString().padLeft(2, '0')} - "
+                            "${endDate!.year}.${endDate!.month.toString().padLeft(2, '0')}.${endDate!.day.toString().padLeft(2, '0')}"
+                            : "로딩 중...",
+                        style: TextStyle(fontSize: 16),
+                      ),
+                      IconButton(
+                        icon: Icon(Icons.event, color: Colors.black),
+                        onPressed: () async {
+                          final range = await DateRangePicker.showValidDateRangePicker(context);
+                          if (range != null) {
+                            setState(() {
+                            startDate = range.start;
+                            endDate = range.end;
+                            });
+                            print("선택된 범위: ${range.start} ~ ${range.end}");
+                            await loadReports();
+                          }
+                        },
+                      ),
+                    ],
                   ),
                   Text("토리와의 대화에서 마음을 살펴보았어요", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
                 ],
@@ -339,7 +596,7 @@ class _weekreport extends State<weekreport> with TickerProviderStateMixin {
             ),
             SizedBox(height: 20),
             Container(
-              padding: EdgeInsets.all(16),
+              padding: EdgeInsets.all(20),
               decoration: BoxDecoration(
                 color: Color(0xFFEAEBF0),
                 borderRadius: BorderRadius.circular(16),
@@ -347,43 +604,53 @@ class _weekreport extends State<weekreport> with TickerProviderStateMixin {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
+                  SizedBox(height: 10),
                   Text("얼마나 많은 변화가 있었을까요?", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
                   SizedBox(height: 10),
                   SingleChildScrollView(
                     scrollDirection: Axis.horizontal,
                     child: TabBar(
-                            controller: _tabController,
-                            isScrollable: true,
-                            labelColor: Colors.black,
-                            unselectedLabelColor: Color(0xFFAAA4A5),
-                            indicatorColor: Colors.transparent,
-                            tabs: emotions.map((emotion) {
-                              return Tab(
-                                child: Container(
-                                  padding: EdgeInsets.symmetric(vertical: 10, horizontal: 10),
-                                  decoration: BoxDecoration(
-                                    color: selectedEmotion == emotion ? Colors.white : Color(0xFFEAEBF0),
-                                    borderRadius: BorderRadius.circular(20),
-                                  ),
-                                  child: Text(
-                                    emotion,
-                                    style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
-                                  ),
-                                ),
-                              );
-                            }).toList(),
-                          )
+                      controller: _tabController,
+                      isScrollable: true,
+                      labelColor: Colors.black,
+                      unselectedLabelColor: Color(0xFFAAA4A5),
+                      indicatorColor: Colors.transparent,
+                      tabs: emotions.map((emotion) {
+                        return Tab(
+                          child: Container(
+                            padding: EdgeInsets.symmetric(vertical: 10, horizontal: 10),
+                            decoration: BoxDecoration(
+                              color: selectedEmotion == emotion ? Colors.white : Color(0xFFEAEBF0),
+                              borderRadius: BorderRadius.circular(20),
+                            ),
+                            child: Text(
+                              emotion,
+                              style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
+                            ),
+                          ),
+                        );
+                      }).toList(),
+                    )
                   ),
                   SizedBox(height: 30),
                   buildLineChart(),
-                  SizedBox(height: 20),
+                  SizedBox(height: 25),
                   Text("대화 주제", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
                   SizedBox(height: 10),
                   buildTopicChips(),
-                  SizedBox(height: 20),
-                  Text("가장 많이 사용한 단어", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                  SizedBox(height: 25),
+                  Text("감정별 상위 키워드 맵", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
                   SizedBox(height: 10),
-                  buildKeywordChips(),
+                  buildEmotionKeywordMap(),
+                  SizedBox(height: 25),
+                  Text("기간 피드백", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                  SizedBox(height: 10),
+                  buildPeriodFeedback(),
+                  SizedBox(height: 25),
+                  Text("감정 타임라인", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                  SizedBox(height: 10),
+                  buildTimelineChart(),
+                  SizedBox(height: 10),
                 ],
               ),
             ),
@@ -393,4 +660,3 @@ class _weekreport extends State<weekreport> with TickerProviderStateMixin {
     );
   }
 }
-

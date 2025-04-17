@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:repos/UI/Chatbot/prompts.dart';
 import 'package:flutter_tts/flutter_tts.dart';
 import 'chat_analyzer.dart';
+import 'chat_emotion_character.dart';
 import 'chat_screen.dart';
 import 'sound_wave_painter.dart';
 import 'recording_chat_button.dart';
@@ -22,6 +24,8 @@ class VoiceChatScreen extends StatefulWidget {
 
 class _VoiceChatScreenState extends State<VoiceChatScreen> with SingleTickerProviderStateMixin {
   final User? user = FirebaseAuth.instance.currentUser;
+  String _detectedEmotion = 'neutral';
+  double _detectedIntensity = 0.0;
   String _recognizedText = "누르고 말해주세요";
   String _botResponse = "오늘 기분은 어때? 고민이 있으면 편하게 이야기해줘";
   bool _isRecording = false;
@@ -79,10 +83,17 @@ class _VoiceChatScreenState extends State<VoiceChatScreen> with SingleTickerProv
     });
   }
 
+  void _updateEmotionCharacter(String newEmotion, double newIntensity) {
+    setState(() {
+      _detectedEmotion = newEmotion;
+      _detectedIntensity = newIntensity;
+    });
+  }
+
   void initializeTTS() async {
     await flutterTts.setLanguage("ko-KR"); // 언어 설정
     await flutterTts.setPitch(1.0); // 음성 높낮이 설정
-    await flutterTts.setSpeechRate(1.0); // 음성 속도 설정
+    await flutterTts.setSpeechRate(0.7); // 음성 속도 설정
 
     // 진행 상태 모니터링
     flutterTts.setStartHandler(() {
@@ -158,6 +169,7 @@ class _VoiceChatScreenState extends State<VoiceChatScreen> with SingleTickerProv
   }
 
   Future<void> _sendToChatbot(String message) async {
+    final String _apiKey = dotenv.env['OPENAI_API_KEY'] ?? '';
     Map<String, String> prompts = await loadPrompts();
     if (message.isEmpty || _isProcessing) return;
 
@@ -167,8 +179,6 @@ class _VoiceChatScreenState extends State<VoiceChatScreen> with SingleTickerProv
       _messages.add({"sender": "user", "text": message});
       _botResponse = "생각 중...";
     });
-
-    final String _apiKey = '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';
 
     try {
       final response = await http.post(
@@ -199,15 +209,23 @@ class _VoiceChatScreenState extends State<VoiceChatScreen> with SingleTickerProv
         final utfDecoded = convert.utf8.decode(response.bodyBytes);
         final data = jsonDecode(utfDecoded);
         final reply = data['choices'][0]['message']['content'];
+        final trimmedReply = reply.trim();
 
         setState(() {
-          _botResponse = reply.trim();
+          _botResponse = trimmedReply;
           // 봇 응답 메시지도 저장
-          _messages.add({"sender": "bot", "text": reply.trim()});
+          _messages.add({"sender": "bot", "text": trimmedReply});
           _isProcessing = false;
         });
-        Future.microtask(() => textToSpeech(_botResponse));
-        ChatAnalyzer.analyzeAndSaveMessage(message);
+
+        Future.microtask(() => textToSpeech(trimmedReply));
+        Future.microtask(() async {
+          final result = await ChatAnalyzer.analyzeSingleMessage(message);
+          final emotion = result["emotion"];
+          final intensity = result["emotion_intensity"];
+          _updateEmotionCharacter(emotion, intensity);
+        });
+        ChatAnalyzer.handleCombineMessage(message);
       } else {
         setState(() {
           _botResponse = "죄송해요, 응답을 가져오는 데 문제가 있었어요.";
@@ -306,7 +324,7 @@ class _VoiceChatScreenState extends State<VoiceChatScreen> with SingleTickerProv
                 ),
               ),
               // 캐릭터 이미지
-              Image.asset('assets/Widget/Login/character.png', width: screenWidth * 0.6),
+              EmotionCharacter(emotion: _detectedEmotion, intensity: _detectedIntensity, width: 300, height: 300),
             ],
           ),
 

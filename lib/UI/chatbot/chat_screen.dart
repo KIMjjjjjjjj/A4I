@@ -2,12 +2,14 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:http/http.dart' as http;
 import 'package:repos/UI/Chatbot/prompts.dart';
 import 'dart:convert';
 import 'dart:convert' as convert;
 import '../Report/day_report_process.dart';
 import 'chat_analyzer.dart';
+import 'chat_emotion_character.dart';
 import 'voice_chat.dart';
 
 class ChatScreen extends StatefulWidget {
@@ -26,7 +28,8 @@ class _ChatScreenState extends State<ChatScreen> {
   late List<Map<String, String>> messages;
   TextEditingController _controller = TextEditingController();
   final ScrollController _scrollController = ScrollController();
-  final String _apiKey = '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 ';
+  String _detectedEmotion = 'neutral';
+  double _detectedIntensity = 0.0;
   bool isLoading = false;
   String botName = "토리";
 
@@ -141,6 +144,13 @@ class _ChatScreenState extends State<ChatScreen> {
     );
   }
 
+  void _updateChatEmotionCharacter(String newEmotion, double newIntensity) {
+    setState(() {
+      _detectedEmotion = newEmotion;
+      _detectedIntensity = newIntensity;
+    });
+  }
+
   Future<void> _loadPreviousConversation(String topic, String userId) async {
     setState(() {
       isLoading = true;
@@ -221,6 +231,7 @@ class _ChatScreenState extends State<ChatScreen> {
   }
 
   void sendMessage() async {
+    final String _apiKey = dotenv.env['OPENAI_API_KEY'] ?? '';
     Map<String, String> prompts = await loadPrompts();
     String userMessage = _controller.text.trim();
     if (userMessage.isEmpty) return;
@@ -267,12 +278,18 @@ class _ChatScreenState extends State<ChatScreen> {
         final utfDecoded = convert.utf8.decode(response.bodyBytes);
         final data = jsonDecode(utfDecoded);
         final reply = data['choices'][0]['message']['content'];
-
+        
         setState(() {
           messages.add({"sender": "bot", "text": reply.trim()});
         });
-        ChatAnalyzer.analyzeAndSaveMessage(userMessage);
 
+        Future.microtask(() async {
+          final result = await ChatAnalyzer.analyzeSingleMessage(userMessage);
+          final emotion = result["emotion"];
+          final intensity = result["emotion_intensity"];
+          _updateChatEmotionCharacter(emotion, intensity);
+        });
+        ChatAnalyzer.handleCombineMessage(userMessage);
       } else {
         jsonDecode(response.body);
         setState(() {
@@ -347,8 +364,12 @@ class _ChatScreenState extends State<ChatScreen> {
   Widget build(BuildContext context) {
     return WillPopScope ( // 리포트 생성 후 뒤로가기 허용
       onWillPop: () async {
+        final user = FirebaseAuth.instance.currentUser;
+        if (user != null && !await ChatAnalyzer.timecheck(user.uid)) {
+          await ChatAnalyzer.analyzeCombinedMessages();
+        } 
         await DayReportProcess.generateReportFromLastChat();
-        return true; // 페이지 이동 허용
+        return true;
       },
       child: Scaffold(
         appBar: AppBar(
@@ -364,9 +385,9 @@ class _ChatScreenState extends State<ChatScreen> {
             ),
             IconButton(
               icon: Icon(Icons.save),
-              onPressed: () {
-                // 대화 내용 저장 함수 호출
-                _summarizeAndSaveChat();
+              onPressed: ()  {
+                // 대화 분석 저장 함수 호출
+                ChatAnalyzer.analyzeVisibleMessages(messages, user!.uid);
               },
             ),
             IconButton(
@@ -400,11 +421,7 @@ class _ChatScreenState extends State<ChatScreen> {
                     ),
                   ),
                   SizedBox(height: 10),
-                  Image.asset(
-                    'assets/Widget/Login/character.png',
-                    width: 150,
-                    height: 150,
-                  ),
+                  EmotionCharacter(emotion: _detectedEmotion, intensity: _detectedIntensity, width: 200, height: 200),
                 ],
               ),
             ),
@@ -526,121 +543,6 @@ class _ChatScreenState extends State<ChatScreen> {
         ),
       ),
     );
-  }
-
-  Future<void> _summarizeAndSaveChat() async {
-    if (messages.length < 3) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('대화가 너무 짧아 저장할 수 없습니다.')),
-      );
-      return;
-    }
-
-    if (user == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('로그인이 필요합니다.')),
-      );
-      return;
-    }
-
-    setState(() {
-      isLoading = true;
-    });
-
-    try {
-      // 대화 내용 준비
-      final conversationText = messages.map((m) {
-        return "${m["sender"] == "user" ? "사용자" : botName}: ${m["text"]}";
-      }).join("\n");
-
-      // OpenAI API를 사용하여 대화 분석
-      final response = await http.post(
-        Uri.parse('https://api.openai.com/v1/chat/completions'),
-        headers: {
-          'Authorization': 'Bearer $_apiKey',
-          'Content-Type': 'application/json',
-        },
-        body: jsonEncode({
-          "model": "gpt-3.5-turbo",
-          "messages": [
-            {
-              "role": "system",
-              "content": """
-              사용자의 메시지를 분석하여 사건을 중심으로 정리하는 역할을 수행해줘.
-              주어진 텍스트를 기반으로 사용자의 메시지를 분석해서 핵심 정보를 추출한 후 아래 JSON 형식으로 반환해줘.
-
-              **출력 형식 (JSON)**
-              {
-                "keywords": ["핵심 키워드1", "핵심 키워드2", "핵심 키워드3"],
-                "topic": "주제",
-                "emotion": "감정",
-                "emotion_intensity": 0.0,
-                "summary": "대화 요약"
-              }
-
-              **분석 기준**
-              - "핵심 키워드": 메시지에서 중요한 단어를 2~3개 추출해줘
-              - "주제": 대화의 주요 주제를 한 단어로 정리해줘 (예: "대인관계", "학업", "취업 및 직장")
-              - "감정": 메시지에서 가장 강하게 느껴지는 감정을 하나 선택해줘 (예: "행복", "분노", "슬픔", "불안", "놀람", "평온")
-              - "emotion_intensity": 감정 강도를 0~1 사이 숫자로 표현해줘
-              - "대화 요약": 메시지를 요약하여 1~2문장으로 정리해줘.
-              """
-            },
-            {
-              "role": "user",
-              "content": conversationText
-            }
-          ]
-        }),
-      );
-
-      if (response.statusCode == 200) {
-        final utfDecoded = utf8.decode(response.bodyBytes);
-        final data = jsonDecode(utfDecoded);
-        final result = data['choices'][0]['message']['content'];
-
-        try {
-          final Map<String, dynamic> analysisResult = jsonDecode(result);
-
-          // Firestore에 저장
-          await FirebaseFirestore.instance
-              .collection("register")
-              .doc(user!.uid)
-              .collection("chat")
-              .add({
-            "timestamp": FieldValue.serverTimestamp(),
-            "keywords": analysisResult["keywords"] ?? [],
-            "topic": analysisResult["topic"] ?? "일반 대화",
-            "emotion": analysisResult["emotion"] ?? "중립",
-            "emotion_intensity": analysisResult["emotion_intensity"] ?? 0.5,
-            "summary": analysisResult["summary"] ?? "대화 요약 없음",
-            "botName" : botName,
-          });
-
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('대화가 성공적으로 저장되었습니다.')),
-          );
-        } catch (e) {
-          print('JSON 파싱 오류: $e');
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('대화 분석 중 오류가 발생했습니다.')),
-          );
-        }
-      } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('서버 연결 중 오류가 발생했습니다.')),
-        );
-      }
-    } catch (e) {
-      print('대화 저장 중 오류: $e');
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('대화 저장 중 오류가 발생했습니다.')),
-      );
-    } finally {
-      setState(() {
-        isLoading = false;
-      });
-    }
   }
 
   Widget drawCloud() {
