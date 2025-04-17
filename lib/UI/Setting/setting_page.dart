@@ -7,6 +7,7 @@ import 'package:repos/UI/Setting/settings.dart';
 import 'alarm_setting.dart';
 import 'edit_profile.dart';
 import '../Login/Login_UI.dart';
+import '../chatbot/chatbot_home.dart';
 
 class SettingPage extends StatefulWidget {
   const SettingPage({Key? key}):super(key:key);
@@ -204,11 +205,18 @@ class _SettingPageState extends State<SettingPage> {
                   tileColor: Colors.white,
                 ),
                 SizedBox(height: 5),
-                Image(
-                  image: AssetImage('assets/images/banner1.png'),
-                  height: 120,
-                  width: double.infinity,
-                  fit: BoxFit.fill,
+                GestureDetector(
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (context) => ChatbotScreen()),
+                    );
+                  },
+                  child: Image.asset(
+                    'assets/images/Main/main_chatbot_banner.png',
+                    width: double.infinity,
+                    fit: BoxFit.fitWidth,
+                  ),
                 ),
               ],
             ),

@@ -113,6 +113,8 @@ class _weekreport extends State<weekreport> with TickerProviderStateMixin {
       height: 200,
       child: LineChart(
         LineChartData(
+          minY: 0,
+          maxY: 1,
           gridData: FlGridData(show: false),
           titlesData: FlTitlesData(
             leftTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),

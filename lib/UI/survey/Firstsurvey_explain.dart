@@ -57,61 +57,63 @@ class _SurveyExplainPageState extends State<SurveyExplainPage> {
         centerTitle: true,
         elevation: 0,
       ),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const SizedBox(height: 32),
-            Align(
-              alignment: Alignment.centerLeft,
-              child: Text(
-                '반가워요!',
-                style: TextStyle(fontSize: 30, fontWeight: FontWeight.bold),
+      body: SingleChildScrollView(
+        child: Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const SizedBox(height: 32),
+              Align(
+                alignment: Alignment.centerLeft,
+                child: Text(
+                  '반가워요!',
+                  style: TextStyle(fontSize: 30, fontWeight: FontWeight.bold),
+                ),
               ),
-            ),
-            const SizedBox(height: 32),
-            const SizedBox(height: 4),
-            Align(
-              alignment: Alignment.centerLeft,
-              child: Text(
-                '${currentNicknameController.text}님에 대해 조금 더 알아가고\n 싶어서 간단한 질문을 준비했어요',
-                style: TextStyle(fontSize: 20, color: Colors.grey[700]),
+              const SizedBox(height: 32),
+              const SizedBox(height: 4),
+              Align(
+                alignment: Alignment.centerLeft,
+                child: Text(
+                  '${currentNicknameController.text}님에 대해 조금 더 알아가고\n 싶어서 간단한 질문을 준비했어요',
+                  style: TextStyle(fontSize: 20, color: Colors.grey[700]),
+                ),
               ),
-            ),
-            const SizedBox(height: 20),
-            Align(
-              alignment: Alignment.centerLeft,
-              child: Text(
-                '준비되셨다면 시작해볼까요?',
-                style: TextStyle(fontSize: 20, color: Colors.grey[700]),
+              const SizedBox(height: 20),
+              Align(
+                alignment: Alignment.centerLeft,
+                child: Text(
+                  '준비되셨다면 시작해볼까요?',
+                  style: TextStyle(fontSize: 20, color: Colors.grey[700]),
+                ),
               ),
-            ),
-            const Spacer(),
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton(
-                onPressed: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (context) => SurveyPage()),
-                  );
-                },
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.green,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12.0),
+              const Spacer(),
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (context) => SurveyPage()),
+                    );
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.green,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12.0),
+                    ),
+                    padding: const EdgeInsets.all(16.0),
                   ),
-                  padding: const EdgeInsets.all(16.0),
-                ),
-                child: const Text(
-                  '다음',
-                  style: TextStyle(fontSize: 18, color: Colors.white),
+                  child: const Text(
+                    '다음',
+                    style: TextStyle(fontSize: 18, color: Colors.white),
+                  ),
                 ),
               ),
-            ),
-            const SizedBox(height: 16),
-          ],
+              const SizedBox(height: 16),
+            ],
+          ),
         ),
       ),
     );
