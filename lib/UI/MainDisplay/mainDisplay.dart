@@ -8,6 +8,7 @@ import '../PsychologicalTest/select_test.dart';
 import '../diary/calender_page.dart';
 import '../HelpCenter/help_center_ui.dart';
 import '../Report/day_report.dart';
+import '../chatbot/chatbot_home.dart';
 
 class MainScreen extends StatefulWidget {
   @override
@@ -123,7 +124,7 @@ class _MainScreenState extends State<MainScreen> {
                   ),
                 ],
               ),
-              SizedBox(height: 16),
+              SizedBox(height: 30),
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
@@ -153,11 +154,19 @@ class _MainScreenState extends State<MainScreen> {
                   }),
                 ],
               ),
-              SizedBox(height: 16),
-              Image.asset(
-                'assets/images/Main/main_chatbot_banner.png',
-                width: double.infinity,
-                fit: BoxFit.fitWidth,
+              SizedBox(height: 30),
+              GestureDetector(
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (context) => ChatbotScreen()),
+                  );
+                },
+                child: Image.asset(
+                  'assets/images/Main/main_chatbot_banner.png',
+                  width: double.infinity,
+                  fit: BoxFit.fitWidth,
+                ),
               ),
             ],
           ),

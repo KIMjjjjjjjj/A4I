@@ -31,6 +31,10 @@ class _VoiceChatScreenState extends State<VoiceChatScreen> with SingleTickerProv
   bool _isRecording = false;
   bool _isProcessing = false;
   final FlutterTts flutterTts = FlutterTts();
+  bool _isSpeaking = false;
+  int _currentStartOffset = 0;
+  int _currentEndOffset = 0;
+
   late AnimationController _animationController;
   // 채팅 메시지 저장할 리스트
   late List<Map<String, String>> _messages;
@@ -90,10 +94,78 @@ class _VoiceChatScreenState extends State<VoiceChatScreen> with SingleTickerProv
     await flutterTts.setLanguage("ko-KR"); // 언어 설정
     await flutterTts.setPitch(1.0); // 음성 높낮이 설정
     await flutterTts.setSpeechRate(0.7); // 음성 속도 설정
+
+    // 진행 상태 모니터링
+    flutterTts.setStartHandler(() {
+      setState(() {
+        _isSpeaking = true;
+      });
+    });
+
+    flutterTts.setCompletionHandler(() {
+      setState(() {
+        _isSpeaking = false;
+      });
+    });
+
+    // 구간별 텍스트 읽기를 위한 설정
+    flutterTts.setProgressHandler((String text, int startOffset, int endOffset, String word) {
+      setState(() {
+        _currentStartOffset = startOffset;
+        _currentEndOffset = endOffset;
+      });
+    });
   }
 
   void textToSpeech(String text) {
     flutterTts.speak(text);
+  }
+
+  Widget _buildHighlightedText() {
+    if (_botResponse.isEmpty) return Text("");
+
+    if (!_isSpeaking) {
+      // TTS가 재생 중이 아니면 일반 텍스트로 표시
+      return Text(
+        _botResponse,
+        textAlign: TextAlign.left,
+        style: TextStyle(fontSize: 16, color: Colors.black),
+      );
+    }
+
+    try {
+      // 현재 읽고 있는 구간과 나머지 부분을 분리
+      String beforeText = _botResponse.substring(0, _currentStartOffset);
+      String highlightedText = _botResponse.substring(_currentStartOffset, _currentEndOffset);
+      String afterText = _botResponse.substring(_currentEndOffset);
+
+      return RichText(
+        textAlign: TextAlign.left,
+        text: TextSpan(
+          children: [
+            TextSpan(
+              text: beforeText,
+              style: TextStyle(fontSize: 16, color: Colors.black),
+            ),
+            TextSpan(
+              text: highlightedText,
+              style: TextStyle(fontSize: 16, color: Colors.blue, fontWeight: FontWeight.bold),
+            ),
+            TextSpan(
+              text: afterText,
+              style: TextStyle(fontSize: 16, color: Colors.black),
+            ),
+          ],
+        ),
+      );
+    } catch (e) {
+      // 인덱스 오류 발생 시 일반 텍스트로 표시
+      return Text(
+        _botResponse,
+        textAlign: TextAlign.left,
+        style: TextStyle(fontSize: 16, color: Colors.black),
+      );
+    }
   }
 
   Future<void> _sendToChatbot(String message) async {
@@ -179,6 +251,7 @@ class _VoiceChatScreenState extends State<VoiceChatScreen> with SingleTickerProv
   @override
   Widget build(BuildContext context) {
     double screenWidth = MediaQuery.of(context).size.width;
+    double screenHeight = MediaQuery.of(context).size.height;
 
     return Scaffold(
       appBar: AppBar(
@@ -193,91 +266,121 @@ class _VoiceChatScreenState extends State<VoiceChatScreen> with SingleTickerProv
       backgroundColor: Color(0xFFB1A099),
       body: Stack(
         children: [
+          // 상단 영역 (봇 응답 + 캐릭터)
           Column(
-            mainAxisAlignment: MainAxisAlignment.start,
             children: [
+              // 봇 응답 컨테이너 (스크롤 가능하고 높이 고정)
               Padding(
                 padding: EdgeInsets.symmetric(horizontal: screenWidth * 0.025, vertical: 10),
-                child: Container(
-                  width: screenWidth * 0.95,
-                  decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(20),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withOpacity(0.1),
-                          spreadRadius: 1,
-                          blurRadius: 3,
-                          offset: Offset(0,2),
-                        )
-                      ]
-                  ),
-                  child: Padding(
-                    padding: EdgeInsets.all(15),
-                    child: Text(
-                      _botResponse,
-                      textAlign: TextAlign.left,
-                      style: TextStyle(fontSize: 16,color: Colors.black),
-                    ),
-                  ),
+                child: LayoutBuilder(
+                  builder: (context, constraints) {
+                    // 텍스트 스타일 정의
+                    TextStyle textStyle = TextStyle(fontSize: 16, color: Colors.black);
+
+                    // 텍스트 스팬 생성
+                    TextSpan textSpan = TextSpan(
+                      text: _botResponse,
+                      style: textStyle,
+                    );
+
+                    // 텍스트 페인터 생성
+                    TextPainter textPainter = TextPainter(
+                      text: textSpan,
+                      textDirection: TextDirection.ltr,
+                      maxLines: 100, // 최대 라인 수
+                    );
+
+                    // 텍스트 레이아웃 계산
+                    textPainter.layout(maxWidth: constraints.maxWidth - 30); // 패딩 고려
+
+                    // 텍스트 높이 계산 (최소 80, 최대 screenHeight * 0.4)
+                    double textHeight = textPainter.height + 30; // 패딩 추가
+                    double containerHeight = textHeight.clamp(80.0, screenHeight * 0.2);
+
+                    return Container(
+                      width: screenWidth * 0.95,
+                      height: containerHeight,
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(20),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withOpacity(0.1),
+                            spreadRadius: 1,
+                            blurRadius: 3,
+                            offset: Offset(0,2),
+                          )
+                        ],
+                      ),
+                      // 스크롤 가능한 텍스트 영역
+                      child: SingleChildScrollView(
+                        child: Padding(
+                          padding: EdgeInsets.all(15),
+                          child: _buildHighlightedText(),
+                        ),
+                      ),
+                    );
+                  },
                 ),
               ),
-              SizedBox(height: 10),
+              // 캐릭터 이미지
               EmotionCharacter(emotion: _detectedEmotion, intensity: _detectedIntensity, width: 300, height: 300),
-              SizedBox(height: 30),
-
-              // 애니메이션 적용
-              Container(
-                width: screenWidth * 0.6,
-                height: 50,
-                child: CustomPaint(
-                  painter: SoundWavePainter(_isRecording ? _animationController.value : 0.0),
-                ),
-              ),
-
-              SizedBox(height: 20),
-              RecordingChatButton(
-                onStart: _onStartRecording,
-                onStop: _onStopRecording,
-                onTextRecognized: _onTextRecognized,
-              ),
-              SizedBox(height: 10),
-              Text(
-                _recognizedText,
-                style: TextStyle(fontSize: 16, color: Color(0xFF3A3A3A)),
-              ),
             ],
           ),
+
+          // 하단 영역 (음성 파형, 마이크 버튼, 텍스트)
           Positioned(
-            bottom: 0,
+            bottom: 80, // 하단 탐색 버튼 위의 여백
             left: 0,
             right: 0,
-            child: GestureDetector(
-              onTap: () {
-                // 업데이트된 메시지 목록과 함께 ChatScreen으로 이동
-                Navigator.pushReplacement(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => ChatScreen(initialMessages: _messages),
+            child: Column(
+              children: [
+                Container(
+                  width: screenWidth * 0.6,
+                  height: 40,
+                  child: CustomPaint(
+                    painter: SoundWavePainter(_isRecording ? _animationController.value : 0.0),
                   ),
-                );
-              },
-              child: Container(
-                width: screenWidth,
-                height: 50,
-                color: Color(0xFFF8B9B9),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Text("채팅으로 돌아가기", style: TextStyle(fontSize: 16, color: Colors.black)),
-                    SizedBox(width: 5),
-                    Icon(Icons.arrow_upward, color: Colors.black, size: 20),
-                  ],
                 ),
-              ),
+                SizedBox(height: 20),
+                RecordingChatButton(
+                  onStart: _onStartRecording,
+                  onStop: _onStopRecording,
+                  onTextRecognized: _onTextRecognized,
+                ),
+                SizedBox(height: 10),
+                Text(
+                  _recognizedText,
+                  style: TextStyle(fontSize: 16, color: Color(0xFF3A3A3A)),
+                ),
+              ],
             ),
           ),
         ],
+      ),
+
+      // 하단 버튼 (변경 없음)
+      bottomNavigationBar: GestureDetector(
+        onTap: () {
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(
+              builder: (context) => ChatScreen(initialMessages: _messages),
+            ),
+          );
+        },
+        child: Container(
+          height: 50,
+          color: Color(0xFFF8B9B9),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Text("채팅으로 돌아가기", style: TextStyle(fontSize: 16, color: Colors.black)),
+              SizedBox(width: 5),
+              Icon(Icons.arrow_upward, color: Colors.black, size: 20),
+            ],
+          ),
+        ),
       ),
     );
   }

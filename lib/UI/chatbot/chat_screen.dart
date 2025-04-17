@@ -1,5 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:http/http.dart' as http;
@@ -30,10 +31,14 @@ class _ChatScreenState extends State<ChatScreen> {
   String _detectedEmotion = 'neutral';
   double _detectedIntensity = 0.0;
   bool isLoading = false;
+  String botName = "토리";
 
   @override
   void initState() {
     super.initState();
+
+    _loadBotName();
+
     messages = widget.initialMessages ?? [
       {"sender": "bot", "text": "안녕! 난 토리야. 반가워!"},
       {"sender": "bot", "text": "오늘 기분은 어때? 고민이 있다면 편하게 이야기해줘."},
@@ -46,6 +51,97 @@ class _ChatScreenState extends State<ChatScreen> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _scrollToBottom();
     });
+  }
+
+  Future<void> _loadBotName() async {
+    if (user != null) {
+      try {
+        DocumentSnapshot userDoc = await FirebaseFirestore.instance
+            .collection('register')
+            .doc(user!.uid)
+            .get();
+
+        if(userDoc.exists){
+          Map<String, dynamic> userData = userDoc.data() as Map<String, dynamic>;
+          if (userData.containsKey('botName') && userData['botName'] != null) {
+            setState(() {
+              botName = userData['botName'];
+
+              if(messages.isNotEmpty && messages[0]["sender"] == "bot") {
+                messages[0]["text"] = "안녕! 난 $botName야. 반가워!";
+              }
+            });
+          }
+        }
+      } catch (e) {
+        print('챗봇 이름 로드 오류: $e');
+      }
+    }
+  }
+
+  Future<void> _changeBotName(String newName) async {
+    if (user != null && newName.trim().isNotEmpty){
+      try{
+        await FirebaseFirestore.instance
+            .collection('register')
+            .doc(user!.uid)
+            .update({'botName': newName.trim()});
+
+        setState(() {
+          botName = newName.trim();
+
+          messages.add({
+            "sender" : "bot",
+            "text" : "내 이름이 '$botName'(으)로 변경되었어! 앞으로 $botName(으)로 불러줘!"
+          });
+        });
+
+        _scrollToBottom();
+      } catch (e) {
+        print('챗봇 이름 변경 오류: $e');
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('이름 변경 중 오류가 발생했습니다.')),
+        );
+      }
+    }
+  }
+
+  void _showCangeNameDialog() {
+    TextEditingController nameController = TextEditingController(text: botName);
+
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text('챗봇 이름 변경'),
+        content: TextField(
+          controller: nameController,
+          decoration: InputDecoration(
+            hintText: '새 이름을 입력하세요',
+            filled: true,
+            fillColor: Colors.grey[100],
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(15),
+            ),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text('취소'),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              _changeBotName(nameController.text);
+              Navigator.pop(context);
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.pink[100],
+            ),
+            child: Text('변경'),
+          ),
+        ],
+      ),
+    );
   }
 
   void _updateChatEmotionCharacter(String newEmotion, double newIntensity) {
@@ -168,7 +264,7 @@ class _ChatScreenState extends State<ChatScreen> {
           "presence_penalty": 0.8,
           "messages": [
             { "role": "system",
-              "content": prompts["chatPrompt"],
+              "content": "${prompts["chatPrompt"]} \n당신의 이름은 $botName입니다.",
             },
             ...messages.map((m) => {
               "role": m["sender"] == "user" ? "user" : "assistant",
@@ -279,9 +375,14 @@ class _ChatScreenState extends State<ChatScreen> {
         appBar: AppBar(
           title: widget.topicFilter != null
               ? Text('${widget.topicFilter} 대화', style: TextStyle(fontWeight: FontWeight.bold))
-              : Text('토리의 채팅방', style: TextStyle(fontWeight: FontWeight.bold)),
+              : Text('$botName의 채팅방', style: TextStyle(fontWeight: FontWeight.bold)),
           backgroundColor: Color(0xFFDFF8FF),
           actions: [
+            IconButton(
+                icon: Icon(Icons.edit),
+                onPressed: _showCangeNameDialog,
+                tooltip: '챗봇 이름 변경',
+            ),
             IconButton(
               icon: Icon(Icons.save),
               onPressed: ()  {
@@ -354,7 +455,7 @@ class _ChatScreenState extends State<ChatScreen> {
                                 child: Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
-                                    Text('토리', style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold)),
+                                    Text(botName, style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold)),
                                     SizedBox(height: 3),
                                     Container(
                                       padding: EdgeInsets.all(10),
@@ -375,7 +476,7 @@ class _ChatScreenState extends State<ChatScreen> {
                               Container(
                                 padding: EdgeInsets.all(10),
                                 decoration: BoxDecoration(
-                                  color: Colors.white,
+                                  color: Colors.yellow,
                                   borderRadius: BorderRadius.circular(15),
                                 ),
                                 child: Text(
@@ -510,7 +611,7 @@ class ChatHistoryPage extends StatelessWidget {
         SizedBox(height: 12),
         Text('히스토리', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
         SizedBox(height: 8),
-        Text('토리와 대화한 내역을 확인할 수 있어요', style: TextStyle(color: Colors.grey[600])),
+        Text('대화한 내역을 확인할 수 있어요', style: TextStyle(color: Colors.grey[600])),
 
         Expanded(
           child: StreamBuilder<QuerySnapshot>(
@@ -758,7 +859,7 @@ class ChatHistoryPage extends StatelessWidget {
       MaterialPageRoute(
         builder: (context) => ChatScreen(
           initialMessages: [
-            {"sender": "bot", "text": "안녕! 난 토리에요. 이전에 '$topic'에 대해 이야기했던 내용을 불러왔어요."},
+            {"sender": "bot", "text": "안녕하세요. 이전에 '$topic'에 대해 이야기했던 내용을 불러왔어요."},
             {"sender": "bot", "text": "더 이야기하고 싶은 부분이 있으면 말해주세요!"},
           ],
           topicFilter: topic,

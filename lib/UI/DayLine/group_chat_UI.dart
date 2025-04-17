@@ -336,7 +336,7 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
                 bottom: 30,
                 child: Text(
                   dayTopic,
-                  style: TextStyle(fontSize: 18, height: 21 / 20, color: Color(0xFF4F4949)),
+                  style: TextStyle(fontSize: 14, height: 21 / 20, color: Color(0xFF4F4949)),
                   textAlign: TextAlign.center,
                 ),
               ),
