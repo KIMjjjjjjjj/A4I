@@ -44,7 +44,7 @@ class ReportService {
         .get();
     if (!doc.exists) return null;
 
-    return Report.fromMap(doc.data()!);
+    return Report.fromMap(date, doc.data()!);
   }
 
 
@@ -77,7 +77,7 @@ class ReportService {
           docDate.isBefore(endDate.add(const Duration(days: 1)));
     }).toList();
 
-    return filteredDocs.map((doc) => Report.fromMap(doc.data())).toList();
+    return filteredDocs.map((doc) => Report.fromMap(DateTime.parse(doc.id), doc.data())).toList();
   }
 
 }

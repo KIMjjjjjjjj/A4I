@@ -107,7 +107,7 @@ class _weekreport extends State<weekreport> with TickerProviderStateMixin {
   Future<void> loadReports() async {
     if (startDate != null && endDate != null) {
       final reports = await fetchReportsInRange(startDate!, endDate!);
-      print("불러온 보고서 개수: ${weeklyReports.length}");
+      print("불러온 보고서 개수: ${reports.length}");
       setState(() {
         weeklyReports = reports;
       });
@@ -122,22 +122,11 @@ class _weekreport extends State<weekreport> with TickerProviderStateMixin {
     for (DateTime date = start; !date.isAfter(end); date = date.add(Duration(days: 1))) {
       final report = await service.fetchReport(date);
       if (report != null) {
+        report.date = date;
         reports.add(report);
       }
     }
     return reports;
-  }
-
-  // 날짜 리스트만 생성 (UI 표시에 사용)
-  List<DateTime> generateDateList(DateTime start, DateTime end) {
-    List<DateTime> list = [];
-
-    for (DateTime date = start;
-    !date.isAfter(end);
-    date = date.add(Duration(days: 1))) {
-      list.add(date);
-    }
-    return list;
   }
 
   // 라인차트
@@ -145,11 +134,10 @@ class _weekreport extends State<weekreport> with TickerProviderStateMixin {
     List<FlSpot> spots = [];
     Map<int, String> dateLabels = {};
     int currentIndex = 0;
-    final dateList =generateDateList(startDate!, endDate!);
 
     for (int i = 0; i < weeklyReports.length; i++) {
       final report = weeklyReports[i];
-      final date = dateList[i];
+      final date = report.date;
       final dateLabel = "${date.month}/${date.day}";
 
       final emotionList = report.emotionIntensityData?[selectedEmotion];
@@ -388,11 +376,10 @@ class _weekreport extends State<weekreport> with TickerProviderStateMixin {
   // 감정 타임라인
   List<Map<String, dynamic>> getEmotionTimeline() {
     final List<Map<String, dynamic>> timeline = [];
-    final dateList = generateDateList(startDate!, endDate!);
 
     for (int i = 0; i < weeklyReports.length; i++) {
       final report = weeklyReports[i];
-      final date = dateList[i];
+      final date = report.date;
       final dateLabel = "${date!.month.toString().padLeft(2, '0')}/${date!.day.toString().padLeft(2, '0')}";
 
       if (report.emotionData != null) {
