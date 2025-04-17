@@ -19,17 +19,14 @@ class Report {
       emotionData: map['emotionData'] != null
           ? (map['emotionData'] as Map<String, dynamic>).map(
             (key, value) => MapEntry(key, (value as num).toDouble()),
-            )
+          )
           : {},
       feedback: map['feedback'],
       keywords: map['keywords'] != null ? List<String>.from(map['keywords']) : null,
       topics: map['topics'] != null ? List<String>.from(map['topics']) : null,
       emotionIntensityData: map['emotionIntensityData'] != null
           ? (map['emotionIntensityData'] as Map<String, dynamic>).map(
-            (key, value) => MapEntry(
-              key,
-              List<double>.from(value),
-            ),
+            (key, value) => MapEntry(key, (value as List).map((e) => (e as num).toDouble()).toList(),),
           )
           : null,
     );

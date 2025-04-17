@@ -9,7 +9,6 @@ import 'package:flutter_dotenv/flutter_dotenv.dart';
 import '../Chatbot/prompts.dart';
 
 class DayReportProcess {
-
   // 마지막 채팅 가져오기
   static Future<Map<String, dynamic>?> getLastChat(String uid) async {
     final query = await FirebaseFirestore.instance
@@ -24,8 +23,7 @@ class DayReportProcess {
   }
 
   // 해당 날짜의 chat 데이터 불러오기
-  static Future<List<Map<String, dynamic>>> getChatsByDate(String uid, DateTime date) async {
-    final startDate = DateTime(date.year, date.month, date.day);
+  static Future<List<Map<String, dynamic>>> getChatsByDate(String uid, DateTime startDate) async {
     final endDate = startDate.add(Duration(days: 1));
     final querySnapshot = await FirebaseFirestore.instance
         .collection("register")
@@ -50,7 +48,7 @@ class DayReportProcess {
     final lastChat = await getLastChat(user!.uid);
 
     if (lastChat != null) {
-      final timestamp = lastChat['timestamp'] as Timestamp;
+      final timestamp = lastChat['timestamp'];
       final local = timestamp.toDate().toLocal();
       final reportDate = DateTime(local.year, local.month, local.day);
       processDailyReport(reportDate);
@@ -238,7 +236,6 @@ class DayReportProcess {
       return feedback;
     } else {
       print('❌ Error: ${response.statusCode}');
-      print('❗ Response Body: ${response.body}');
       return "error";
     }
   }

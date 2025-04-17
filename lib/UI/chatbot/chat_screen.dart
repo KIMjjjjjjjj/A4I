@@ -182,15 +182,16 @@ class _ChatScreenState extends State<ChatScreen> {
         final utfDecoded = convert.utf8.decode(response.bodyBytes);
         final data = jsonDecode(utfDecoded);
         final reply = data['choices'][0]['message']['content'];
-
-        final result = await ChatAnalyzer.analyzeSingleMessage(userMessage);
-        final emotion = result["emotion"];
-        final intensity = result["emotion_intensity"];
-
-        _updateChatEmotionCharacter(emotion, intensity);
-
+        
         setState(() {
           messages.add({"sender": "bot", "text": reply.trim()});
+        });
+
+        Future.microtask(() async {
+          final result = await ChatAnalyzer.analyzeSingleMessage(userMessage);
+          final emotion = result["emotion"];
+          final intensity = result["emotion_intensity"];
+          _updateChatEmotionCharacter(emotion, intensity);
         });
         ChatAnalyzer.handleCombineMessage(userMessage);
       } else {
