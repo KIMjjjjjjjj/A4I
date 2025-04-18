@@ -81,11 +81,14 @@ class _weekreport extends State<weekreport> with TickerProviderStateMixin {
     if (dates.isNotEmpty) {
       final sorted = dates.toList()..sort();
       final latest = sorted.last;
-      final sevenDaysAgo = latest.subtract(Duration(days: 6));
+      final rangeStart  = latest.subtract(Duration(days: 6));
 
-      final filtered = sorted.where((d) => d.isAfter(sevenDaysAgo.subtract(Duration(days: 1)))).toList();
+      final filtered = sorted.where((date) =>
+      !date.isBefore(rangeStart) && !date.isAfter(latest)
+      ).toList();
+
       setState(() {
-        availableDates = dates;
+        availableDates = filtered.toSet();
         startDate = filtered.first;
         endDate = filtered.last;
         isLoading = false;
@@ -100,24 +103,23 @@ class _weekreport extends State<weekreport> with TickerProviderStateMixin {
 
   late List<Report> weeklyReports = [];
 
+  // 날짜 범위에 있는 리포트 불러와 리스트에 저장
   Future<void> loadReports() async {
     if (startDate != null && endDate != null) {
-      weeklyReports = await fetchReportsInRange(startDate!, endDate!);
-      print("불러온 보고서 개수: ${weeklyReports.length}");
-      if(mounted)
-        setState(() {}); // UI 업데이트
+      final reports = await fetchReportsInRange(startDate!, endDate!);
+      print("불러온 보고서 개수: ${reports.length}");
+      setState(() {
+        weeklyReports = reports;
+      });
     }
   }
 
+  // 날짜마다 리포트 불러오는 함수
   Future<List<Report>> fetchReportsInRange(DateTime start, DateTime end) async {
     final service = ReportService();
-    final filteredDates = availableDates
-        .where((date) => !date.isBefore(startDate!) && !date.isAfter(endDate!))
-        .toList()
-      ..sort();
     List<Report> reports = [];
 
-    for (final date in filteredDates) {
+    for (DateTime date = start; !date.isAfter(end); date = date.add(Duration(days: 1))) {
       final report = await service.fetchReport(date);
       if (report != null) {
         reports.add(report);
@@ -131,15 +133,13 @@ class _weekreport extends State<weekreport> with TickerProviderStateMixin {
     List<FlSpot> spots = [];
     Map<int, String> dateLabels = {};
     int currentIndex = 0;
-    final dateList = availableDates.toList()..sort();
 
     for (int i = 0; i < weeklyReports.length; i++) {
       final report = weeklyReports[i];
-      final date = dateList[i];
+      final date = report.date;
       final dateLabel = "${date.month}/${date.day}";
 
       final emotionList = report.emotionIntensityData?[selectedEmotion];
-      print("✅ Report $i - Date: $dateLabel, Emotion List: $emotionList");
       if (emotionList != null) {
         for (int j = 0; j < emotionList.length; j++) {
           spots.add(FlSpot(currentIndex.toDouble(), emotionList[j]));
@@ -374,11 +374,10 @@ class _weekreport extends State<weekreport> with TickerProviderStateMixin {
   // 감정 타임라인
   List<Map<String, dynamic>> getEmotionTimeline() {
     final List<Map<String, dynamic>> timeline = [];
-    final dateList = availableDates.toList()..sort();
 
     for (int i = 0; i < weeklyReports.length; i++) {
       final report = weeklyReports[i];
-      final date = dateList[i];
+      final date = report.date;
       final dateLabel = "${date!.month.toString().padLeft(2, '0')}/${date!.day.toString().padLeft(2, '0')}";
 
       if (report.emotionData != null) {
@@ -459,7 +458,6 @@ class _weekreport extends State<weekreport> with TickerProviderStateMixin {
       final periodSummary = data['choices'][0]['message']['content'];
       return periodSummary;
     } else {
-      print('❌ Error: ${response.statusCode}');
       return "error";
     }
   }

@@ -74,6 +74,7 @@ class DayReportProcess {
 
     // 리포터가 존재하면 기존 데이터와 병합, 존재하지 않으면 새로 생성
     final updatedReport = Report(
+      date: date,
       emotionData: existingReport != null ? mergeEmotions(existingReport.emotionData, emotions) : emotions,
       feedback: await feedback,
       topics: existingReport != null ? mergeList(existingReport.topics ?? [], topics, max: 3) : topics,
