@@ -379,7 +379,7 @@ class _dayreport extends State<dayreport> {
   // 토픽 UI
   Widget buildTopicChips() {
     if (topics == null || topics!.isEmpty) return const SizedBox.shrink();
-    final topTopics = topics!.take(3).toList();
+    final topTopics = topics!.where((text) => text.trim().isNotEmpty).take(3).toList();
 
     return Wrap(
       spacing: 5,
