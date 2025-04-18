@@ -122,7 +122,6 @@ class _weekreport extends State<weekreport> with TickerProviderStateMixin {
     for (DateTime date = start; !date.isAfter(end); date = date.add(Duration(days: 1))) {
       final report = await service.fetchReport(date);
       if (report != null) {
-        report.date = date;
         reports.add(report);
       }
     }
@@ -141,7 +140,6 @@ class _weekreport extends State<weekreport> with TickerProviderStateMixin {
       final dateLabel = "${date.month}/${date.day}";
 
       final emotionList = report.emotionIntensityData?[selectedEmotion];
-      print("✅ Report $i - Date: $dateLabel, Emotion List: $emotionList");
       if (emotionList != null) {
         for (int j = 0; j < emotionList.length; j++) {
           spots.add(FlSpot(currentIndex.toDouble(), emotionList[j]));
@@ -460,7 +458,6 @@ class _weekreport extends State<weekreport> with TickerProviderStateMixin {
       final periodSummary = data['choices'][0]['message']['content'];
       return periodSummary;
     } else {
-      print('❌ Error: ${response.statusCode}');
       return "error";
     }
   }
