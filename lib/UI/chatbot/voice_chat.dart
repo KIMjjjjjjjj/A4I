@@ -1,3 +1,4 @@
+//import 'package:audioplayers/audioplayers.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
@@ -11,6 +12,8 @@ import 'recording_chat_button.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'dart:convert' as convert;
+import 'package:just_audio/just_audio.dart';
+
 
 class VoiceChatScreen extends StatefulWidget {
   final List<Map<String, String>> messages;
@@ -24,6 +27,8 @@ class VoiceChatScreen extends StatefulWidget {
 
 class _VoiceChatScreenState extends State<VoiceChatScreen> with SingleTickerProviderStateMixin {
   final User? user = FirebaseAuth.instance.currentUser;
+  final AudioPlayer _audioPlayer = AudioPlayer();
+
   String _detectedEmotion = 'neutral';
   double _detectedIntensity = 0.0;
   String _recognizedText = "누르고 말해주세요";
@@ -42,7 +47,7 @@ class _VoiceChatScreenState extends State<VoiceChatScreen> with SingleTickerProv
   @override
   void initState() {
     super.initState();
-    initializeTTS();
+   //initializeTTS();
     _messages = widget.messages; // 전달 받은 메시지 목록 초기화
     _animationController = AnimationController(
       vsync: this,
@@ -90,7 +95,7 @@ class _VoiceChatScreenState extends State<VoiceChatScreen> with SingleTickerProv
     });
   }
 
-  void initializeTTS() async {
+  /*void initializeTTS() async {
     await flutterTts.setLanguage("ko-KR"); // 언어 설정
     await flutterTts.setPitch(1.0); // 음성 높낮이 설정
     await flutterTts.setSpeechRate(0.7); // 음성 속도 설정
@@ -115,11 +120,60 @@ class _VoiceChatScreenState extends State<VoiceChatScreen> with SingleTickerProv
         _currentEndOffset = endOffset;
       });
     });
-  }
+  }*/
+/*
 
   void textToSpeech(String text) {
     flutterTts.speak(text);
   }
+*/
+
+  Future<void> textToSpeech(String text) async {
+    final String? apiKey = 'AIzaSyDbvKac3ySVnazbbXWff4pmTZAsdpA5mTo';
+    //dotenv.env['GOOGLE_CLOUD_TTS_API_KEY']; // API 키
+    if (apiKey == null || apiKey.isEmpty) {
+      print("API 키가 없습니다.");
+      return;
+    }
+
+    final url = Uri.parse('https://texttospeech.googleapis.com/v1/text:synthesize?key=$apiKey');
+
+    final body = jsonEncode({
+      "input": {"text": text},
+      "voice": {
+        "languageCode": "ko-KR", // 한국어
+        "name": "ko-KR-Standard-B" // 목소리 종류 (Standard-A~D, Wavenet-A~D 등 있음)
+      },
+      "audioConfig": {
+        "audioEncoding": "MP3"
+      }
+    });
+
+    final response = await http.post(
+      url,
+      headers: {'Content-Type': 'application/json'},
+      body: body,
+    );
+
+    if (response.statusCode == 200) {
+      final data = jsonDecode(response.body);
+      final String audioContent = data['audioContent'];
+
+      // base64 디코딩 후 메모리에 저장
+      final bytes = base64Decode(audioContent);
+
+      // 메모리에 바로 로딩해서 재생
+      await _audioPlayer.setAudioSource(
+        AudioSource.uri(
+          Uri.dataFromBytes(bytes, mimeType: 'audio/mpeg'),
+        ),
+      );
+      await _audioPlayer.play();
+    } else {
+      print('TTS API 호출 실패: ${response.statusCode}');
+    }
+  }
+
 
   Widget _buildHighlightedText() {
     if (_botResponse.isEmpty) return Text("");
@@ -243,6 +297,7 @@ class _VoiceChatScreenState extends State<VoiceChatScreen> with SingleTickerProv
 
   @override
   void dispose() {
+    _audioPlayer.dispose();
     _animationController.dispose();
     super.dispose();
   }

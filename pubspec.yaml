@@ -54,6 +54,7 @@ dependencies:
   intl: ^0.20.2
   fl_chart: ^0.66.1
   chat_gpt_sdk: ^3.1.4
+  just_audio: ^0.9.46
 
 dev_dependencies:
   flutter_test:

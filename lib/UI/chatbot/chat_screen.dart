@@ -17,6 +17,7 @@ class ChatScreen extends StatefulWidget {
   final String? topicFilter; // 특정 주제를 필터링하기 위한 파라미터
   final String? userId;
 
+
   ChatScreen({Key? key, this.initialMessages, this.topicFilter, this.userId}) : super(key: key);
 
   @override
@@ -28,6 +29,8 @@ class _ChatScreenState extends State<ChatScreen> {
   late List<Map<String, String>> messages;
   TextEditingController _controller = TextEditingController();
   final ScrollController _scrollController = ScrollController();
+  final FocusNode _focusNode = FocusNode();
+
   String _detectedEmotion = 'neutral';
   double _detectedIntensity = 0.0;
   bool isLoading = false;
@@ -310,6 +313,7 @@ class _ChatScreenState extends State<ChatScreen> {
   @override
   void dispose() {
     // chat 컬렉션에서 가장 최근 데이터의 timestamp 불러와서 일일보고서 생성
+    _focusNode.dispose();
     DayReportProcess.generateReportFromLastChat();
     super.dispose();
   }
@@ -372,6 +376,7 @@ class _ChatScreenState extends State<ChatScreen> {
         return true;
       },
       child: Scaffold(
+        resizeToAvoidBottomInset: true,
         appBar: AppBar(
           title: widget.topicFilter != null
               ? Text('${widget.topicFilter} 대화', style: TextStyle(fontWeight: FontWeight.bold))
@@ -492,50 +497,55 @@ class _ChatScreenState extends State<ChatScreen> {
                   ),
                   Padding(
                     padding: EdgeInsets.all(10),
-                    child: Row(
-                      children: [
-                        // 마이크 아이콘
-                        CircleAvatar(
-                          backgroundColor: Colors.pink[100],
-                          child: IconButton(
-                            icon: Icon(Icons.mic, color: Colors.white),
-                            onPressed: () {
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(builder: (context) => VoiceChatScreen(messages: messages)),
-                              );
-                            },
-                          ),
-                        ),
-                        SizedBox(width: 10),
-                        // TextField
-                        Expanded(
-                          child: TextField(
-                            controller: _controller,
-                            decoration: InputDecoration(
-                              hintText: '메시지를 입력하세요...',
-                              filled: true,
-                              fillColor: Colors.pink[100],
-                              border: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(25),
-                              ),
-                              contentPadding: EdgeInsets.symmetric(horizontal: 15, vertical: 10),
+                    child: GestureDetector(
+                      onTap: () {
+                        _focusNode.requestFocus(); // 텍스트 필드 포커스 요청 -> 키보드 올라옴
+                      },
+                      child: Row(
+                        children: [
+                          // 마이크 아이콘
+                          CircleAvatar(
+                            backgroundColor: Colors.pink[100],
+                            child: IconButton(
+                              icon: Icon(Icons.mic, color: Colors.white),
+                              onPressed: () {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(builder: (context) => VoiceChatScreen(messages: messages)),
+                                );
+                              },
                             ),
                           ),
-                        ),
-                        SizedBox(width: 10),
-                        // 전송 버튼
-                        CircleAvatar(
-                          backgroundColor: Colors.pink[100],
-                          child: IconButton(
-                            icon: Icon(Icons.send, color: Colors.white),
-                            onPressed: sendMessage,
+                          SizedBox(width: 10),
+                          // TextField
+                          Expanded(
+                            child: TextField(
+                              controller: _controller,
+                              focusNode: _focusNode,
+                              decoration: InputDecoration(
+                                hintText: '메시지를 입력하세요...',
+                                filled: true,
+                                fillColor: Colors.pink[100],
+                                border: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(25),
+                                ),
+                                contentPadding: EdgeInsets.symmetric(horizontal: 15, vertical: 10),
+                              ),
+                            ),
                           ),
-                        ),
-                      ],
+                          SizedBox(width: 10),
+                          // 전송 버튼
+                          CircleAvatar(
+                            backgroundColor: Colors.pink[100],
+                            child: IconButton(
+                              icon: Icon(Icons.send, color: Colors.white),
+                              onPressed: sendMessage,
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
-                  )
-
+                  ),
                 ],
               ),
             ),

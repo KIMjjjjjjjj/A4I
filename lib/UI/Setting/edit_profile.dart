@@ -111,184 +111,186 @@ class _EditProfilePageState extends State<EditProfilePage> {
         backgroundColor: Color(0xFFEFEFF4),
         elevation: 0,
       ),
-      body: Center(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.center,
-          children: [
-            Container(
-              height: 700,
-              margin: EdgeInsets.all(10),
-              padding: EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Column(
-                children: [
-                  SizedBox(height: 15),
-                  Stack(
-                    alignment: Alignment.center,
-                    children: [
-                      profileImage != null
-                          ? CircleAvatar(
-                        radius: 70,
-                        backgroundImage: FileImage(profileImage!),
-                      )
-                          : (profileImageUrl != null && profileImageUrl!.isNotEmpty
+      body: SingleChildScrollView(
+        child: Center(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              Container(
+                height: 700,
+                margin: EdgeInsets.all(10),
+                padding: EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Column(
+                  children: [
+                    SizedBox(height: 15),
+                    Stack(
+                      alignment: Alignment.center,
+                      children: [
+                        profileImage != null
+                            ? CircleAvatar(
+                          radius: 70,
+                          backgroundImage: FileImage(profileImage!),
+                        )
+                            : (profileImageUrl != null && profileImageUrl!.isNotEmpty
                             ? CircleAvatar(
                           radius: 70,
                           backgroundImage: NetworkImage(profileImageUrl!),
                         )
                             : Container(
-                          width: 140,
-                          height: 140,
-                          decoration: BoxDecoration(
-                            shape: BoxShape.circle,
-                            color: Colors.grey[400],
-                          ),
-                          child: Icon(
-                            Icons.person,
-                            size: 110,
-                            color: Colors.white,
-                          )
+                            width: 140,
+                            height: 140,
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              color: Colors.grey[400],
+                            ),
+                            child: Icon(
+                              Icons.person,
+                              size: 110,
+                              color: Colors.white,
+                            )
                         )
-                      ),
+                        ),
 
-                      Positioned(
-                        bottom: 3,
-                        right: 3,
-                        child: Container(
-                          width: 35,
-                          height: 35,
-                          decoration: BoxDecoration(
-                            color: Colors.grey[400],
-                            shape: BoxShape.circle,
-                          ),
-                          child: IconButton(
-                            onPressed: () {
-                              showDialog(
-                                context: context,
-                                builder: (BuildContext context) {
-                                  return SimpleDialog(
-                                    children: [
-                                      SimpleDialogOption(
-                                        onPressed: () async {
-                                          Navigator.pop(context);
-                                          await pickImage();
-                                        },
-                                        child: Row(
-                                          children: [
-                                            Icon(Icons.photo_library),
-                                            SizedBox(width: 10),
-                                            Text('이미지 선택'),
-                                          ],
+                        Positioned(
+                          bottom: 3,
+                          right: 3,
+                          child: Container(
+                            width: 35,
+                            height: 35,
+                            decoration: BoxDecoration(
+                              color: Colors.grey[400],
+                              shape: BoxShape.circle,
+                            ),
+                            child: IconButton(
+                              onPressed: () {
+                                showDialog(
+                                  context: context,
+                                  builder: (BuildContext context) {
+                                    return SimpleDialog(
+                                      children: [
+                                        SimpleDialogOption(
+                                          onPressed: () async {
+                                            Navigator.pop(context);
+                                            await pickImage();
+                                          },
+                                          child: Row(
+                                            children: [
+                                              Icon(Icons.photo_library),
+                                              SizedBox(width: 10),
+                                              Text('이미지 선택'),
+                                            ],
+                                          ),
                                         ),
-                                      ),
-                                      SimpleDialogOption(
-                                        onPressed: () {
-                                          Navigator.pop(context);
-                                          setState(() {
-                                            profileImage = null;
-                                            profileImageUrl = null;
-                                          });
-                                        },
-                                        child: Row(
-                                          children: [
-                                            Icon(Icons.refresh),
-                                            SizedBox(width: 10),
-                                            Text('기본 이미지'),
-                                          ],
+                                        SimpleDialogOption(
+                                          onPressed: () {
+                                            Navigator.pop(context);
+                                            setState(() {
+                                              profileImage = null;
+                                              profileImageUrl = null;
+                                            });
+                                          },
+                                          child: Row(
+                                            children: [
+                                              Icon(Icons.refresh),
+                                              SizedBox(width: 10),
+                                              Text('기본 이미지'),
+                                            ],
+                                          ),
                                         ),
-                                      ),
-                                    ],
-                                  );
-                                },
-                              );
-                            },
-                            icon: Icon(Icons.camera_alt, color: Colors.white),
-                            padding: EdgeInsets.all(2),
-                            constraints: BoxConstraints(),
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                  SizedBox(height: 20),
-                  Row(
-                    children: [
-                      Text(
-                        '현재 닉네임',
-                        style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                      ),
-                      SizedBox(width: 10),
-                      Expanded(
-                        child: TextField(
-                          controller: currentNicknameController,
-                          enabled: false,
-                          decoration: InputDecoration(
-                            filled: true,
-                            fillColor: Colors.grey[300],
-                            border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(8),
-                              borderSide: BorderSide.none,
+                                      ],
+                                    );
+                                  },
+                                );
+                              },
+                              icon: Icon(Icons.camera_alt, color: Colors.white),
+                              padding: EdgeInsets.all(2),
+                              constraints: BoxConstraints(),
                             ),
                           ),
                         ),
-                      )
-                    ],
-                  ),
-                  SizedBox(height: 10),
-                  Row(
-                    children: [
-                      Text(
-                        '새 닉네임',
-                        style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                      ),
-                      SizedBox(width: 10),
-                      Expanded(
-                        child: TextField(
-                          controller: newNicknameController,
-                          decoration: InputDecoration(
-                            filled: true,
-                            fillColor: Colors.grey[300],
-                            border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(8),
-                              borderSide: BorderSide.none,
-                            ),
-                            hintText: '한글 및 영어로 10자 이내',
-                            hintStyle: TextStyle(color: Colors.grey[600]),
-                            counterText: '',
-                          ),
-                          maxLength: 10,
+                      ],
+                    ),
+                    SizedBox(height: 20),
+                    Row(
+                      children: [
+                        Text(
+                          '현재 닉네임',
+                          style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
                         ),
-                      )
-                    ],
-                  ),
-                  SizedBox(height: 25),
-                  ElevatedButton(
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Color(0xFF7791E8),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(10),
+                        SizedBox(width: 10),
+                        Expanded(
+                          child: TextField(
+                            controller: currentNicknameController,
+                            enabled: false,
+                            decoration: InputDecoration(
+                              filled: true,
+                              fillColor: Colors.grey[300],
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(8),
+                                borderSide: BorderSide.none,
+                              ),
+                            ),
+                          ),
+                        )
+                      ],
+                    ),
+                    SizedBox(height: 10),
+                    Row(
+                      children: [
+                        Text(
+                          '새 닉네임',
+                          style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                        ),
+                        SizedBox(width: 10),
+                        Expanded(
+                          child: TextField(
+                            controller: newNicknameController,
+                            decoration: InputDecoration(
+                              filled: true,
+                              fillColor: Colors.grey[300],
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(8),
+                                borderSide: BorderSide.none,
+                              ),
+                              hintText: '한글 및 영어로 10자 이내',
+                              hintStyle: TextStyle(color: Colors.grey[600]),
+                              counterText: '',
+                            ),
+                            maxLength: 10,
+                          ),
+                        )
+                      ],
+                    ),
+                    SizedBox(height: 25),
+                    ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Color(0xFF7791E8),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        minimumSize: Size(400, 55),
                       ),
-                      minimumSize: Size(400, 55),
+                      onPressed: () {
+                        updateProfile();
+                        print("프로필이 변경되었습니다.");
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(content: Text('프로필이 변경되었습니다.')),
+                        );
+                      },
+                      child: Text(
+                        '프로필 변경',
+                        style: TextStyle(fontSize: 16, color: Colors.white, fontWeight: FontWeight.bold),
+                      ),
                     ),
-                    onPressed: () {
-                      updateProfile();
-                      print("프로필이 변경되었습니다.");
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(content: Text('프로필이 변경되었습니다.')),
-                      );
-                    },
-                    child: Text(
-                      '프로필 변경',
-                      style: TextStyle(fontSize: 16, color: Colors.white, fontWeight: FontWeight.bold),
-                    ),
-                  ),
-                ],
+                  ],
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
