@@ -17,6 +17,7 @@ class ChatScreen extends StatefulWidget {
   final String? topicFilter; // 특정 주제를 필터링하기 위한 파라미터
   final String? userId;
 
+
   ChatScreen({Key? key, this.initialMessages, this.topicFilter, this.userId}) : super(key: key);
 
   @override
@@ -28,6 +29,9 @@ class _ChatScreenState extends State<ChatScreen> {
   late List<Map<String, String>> messages;
   TextEditingController _controller = TextEditingController();
   final ScrollController _scrollController = ScrollController();
+  final FocusNode _focusNode = FocusNode();
+
+
   String _detectedEmotion = 'neutral';
   double _detectedIntensity = 0.0;
   bool isLoading = false;
@@ -198,7 +202,7 @@ class _ChatScreenState extends State<ChatScreen> {
   void _scrollToBottom() {
     if (_scrollController.hasClients) {
       _scrollController.animateTo(
-        _scrollController.position.maxScrollExtent,
+        _scrollController.position.minScrollExtent,
         duration: Duration(milliseconds: 300),
         curve: Curves.easeOut,
       );
@@ -243,7 +247,7 @@ class _ChatScreenState extends State<ChatScreen> {
 
     Future.delayed(Duration(milliseconds: 300), () {
       _scrollController.animateTo(
-        _scrollController.position.maxScrollExtent,
+        _scrollController.position.minScrollExtent,
         duration: Duration(milliseconds: 300),
         curve: Curves.easeOut,
       );
@@ -278,7 +282,7 @@ class _ChatScreenState extends State<ChatScreen> {
         final utfDecoded = convert.utf8.decode(response.bodyBytes);
         final data = jsonDecode(utfDecoded);
         final reply = data['choices'][0]['message']['content'];
-        
+
         setState(() {
           messages.add({"sender": "bot", "text": reply.trim()});
         });
@@ -310,6 +314,7 @@ class _ChatScreenState extends State<ChatScreen> {
   @override
   void dispose() {
     // chat 컬렉션에서 가장 최근 데이터의 timestamp 불러와서 일일보고서 생성
+    _focusNode.dispose();
     DayReportProcess.generateReportFromLastChat();
     super.dispose();
   }
@@ -362,16 +367,20 @@ class _ChatScreenState extends State<ChatScreen> {
 
   @override
   Widget build(BuildContext context) {
+    double keyboardHeight = MediaQuery.of(context).viewInsets.bottom;
+    bool isKeyboardOpen = keyboardHeight > 0;
+
     return WillPopScope ( // 리포트 생성 후 뒤로가기 허용
       onWillPop: () async {
         final user = FirebaseAuth.instance.currentUser;
         if (user != null && !await ChatAnalyzer.timecheck(user.uid)) {
           await ChatAnalyzer.analyzeCombinedMessages();
-        } 
+        }
         await DayReportProcess.generateReportFromLastChat();
         return true;
       },
       child: Scaffold(
+        resizeToAvoidBottomInset: true,
         appBar: AppBar(
           title: widget.topicFilter != null
               ? Text('${widget.topicFilter} 대화', style: TextStyle(fontWeight: FontWeight.bold))
@@ -421,121 +430,136 @@ class _ChatScreenState extends State<ChatScreen> {
                     ),
                   ),
                   SizedBox(height: 10),
-                  EmotionCharacter(emotion: _detectedEmotion, intensity: _detectedIntensity, width: 200, height: 200),
+                  EmotionCharacter(
+                      emotion: _detectedEmotion,
+                      intensity: _detectedIntensity,
+                      width: 200,
+                      height: 200
+                  ),
                 ],
               ),
             ),
             drawCloud(),
             Positioned.fill(
-              top: 220,
+              top: isKeyboardOpen ? 50 : 260,
               child: Column(
                 children: [
                   Expanded(
-                    child: ListView.builder(
-                      controller: _scrollController,
-                      itemCount: messages.length,
-                      padding: EdgeInsets.only(top: 10),
-                      itemBuilder: (context, index) {
-                        final msg = messages[index];
-                        bool isBot = msg["sender"] == "bot";
-                        return Padding(
-                          padding: EdgeInsets.symmetric(vertical: 5, horizontal: 10),
-                          child: Row(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            mainAxisAlignment:
-                            isBot ? MainAxisAlignment.start : MainAxisAlignment.end,
-                            children: isBot
-                                ? [
-                              CircleAvatar(
-                                radius: 20,
-                                backgroundImage: AssetImage('assets/Widget/Login/character.png'),
-                              ),
-                              SizedBox(width: 8),
-                              Flexible(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text(botName, style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold)),
-                                    SizedBox(height: 3),
-                                    Container(
-                                      padding: EdgeInsets.all(10),
-                                      decoration: BoxDecoration(
-                                        color: Colors.white,
-                                        borderRadius: BorderRadius.circular(15),
+                    child:Align(
+                      alignment: Alignment.topCenter,
+                      child: ListView.builder(
+                        reverse: true,
+                        shrinkWrap: true,
+                        controller: _scrollController,
+                        itemCount: messages.length,
+                        padding: EdgeInsets.only(top: 10),
+                        itemBuilder: (context, index) {
+                          final msg = messages.reversed.toList()[index];
+                          bool isBot = msg["sender"] == "bot";
+                          return Padding(
+                            padding: EdgeInsets.symmetric(vertical: 5, horizontal: 10),
+                            child: Row(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              mainAxisAlignment:
+                              isBot ? MainAxisAlignment.start : MainAxisAlignment.end,
+                              children: isBot
+                                  ? [
+                                CircleAvatar(
+                                  radius: 20,
+                                  backgroundImage: AssetImage('assets/Widget/Login/character.png'),
+                                ),
+                                SizedBox(width: 8),
+                                Flexible(
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Text(botName, style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold)),
+                                      SizedBox(height: 3),
+                                      Container(
+                                        padding: EdgeInsets.all(10),
+                                        decoration: BoxDecoration(
+                                          color: Colors.white,
+                                          borderRadius: BorderRadius.circular(15),
+                                        ),
+                                        child: Text(
+                                          msg["text"]!,
+                                          style: TextStyle(fontSize: 16),
+                                        ),
                                       ),
-                                      child: Text(
-                                        msg["text"]!,
-                                        style: TextStyle(fontSize: 16),
-                                      ),
-                                    ),
-                                  ],
+                                    ],
+                                  ),
                                 ),
-                              ),
-                            ]
-                                : [
-                              Container(
-                                padding: EdgeInsets.all(10),
-                                decoration: BoxDecoration(
-                                  color: Colors.yellow,
-                                  borderRadius: BorderRadius.circular(15),
+                              ]
+                                  : [
+                                Container(
+                                  padding: EdgeInsets.all(10),
+                                  decoration: BoxDecoration(
+                                    color: Colors.yellow,
+                                    borderRadius: BorderRadius.circular(15),
+                                  ),
+                                  child: Text(
+                                    msg["text"]!,
+                                    style: TextStyle(fontSize: 16),
+                                  ),
                                 ),
-                                child: Text(
-                                  msg["text"]!,
-                                  style: TextStyle(fontSize: 16),
-                                ),
-                              ),
-                            ],
-                          ),
-                        );
-                      },
+                              ],
+                            ),
+                          );
+                        },
+                      ),
                     ),
                   ),
                   Padding(
                     padding: EdgeInsets.all(10),
-                    child: Row(
-                      children: [
-                        // 마이크 아이콘
-                        CircleAvatar(
-                          backgroundColor: Colors.pink[100],
-                          child: IconButton(
-                            icon: Icon(Icons.mic, color: Colors.white),
-                            onPressed: () {
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(builder: (context) => VoiceChatScreen(messages: messages)),
-                              );
-                            },
-                          ),
-                        ),
-                        SizedBox(width: 10),
-                        // TextField
-                        Expanded(
-                          child: TextField(
-                            controller: _controller,
-                            decoration: InputDecoration(
-                              hintText: '메시지를 입력하세요...',
-                              filled: true,
-                              fillColor: Colors.pink[100],
-                              border: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(25),
-                              ),
-                              contentPadding: EdgeInsets.symmetric(horizontal: 15, vertical: 10),
+                    child: GestureDetector(
+                      onTap: () {
+                        _focusNode.requestFocus(); // 텍스트 필드 포커스 요청 -> 키보드 올라옴
+                      },
+                      child: Row(
+                        children: [
+                          // 마이크 아이콘
+                          CircleAvatar(
+                            backgroundColor: Colors.pink[100],
+                            child: IconButton(
+                              icon: Icon(Icons.mic, color: Colors.white),
+                              onPressed: () {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(builder: (context) => VoiceChatScreen(messages: messages)),
+                                );
+                              },
                             ),
                           ),
-                        ),
-                        SizedBox(width: 10),
-                        // 전송 버튼
-                        CircleAvatar(
-                          backgroundColor: Colors.pink[100],
-                          child: IconButton(
-                            icon: Icon(Icons.send, color: Colors.white),
-                            onPressed: sendMessage,
+                          SizedBox(width: 10),
+                          // TextField
+                          Expanded(
+                            child: TextField(
+                              controller: _controller,
+                              focusNode: _focusNode,
+                              decoration: InputDecoration(
+                                hintText: '메시지를 입력하세요...',
+                                filled: true,
+                                fillColor: Colors.pink[100],
+                                border: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(25),
+                                ),
+                                contentPadding: EdgeInsets.symmetric(horizontal: 15, vertical: 10),
+                              ),
+                            ),
                           ),
-                        ),
-                      ],
+                          SizedBox(width: 10),
+                          // 전송 버튼
+                          CircleAvatar(
+                            backgroundColor: Colors.pink[100],
+                            child: IconButton(
+                              icon: Icon(Icons.send, color: Colors.white),
+                              onPressed: sendMessage,
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
-                  )
-
+                  ),
                 ],
               ),
             ),
@@ -546,10 +570,8 @@ class _ChatScreenState extends State<ChatScreen> {
   }
 
   Widget drawCloud() {
-    return Positioned(
-      bottom: 0,
-      left: 0,
-      right: 0,
+    return Align(
+      alignment: Alignment.bottomCenter,
       child: ClipPath(
         clipper: Cloud(),
         child: Container(
@@ -559,6 +581,7 @@ class _ChatScreenState extends State<ChatScreen> {
       ),
     );
   }
+
 }
 
 class Cloud extends CustomClipper<Path> {

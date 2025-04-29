@@ -16,6 +16,7 @@ class CalendarPage extends StatefulWidget {
 
 class _CalendarPageState extends State<CalendarPage> {
   late Map<String, Future<String?>> FaceImage;
+  String year = DateTime.now().year.toString();
 
   String selectedMonth = '02';
   List<String> monthNames = [
@@ -104,7 +105,7 @@ class _CalendarPageState extends State<CalendarPage> {
           children: [
             SizedBox(height: 5),
             Text(
-              '2025',
+              year,
               style: TextStyle(
                 fontFamily: 'PoetsenOne',
                 color: Color(0xFF6E96B4),
@@ -170,8 +171,8 @@ class _CalendarPageState extends State<CalendarPage> {
                 gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
                   crossAxisCount: 7,
                   crossAxisSpacing: 1,
-                  mainAxisSpacing: 35,
-                  childAspectRatio: 0.8,
+                  mainAxisSpacing: 10,
+                  childAspectRatio: 0.6,
                 ),
                 itemCount: FirstDay(2025, int.parse(selectedMonth)) + DayCount(2025, int.parse(selectedMonth)),
                 itemBuilder: (context, index) {
@@ -194,7 +195,7 @@ class _CalendarPageState extends State<CalendarPage> {
                             MaterialPageRoute(
                               builder: (context) => ViewDiary(
                                 userId: uid,
-                                year: '2025',
+                                year: year,
                                 month: selectedMonth,
                                 day: dayString,
                               ),
@@ -205,7 +206,7 @@ class _CalendarPageState extends State<CalendarPage> {
                             context,
                             MaterialPageRoute(
                               builder: (context) => DiaryEntryPage(
-                                year: '2025',
+                                year: year,
                                 month: selectedMonth,
                                 day: dayString,
                               ),
@@ -216,35 +217,37 @@ class _CalendarPageState extends State<CalendarPage> {
                       child: Column(
                         children: [
                           FutureBuilder<String?>(
-                            future: loadFace('2025', selectedMonth, dayString),
+                            future: loadFace(year, selectedMonth, dayString),
                             builder: (context, snapshot) {
-                            if (snapshot.hasData && snapshot.data != null) {
-                               return CircleAvatar(
-                                  radius: 21,
-                                backgroundColor: Colors.transparent,
-                                backgroundImage: AssetImage(snapshot.data!),
-                                );
-                            } else {
-                              return Container(
-                                decoration: BoxDecoration(
-                                  shape: BoxShape.circle,
-                                  border: Border.all(
-                                    color: Colors.black,
-                                    width: 1.0,
+                              if (snapshot.hasData && snapshot.data != null) {
+                                 return CircleAvatar(
+                                    radius: 18,
+                                  backgroundColor: Colors.transparent,
+                                  backgroundImage: AssetImage(snapshot.data!),
+                                  );
+                              } else {
+                                return Container(
+                                  decoration: BoxDecoration(
+                                    shape: BoxShape.circle,
+                                    border: Border.all(
+                                      color: Colors.black,
+                                      width: 1.0,
+                                    ),
                                   ),
-                                ),
-                                child: CircleAvatar(
-                                  radius: 20,
-                                  backgroundColor: Color(0xFFD9D9D9),
-                                ),
-                              );
-                            }
+                                  child: CircleAvatar(
+                                    radius: 17,
+                                    backgroundColor: Color(0xFFD9D9D9),
+                                  ),
+                                );
+                              }
                             },
                           ),
                           SizedBox(height: 4),
-                          Text(
-                            '$day',
-                            style: TextStyle(color: Colors.black),
+                          Container(
+                            child: Text(
+                              '$day',
+                              style: TextStyle(color: Colors.black),
+                            ),
                           ),
                         ],
                       ),

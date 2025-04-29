@@ -136,107 +136,108 @@ class _ChangeEmailPageState extends State<ChangeEmailPage> {
         centerTitle: true,
       ),
       backgroundColor: Colors.grey[200],
-      body: Column(
+      body: SingleChildScrollView(
+        child: Column(
           children: [
-          const SizedBox(height: 10),
-      Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 20),
-        child: Container(
-          padding: const EdgeInsets.all(20),
-          width: double.infinity,
-          height: 700,
-          decoration: BoxDecoration(
-            color: Colors.white,
-          ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                const Text('현재 이메일', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-                const SizedBox(height: 8),
-                TextField(
-                  controller: _currentPasswordController,
-                  decoration: InputDecoration(
-                    hintText: '현재 이메일',
-                    filled: true,
-                    fillColor: Colors.grey[200],
-                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide.none),
-                  ),
+            const SizedBox(height: 10),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20),
+              child: Container(
+                padding: const EdgeInsets.all(20),
+                width: double.infinity,
+                height: 700,
+                decoration: BoxDecoration(
+                  color: Colors.white,
                 ),
-                const SizedBox(height: 20),
-                const Text('새 이메일', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-                const SizedBox(height: 8),
-                Row(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
                   children: [
-                    Expanded(
-                      child: TextField(
-                        controller: _newEmailController,
-                        decoration: InputDecoration(
-                          hintText: '새 이메일',
-                          filled: true,
-                          fillColor: Colors.grey[200],
-                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide.none),
-                        ),
+                    const Text('현재 이메일', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                    const SizedBox(height: 8),
+                    TextField(
+                      controller: _currentPasswordController,
+                      decoration: InputDecoration(
+                        hintText: '현재 이메일',
+                        filled: true,
+                        fillColor: Colors.grey[200],
+                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide.none),
                       ),
                     ),
-                    const SizedBox(width: 10),
-                    ElevatedButton(
-                      onPressed: () {
-                        sendVerificationCode(_newEmailController.text.trim());
-                      },
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Color(0xFF99A8DA),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                    const SizedBox(height: 20),
+                    const Text('새 이메일', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                    const SizedBox(height: 8),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: TextField(
+                            controller: _newEmailController,
+                            decoration: InputDecoration(
+                              hintText: '새 이메일',
+                              filled: true,
+                              fillColor: Colors.grey[200],
+                              border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide.none),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 10),
+                        ElevatedButton(
+                          onPressed: () {
+                            sendVerificationCode(_newEmailController.text.trim());
+                          },
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Color(0xFF99A8DA),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                          ),
+                          child: const Text('인증 요청', style: TextStyle(color: Colors.white, fontSize: 14)),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 10),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: TextField(
+                            controller: _verificationCodeController,
+                            decoration: InputDecoration(
+                              hintText: '인증코드',
+                              filled: true,
+                              fillColor: Colors.grey[200],
+                              border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide.none),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 10),
+                        ElevatedButton(
+                          onPressed: verifyCode,
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Color(0xFF99A8DA),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                          ),
+                          child: const Text('인증 확인', style: TextStyle(color: Colors.white, fontSize: 14)),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 30),
+                    SizedBox(
+                      width: double.infinity,
+                      height: 50,
+                      child: ElevatedButton(
+                        onPressed: changeEmail,
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Color(0xFF99A8DA),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                        ),
+                        child: const Text('이메일 변경', style: TextStyle(color: Colors.white, fontSize: 16)),
                       ),
-                      child: const Text('인증 요청', style: TextStyle(color: Colors.white, fontSize: 14)),
                     ),
                   ],
                 ),
-                const SizedBox(height: 10),
-                Row(
-                  children: [
-                    Expanded(
-                      child: TextField(
-                        controller: _verificationCodeController,
-                        decoration: InputDecoration(
-                          hintText: '인증코드',
-                          filled: true,
-                          fillColor: Colors.grey[200],
-                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide.none),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 10),
-                    ElevatedButton(
-                      onPressed: verifyCode,
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Color(0xFF99A8DA),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                      ),
-                      child: const Text('인증 확인', style: TextStyle(color: Colors.white, fontSize: 14)),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 30),
-                SizedBox(
-                  width: double.infinity,
-                  height: 50,
-                  child: ElevatedButton(
-                    onPressed: changeEmail,
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Color(0xFF99A8DA),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                    ),
-                    child: const Text('이메일 변경', style: TextStyle(color: Colors.white, fontSize: 16)),
-                  ),
-                ),
-              ],
+              ),
             ),
-          ),
+          ],
         ),
-    ],
-    ),
-
+      ),
     );
   }
 }

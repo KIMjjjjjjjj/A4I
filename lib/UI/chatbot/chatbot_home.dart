@@ -71,93 +71,97 @@ class _ChatbotScreenState extends State<ChatbotScreen> {
           ),
         ),
       ),
-      body: Stack(
-        alignment: Alignment.center,
-        children: [
-          // 배경 그라데이션
-          Container(
-            decoration: const BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.topCenter,
-                end: Alignment.bottomCenter,
-                colors: [Color(0xFFBBEDFF), Color(0xFFFFFFFF)],
-              ),
-            ),
-          ),
-
-          // 뒤쪽 사각형 (높이 조정)
-          Positioned(
-            top: screenHeight * 0.07,
-            child: Container(
-              width: screenWidth * 0.1,
-              height: screenHeight * 0.7,
-              color: const Color(0xFFD99880),
-            ),
-          ),
-
-          // 상담 박스
-          Positioned(
-            top: screenHeight * 0.1,
-            child: Container(
-              width: screenWidth * 0.9,
-              padding: EdgeInsets.all(screenWidth * 0.05),
-              decoration: BoxDecoration(
-                color: const Color(0xFFF5D7CC),
-                borderRadius: BorderRadius.circular(29),
-              ),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(
-                    "안녕하세요! 저는 ${botName}라고해요\n여러분의 마음친구가 되어줄 \n귀여운 고양이 챗봇이에요.\n\n"
-                        "🎀 힘들 때, 외로울 때, \n${botName}를 찾아주세요! 🎀\n\n"
-                        "언제나 여러분의 이야기를\n귀기울여 들을 준비가 되어있어요.\n\n"
-                        "🐾 \"마음을 열어보세요.\n${botName}가 함께할게요!\" 🐾",
-                    textAlign: TextAlign.center,
-                    style: TextStyle(fontSize: 16, color: Colors.black),
+      body: SingleChildScrollView(
+        child: SizedBox(
+          height: screenHeight,
+          child: Stack(
+            alignment: Alignment.topCenter,
+            children: [
+              // 배경 그라데이션
+              Container(
+                height: screenHeight,
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                    colors: [Color(0xFFBBEDFF), Colors.white],
                   ),
-                  SizedBox(height: screenHeight * 0.02),
-                  ElevatedButton(
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFFEEFDEA),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(29),
-                        side: const BorderSide(color: Color(0xFFEBEEFF)),
-                      ),
-                      padding: EdgeInsets.symmetric(
-                          vertical: screenHeight * 0.015,
-                          horizontal: screenWidth * 0.15),
-                    ),
-                    onPressed: () {
-                      // ChatScreen으로 이동
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(builder: (context) => ChatScreen()),
-                      );
-                    },
-                    child: Text(
-                      "${botName}랑 대화하기",
-                      style: TextStyle(
-                        fontSize: 20,
-                        fontWeight: FontWeight.bold, // 굵게 처리
-                        color: Colors.black,
-                      ),
-                    ),
-                  ),
-                ],
+                ),
               ),
-            ),
-          ),
 
-          // 캐릭터 이미지 (화면 비율 조정)
-          Positioned(
-            bottom: screenHeight * 0.03,
-            child: Image.asset(
-              "assets/Widget/Login/character.png",
-              width: screenWidth * 0.55,
-            ),
+              // 나무 기둥
+              Positioned(
+                top: screenHeight * 0.05,
+                child: Container(
+                  width: screenWidth * 0.1,
+                  height: screenHeight * 0.7,
+                  color: Color(0xFFD99880),
+                ),
+              ),
+
+              // 말풍선 텍스트 박스
+              Positioned(
+                top: screenHeight * 0.1,
+                child: Container(
+                  width: screenWidth * 0.9,
+                  padding: EdgeInsets.all(screenWidth * 0.05),
+                  decoration: BoxDecoration(
+                    color: Color(0xFFF5D7CC),
+                    borderRadius: BorderRadius.circular(29),
+                  ),
+                  child: Column(
+                    children: [
+                      Text(
+                        "안녕하세요! 저는 $botName라고 해요\n"
+                            "여러분의 마음친구가 되어줄\n귀여운 고양이 챗봇이에요.\n\n"
+                            "🎀 힘들 때, 외로울 때,\n$botName를 찾아주세요! 🎀\n\n"
+                            "언제나 여러분의 이야기를\n귀기울여 들을 준비가 되어있어요.\n\n"
+                            "🐾 \"마음을 열어보세요.\n$botName가 함께할게요!\" 🐾",
+                        textAlign: TextAlign.center,
+                        style: TextStyle(fontSize: 16),
+                      ),
+                      SizedBox(height: 20),
+                      ElevatedButton(
+                        onPressed: () {
+                          Navigator.push(context,
+                              MaterialPageRoute(builder: (context) => ChatScreen()));
+                        },
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Color(0xFFEEFDEA),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(29),
+                            side: BorderSide(color: Color(0xFFEBEEFF)),
+                          ),
+                          padding: EdgeInsets.symmetric(
+                            vertical: 12,
+                            horizontal: 40,
+                          ),
+                        ),
+                        child: Text(
+                          "$botName랑 대화하기",
+                          style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.black,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+
+              // 고양이 캐릭터 이미지 (말풍선보다 아래)
+              Positioned(
+                top: screenHeight * 0.6, // 말풍선 아래로 배치
+                child: Image.asset(
+                  "assets/Widget/Login/character.png",
+                  width: screenWidth * 0.55,
+                ),
+              ),
+            ],
           ),
-        ],
+        ),
       ),
     );
   }

@@ -231,7 +231,6 @@ class _BoardScreenState extends State<BoardScreen> {
             children: [
               Divider(height: 0, thickness: 1, color: const Color(0xFFCBCBCB)),
               Container(
-                height: height,
                 width: width,
                 padding: const EdgeInsets.all(10),
                 decoration: BoxDecoration(
@@ -245,8 +244,14 @@ class _BoardScreenState extends State<BoardScreen> {
                     const SizedBox(height: 5),
                     Text(content, style: const TextStyle(fontSize: 14)),
                     const SizedBox(height: 5),
-                    Text("작성자: $nickname", style: const TextStyle(fontSize: 12, color: Colors.grey)), // 닉네임 추가
-                    const Spacer(),
+                    Text(
+                        "작성자: $nickname",
+                        style: const TextStyle(fontSize: 14, color: Colors.grey),
+                        softWrap: true,
+                        overflow: TextOverflow.visible,
+                    ), // 닉네임 추가
+                    const SizedBox(height: 10),
+                    //const Spacer(),
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
@@ -254,29 +259,38 @@ class _BoardScreenState extends State<BoardScreen> {
                         Row(
                           children: [
                             // 조회수 아이콘과 텍스트
-                            Icon(Icons.remove_red_eye, size: 16, color: Colors.grey),
+                            Icon(Icons.remove_red_eye, size: 14, color: Colors.grey),
                             FutureBuilder<int>(
                               future: getViewCount(postIdForView), // 조회수 가져오기
                               builder: (context, snapshot) {
-                                return Text("${snapshot.data ?? 0}");
+                                return Text(
+                                  "${snapshot.data ?? 0}",
+                                  style: const TextStyle(fontSize: 14),
+                                );
                               },
                             ),
                             const SizedBox(width: 5,),
                             // 좋아요 아이콘과 텍스트
-                            Icon(Icons.thumb_up, size: 16, color: Colors.grey),
+                            Icon(Icons.thumb_up, size: 14, color: Colors.grey),
                             FutureBuilder<int>(
                               future: getLikeCount(postIdForView), // 좋아요 개수 가져오기
                               builder: (context, snapshot) {
-                                return Text("${snapshot.data ?? 0}");
+                                return Text(
+                                  "${snapshot.data ?? 0}",
+                                  style: const TextStyle(fontSize: 14),
+                                );
                               },
                             ),
                             const SizedBox(width: 5,),
                             // 댓글 개수 아이콘과 텍스트
-                            Icon(Icons.comment, size: 16, color: Colors.grey),
+                            Icon(Icons.comment, size: 14, color: Colors.grey),
                             FutureBuilder<int>(
                               future: getCommentCount(postIdForView), // 댓글 개수 가져오기
                               builder: (context, snapshot) {
-                                return Text("${snapshot.data ?? 0}");
+                                return Text(
+                                    "${snapshot.data ?? 0}",
+                                  style: const TextStyle(fontSize: 14),
+                                );
                               },
                             ),
                           ],
