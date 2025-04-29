@@ -31,6 +31,7 @@ class _ChatScreenState extends State<ChatScreen> {
   final ScrollController _scrollController = ScrollController();
   final FocusNode _focusNode = FocusNode();
 
+
   String _detectedEmotion = 'neutral';
   double _detectedIntensity = 0.0;
   bool isLoading = false;
@@ -201,7 +202,7 @@ class _ChatScreenState extends State<ChatScreen> {
   void _scrollToBottom() {
     if (_scrollController.hasClients) {
       _scrollController.animateTo(
-        _scrollController.position.maxScrollExtent,
+        _scrollController.position.minScrollExtent,
         duration: Duration(milliseconds: 300),
         curve: Curves.easeOut,
       );
@@ -246,7 +247,7 @@ class _ChatScreenState extends State<ChatScreen> {
 
     Future.delayed(Duration(milliseconds: 300), () {
       _scrollController.animateTo(
-        _scrollController.position.maxScrollExtent,
+        _scrollController.position.minScrollExtent,
         duration: Duration(milliseconds: 300),
         curve: Curves.easeOut,
       );
@@ -281,7 +282,7 @@ class _ChatScreenState extends State<ChatScreen> {
         final utfDecoded = convert.utf8.decode(response.bodyBytes);
         final data = jsonDecode(utfDecoded);
         final reply = data['choices'][0]['message']['content'];
-        
+
         setState(() {
           messages.add({"sender": "bot", "text": reply.trim()});
         });
@@ -366,12 +367,15 @@ class _ChatScreenState extends State<ChatScreen> {
 
   @override
   Widget build(BuildContext context) {
+    double keyboardHeight = MediaQuery.of(context).viewInsets.bottom;
+    bool isKeyboardOpen = keyboardHeight > 0;
+
     return WillPopScope ( // 리포트 생성 후 뒤로가기 허용
       onWillPop: () async {
         final user = FirebaseAuth.instance.currentUser;
         if (user != null && !await ChatAnalyzer.timecheck(user.uid)) {
           await ChatAnalyzer.analyzeCombinedMessages();
-        } 
+        }
         await DayReportProcess.generateReportFromLastChat();
         return true;
       },
@@ -426,73 +430,83 @@ class _ChatScreenState extends State<ChatScreen> {
                     ),
                   ),
                   SizedBox(height: 10),
-                  EmotionCharacter(emotion: _detectedEmotion, intensity: _detectedIntensity, width: 200, height: 200),
+                  EmotionCharacter(
+                      emotion: _detectedEmotion,
+                      intensity: _detectedIntensity,
+                      width: 200,
+                      height: 200
+                  ),
                 ],
               ),
             ),
             drawCloud(),
             Positioned.fill(
-              top: 220,
+              top: isKeyboardOpen ? 50 : 260,
               child: Column(
                 children: [
                   Expanded(
-                    child: ListView.builder(
-                      controller: _scrollController,
-                      itemCount: messages.length,
-                      padding: EdgeInsets.only(top: 10),
-                      itemBuilder: (context, index) {
-                        final msg = messages[index];
-                        bool isBot = msg["sender"] == "bot";
-                        return Padding(
-                          padding: EdgeInsets.symmetric(vertical: 5, horizontal: 10),
-                          child: Row(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            mainAxisAlignment:
-                            isBot ? MainAxisAlignment.start : MainAxisAlignment.end,
-                            children: isBot
-                                ? [
-                              CircleAvatar(
-                                radius: 20,
-                                backgroundImage: AssetImage('assets/Widget/Login/character.png'),
-                              ),
-                              SizedBox(width: 8),
-                              Flexible(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text(botName, style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold)),
-                                    SizedBox(height: 3),
-                                    Container(
-                                      padding: EdgeInsets.all(10),
-                                      decoration: BoxDecoration(
-                                        color: Colors.white,
-                                        borderRadius: BorderRadius.circular(15),
+                    child:Align(
+                      alignment: Alignment.topCenter,
+                      child: ListView.builder(
+                        reverse: true,
+                        shrinkWrap: true,
+                        controller: _scrollController,
+                        itemCount: messages.length,
+                        padding: EdgeInsets.only(top: 10),
+                        itemBuilder: (context, index) {
+                          final msg = messages.reversed.toList()[index];
+                          bool isBot = msg["sender"] == "bot";
+                          return Padding(
+                            padding: EdgeInsets.symmetric(vertical: 5, horizontal: 10),
+                            child: Row(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              mainAxisAlignment:
+                              isBot ? MainAxisAlignment.start : MainAxisAlignment.end,
+                              children: isBot
+                                  ? [
+                                CircleAvatar(
+                                  radius: 20,
+                                  backgroundImage: AssetImage('assets/Widget/Login/character.png'),
+                                ),
+                                SizedBox(width: 8),
+                                Flexible(
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Text(botName, style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold)),
+                                      SizedBox(height: 3),
+                                      Container(
+                                        padding: EdgeInsets.all(10),
+                                        decoration: BoxDecoration(
+                                          color: Colors.white,
+                                          borderRadius: BorderRadius.circular(15),
+                                        ),
+                                        child: Text(
+                                          msg["text"]!,
+                                          style: TextStyle(fontSize: 16),
+                                        ),
                                       ),
-                                      child: Text(
-                                        msg["text"]!,
-                                        style: TextStyle(fontSize: 16),
-                                      ),
-                                    ),
-                                  ],
+                                    ],
+                                  ),
                                 ),
-                              ),
-                            ]
-                                : [
-                              Container(
-                                padding: EdgeInsets.all(10),
-                                decoration: BoxDecoration(
-                                  color: Colors.yellow,
-                                  borderRadius: BorderRadius.circular(15),
+                              ]
+                                  : [
+                                Container(
+                                  padding: EdgeInsets.all(10),
+                                  decoration: BoxDecoration(
+                                    color: Colors.yellow,
+                                    borderRadius: BorderRadius.circular(15),
+                                  ),
+                                  child: Text(
+                                    msg["text"]!,
+                                    style: TextStyle(fontSize: 16),
+                                  ),
                                 ),
-                                child: Text(
-                                  msg["text"]!,
-                                  style: TextStyle(fontSize: 16),
-                                ),
-                              ),
-                            ],
-                          ),
-                        );
-                      },
+                              ],
+                            ),
+                          );
+                        },
+                      ),
                     ),
                   ),
                   Padding(
@@ -556,10 +570,8 @@ class _ChatScreenState extends State<ChatScreen> {
   }
 
   Widget drawCloud() {
-    return Positioned(
-      bottom: 0,
-      left: 0,
-      right: 0,
+    return Align(
+      alignment: Alignment.bottomCenter,
       child: ClipPath(
         clipper: Cloud(),
         child: Container(
@@ -569,6 +581,7 @@ class _ChatScreenState extends State<ChatScreen> {
       ),
     );
   }
+
 }
 
 class Cloud extends CustomClipper<Path> {
