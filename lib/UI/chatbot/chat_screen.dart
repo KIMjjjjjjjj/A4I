@@ -416,6 +416,7 @@ class _ChatScreenState extends State<ChatScreen> {
             Positioned(
               top: 15,
               left: 15,
+              right: 15,
               child: Column(
                 children: [
                   Container(
@@ -491,17 +492,24 @@ class _ChatScreenState extends State<ChatScreen> {
                                 ),
                               ]
                                   : [
-                                Container(
-                                  padding: EdgeInsets.all(10),
-                                  decoration: BoxDecoration(
-                                    color: Colors.yellow,
-                                    borderRadius: BorderRadius.circular(15),
-                                  ),
-                                  child: Text(
-                                    msg["text"]!,
-                                    style: TextStyle(fontSize: 16),
-                                  ),
-                                ),
+                                Flexible(
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Container(
+                                        padding: EdgeInsets.all(10),
+                                        decoration: BoxDecoration(
+                                          color: Colors.yellow,
+                                          borderRadius: BorderRadius.circular(15),
+                                        ),
+                                        child: Text(
+                                          msg["text"]!,
+                                          style: TextStyle(fontSize: 16),
+                                        ),
+                                      ),
+                                    ]
+                                  )
+                                )
                               ],
                             ),
                           );
