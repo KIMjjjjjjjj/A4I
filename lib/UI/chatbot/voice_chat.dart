@@ -129,20 +129,17 @@ class _VoiceChatScreenState extends State<VoiceChatScreen> with SingleTickerProv
 */
 
   Future<void> textToSpeech(String text) async {
-    final String? apiKey = 'AIzaSyDbvKac3ySVnazbbXWff4pmTZAsdpA5mTo';
-    //dotenv.env['GOOGLE_CLOUD_TTS_API_KEY']; // API 키
-    if (apiKey == null || apiKey.isEmpty) {
+    final String _apiKey = dotenv.env['GOOGLE_CLOUD_TTS_API_KEY'] ?? '';
+    if (_apiKey == null || _apiKey.isEmpty) {
       print("API 키가 없습니다.");
       return;
     }
-
-    final url = Uri.parse('https://texttospeech.googleapis.com/v1/text:synthesize?key=$apiKey');
 
     final body = jsonEncode({
       "input": {"text": text},
       "voice": {
         "languageCode": "ko-KR", // 한국어
-        "name": "ko-KR-Standard-B" // 목소리 종류 (Standard-A~D, Wavenet-A~D 등 있음)
+        "name": "ko-KR-Wavenet-B" // 목소리 종류 (Standard-A~D, Wavenet-A~D 등 있음)
       },
       "audioConfig": {
         "audioEncoding": "MP3"
@@ -150,7 +147,7 @@ class _VoiceChatScreenState extends State<VoiceChatScreen> with SingleTickerProv
     });
 
     final response = await http.post(
-      url,
+      Uri.parse('https://texttospeech.googleapis.com/v1/text:synthesize?key=$_apiKey'),
       headers: {'Content-Type': 'application/json'},
       body: body,
     );
@@ -242,7 +239,7 @@ class _VoiceChatScreenState extends State<VoiceChatScreen> with SingleTickerProv
           'Content-Type': 'application/json',
         },
         body: jsonEncode({
-          "model": "ft:gpt-3.5-turbo-1106:personal:todak-chat-v1:BSpRFLdW",
+          "model": "gpt-4-turbo",
           "temperature": 0.85,
           "top_p": 0.9,
           "frequency_penalty": 0.7,

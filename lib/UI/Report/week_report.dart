@@ -437,7 +437,7 @@ class _weekreport extends State<weekreport> with TickerProviderStateMixin {
         "Content-Type": "application/json"
       },
       body: jsonEncode({
-        "model": "gpt-3.5-turbo-1106",
+        "model": "gpt-4-turbo",
         "temperature": 0.85,
         "top_p": 0.9,
         "messages": [
