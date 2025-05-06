@@ -6,7 +6,8 @@ import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:http/http.dart' as http;
 
-import '../Chatbot/prompts.dart';
+import 'package:repos/UI/Chatbot/OpenAPI/prompts.dart';
+import '../chatbot/OpenAPI/call_api.dart';
 import 'day_report.dart';
 import 'report_date_range_selector.dart';
 import 'report_service.dart';
@@ -423,43 +424,23 @@ class _weekreport extends State<weekreport> with TickerProviderStateMixin {
   // 기간 피드백
   static Future<String> generatePeriodFeedback(List<Report> reports) async {
     Map<String, String> prompts = await loadPrompts();
-    final String _apiKey = dotenv.env['OPENAI_API_KEY'] ?? '';
 
     final userContent = reports
         .where((report) => report.feedback != null && report.feedback!.isNotEmpty)
         .map((report) => "- ${report.feedback}")
         .join("\n");
 
-    final response = await http.post(
-      Uri.parse("https://api.openai.com/v1/chat/completions"),
-      headers: {
-        "Authorization": "Bearer $_apiKey",
-        "Content-Type": "application/json"
-      },
-      body: jsonEncode({
-        "model": "gpt-4-turbo",
-        "temperature": 0.85,
-        "top_p": 0.9,
-        "messages": [
-          {
-            "role": "system",
-            "content": prompts["periodFeedbackPrompt"]
-          },
-          {
-            "role": "user",
-            "content": userContent
-          }
-        ]
-      }),
+    final response = await callOpenAIChat(
+      prompt: prompts["periodFeedbackPrompt"] ?? "",
+      messages: [
+        { "sender": "user", "text": userContent }
+      ],
     );
 
-    if (response.statusCode == 200) {
-      final data = jsonDecode(utf8.decode(response.bodyBytes));
-      final periodSummary = data['choices'][0]['message']['content'];
-      return periodSummary;
-    } else {
+    if (response == null) {
       return "error";
     }
+    return response;
   }
 
   Widget buildPeriodFeedback() {

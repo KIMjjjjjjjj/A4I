@@ -6,7 +6,9 @@ import 'package:http/http.dart' as http;
 import 'package:repos/UI/Report/report_model.dart';
 import 'package:repos/UI/Report/report_service.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
-import '../Chatbot/prompts.dart';
+import 'package:repos/UI/Chatbot/OpenAPI/prompts.dart';
+
+import '../chatbot/OpenAPI/call_api.dart';
 
 class DayReportProcess {
   // 마지막 채팅 가져오기
@@ -23,13 +25,15 @@ class DayReportProcess {
   }
 
   // 해당 날짜의 chat 데이터 불러오기
-  static Future<List<Map<String, dynamic>>> getChatsByDate(String uid, DateTime startDate) async {
+  static Future<List<Map<String, dynamic>>> getChatsByDate(String uid,
+      DateTime startDate) async {
     final endDate = startDate.add(Duration(days: 1));
     final querySnapshot = await FirebaseFirestore.instance
         .collection("register")
         .doc(user?.uid)
         .collection("chat")
-        .where("timestamp", isGreaterThanOrEqualTo: Timestamp.fromDate(startDate))
+        .where(
+        "timestamp", isGreaterThanOrEqualTo: Timestamp.fromDate(startDate))
         .where("timestamp", isLessThan: Timestamp.fromDate(endDate))
         .orderBy("timestamp")
         .get();
@@ -37,7 +41,9 @@ class DayReportProcess {
     // keywords, topic, summary가 있는 데이터만 추출(감정만 있는 데이터는 가져오지 않음)
     return querySnapshot.docs
         .map((doc) => doc.data())
-        .where((entry) => entry.containsKey("keywords") && entry.containsKey("topic") && entry.containsKey("summary"))
+        .where((entry) =>
+    entry.containsKey("keywords") && entry.containsKey("topic") &&
+        entry.containsKey("summary"))
         .toList();
   }
 
@@ -63,10 +69,10 @@ class DayReportProcess {
     final chatData = await getChatsByDate(user!.uid, date);
 
     // 데이터 가공
-    final emotions  = getEmotions(chatData);
-    final feedback  = generateFeedback(chatData);
-    final topics  = getTopTopics(chatData, 3);
-    final keywords  = getTopKeywords(chatData, 5);
+    final emotions = getEmotions(chatData);
+    final feedback = generateFeedback(chatData);
+    final topics = getTopTopics(chatData, 3);
+    final keywords = getTopKeywords(chatData, 5);
     final intensity = getEmotionIntensitys(chatData);
 
     // 기존 리포트 확인
@@ -75,10 +81,13 @@ class DayReportProcess {
     // 리포터가 존재하면 기존 데이터와 병합, 존재하지 않으면 새로 생성
     final updatedReport = Report(
       date: date,
-      emotionData: existingReport != null ? mergeEmotions(existingReport.emotionData, emotions) : emotions,
+      emotionData: existingReport != null ? mergeEmotions(
+          existingReport.emotionData, emotions) : emotions,
       feedback: await feedback,
-      topics: existingReport != null ? mergeList(existingReport.topics ?? [], topics, max: 3) : topics,
-      keywords: existingReport != null ? mergeList(existingReport.keywords ?? [], keywords, max: 5) : keywords,
+      topics: existingReport != null ? mergeList(
+          existingReport.topics ?? [], topics, max: 3) : topics,
+      keywords: existingReport != null ? mergeList(
+          existingReport.keywords ?? [], keywords, max: 5) : keywords,
       emotionIntensityData: intensity,
     );
     await reportService.saveReport(date, updatedReport);
@@ -87,7 +96,8 @@ class DayReportProcess {
   //// 기존 리포트 존재할때
   // 1. 기존 감정 데이터와 새로운 감정 데이터를 평균낸 후 전체 비율이 1이 되도록 정규화
   // (최근 데이터에 더 많은 가중치를 둠)
-  static Map<String, double> mergeEmotions(Map<String, double> old, Map<String, double> fresh) {
+  static Map<String, double> mergeEmotions(Map<String, double> old,
+      Map<String, double> fresh) {
     final result = <String, double>{};
     final allKeys = {...old.keys, ...fresh.keys};
     for (final key in allKeys) {
@@ -104,7 +114,8 @@ class DayReportProcess {
 
   // 2. 리스트 병합 후 가장 많이 등장한 항목을 기준으로 상위 N개를 추림
   // (키워드/토픽 에서 사용)
-  static List<String> mergeList(List<String> old, List<String> fresh, {int max = 5}) {
+  static List<String> mergeList(List<String> old, List<String> fresh,
+      {int max = 5}) {
     final all = [...old, ...fresh];
     final freq = <String, int>{};
     for (final item in all) {
@@ -122,8 +133,9 @@ class DayReportProcess {
 
   //// 두 경우 동일
   // 3. 전체 감정 강도 수집해서 감정별로 강도 값 리스트 생성
-  static Map<String, List<double>> getEmotionIntensitys(List<Map<String, dynamic>> chats) {
-    final result  = <String, List<double>>{};
+  static Map<String, List<double>> getEmotionIntensitys(
+      List<Map<String, dynamic>> chats) {
+    final result = <String, List<double>>{};
 
     for (final chat in chats) {
       final emotion = chat['emotion'] as String?;
@@ -169,7 +181,7 @@ class DayReportProcess {
     }
     final sorted = topicCounts.entries.toList()
       ..sort((a, b) => b.value.compareTo(a.value));
-    final result =  sorted.take(n).map((e) => e.key).toList();
+    final result = sorted.take(n).map((e) => e.key).toList();
 
     while (result.length < n) {
       result.add("");
@@ -201,43 +213,27 @@ class DayReportProcess {
   }
 
   //// summary로 피드백 생성
-  static Future<String> generateFeedback(List<Map<String, dynamic>> chats) async {
+  static Future<String> generateFeedback(
+      List<Map<String, dynamic>> chats) async {
     Map<String, String> prompts = await loadPrompts();
-    final String _apiKey = dotenv.env['OPENAI_API_KEY'] ?? '';
 
     final summaries = chats.map((chat) => chat['summary'] as String).toList();
     final userContent = summaries.join('\n');
 
-    final response = await http.post(
-      Uri.parse("https://api.openai.com/v1/chat/completions"),
-      headers: {
-        "Authorization": "Bearer $_apiKey",
-        "Content-Type": "application/json"
-      },
-      body: jsonEncode({
-        "model": "gpt-4-turbo",
-        "temperature": 0.85,
-        "top_p": 0.9,
-        "messages": [
-          {
-            "role": "system",
-            "content": prompts["feedbackPrompt"]
-          },
-          {
-            "role": "user",
-            "content": userContent
-          }
-        ]
-      }),
+    final response = await callOpenAIChat(
+      prompt: prompts["feedbackPrompt"] ?? "",
+      messages: [
+        {
+          "sender": "user",
+          "text": userContent
+        }
+      ],
     );
 
-    if (response.statusCode == 200) {
-      final data = jsonDecode(utf8.decode(response.bodyBytes));
-      final feedback = data['choices'][0]['message']['content'];
-      return feedback;
-    } else {
-      print('❌ Error: ${response.statusCode}');
+    if (response == null) {
+      print('에러');
       return "error";
     }
+    return response;
   }
 }
