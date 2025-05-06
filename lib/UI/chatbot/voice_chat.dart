@@ -2,8 +2,9 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
-import 'package:repos/UI/Chatbot/prompts.dart';
+import 'package:repos/UI/Chatbot/OpenAPI/prompts.dart';
 import 'package:flutter_tts/flutter_tts.dart';
+import 'OpenAPI/call_api.dart';
 import 'chat_analyzer.dart';
 import 'chat_emotion_character.dart';
 import 'chat_screen.dart';
@@ -47,7 +48,7 @@ class _VoiceChatScreenState extends State<VoiceChatScreen> with SingleTickerProv
   @override
   void initState() {
     super.initState();
-   //initializeTTS();
+    //initializeTTS();
     _messages = widget.messages; // 전달 받은 메시지 목록 초기화
     _animationController = AnimationController(
       vsync: this,
@@ -220,7 +221,6 @@ class _VoiceChatScreenState extends State<VoiceChatScreen> with SingleTickerProv
   }
 
   Future<void> _sendToChatbot(String message) async {
-    final String _apiKey = dotenv.env['OPENAI_API_KEY'] ?? '';
     Map<String, String> prompts = await loadPrompts();
     if (message.isEmpty || _isProcessing) return;
 
@@ -232,35 +232,14 @@ class _VoiceChatScreenState extends State<VoiceChatScreen> with SingleTickerProv
     });
 
     try {
-      final response = await http.post(
-        Uri.parse('https://api.openai.com/v1/chat/completions'),
-        headers: {
-          'Authorization': 'Bearer $_apiKey',
-          'Content-Type': 'application/json',
-        },
-        body: jsonEncode({
-          "model": "gpt-4-turbo",
-          "temperature": 0.85,
-          "top_p": 0.9,
-          "frequency_penalty": 0.7,
-          "presence_penalty": 0.8,
-          "messages": [
-            { "role": "system",
-              "content": prompts["chatPrompt"]
-            },
-            ..._messages.map((m) => {
-              "role": m["sender"] == "user" ? "user" : "assistant",
-              "content": m["text"],
-            }),
-          ]
-        }),
+      final response = await callOpenAIChat(
+        prompt: prompts["chatPrompt"] ?? "",
+        messages: _messages,
       );
 
-      if (response.statusCode == 200) {
-        final utfDecoded = convert.utf8.decode(response.bodyBytes);
-        final data = jsonDecode(utfDecoded);
-        final reply = data['choices'][0]['message']['content'];
-        final trimmedReply = reply.trim();
+
+      if (response != null) {
+        final trimmedReply = response.trim();
 
         setState(() {
           _botResponse = trimmedReply;
