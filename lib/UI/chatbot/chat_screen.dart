@@ -261,13 +261,14 @@ class _ChatScreenState extends State<ChatScreen> {
           'Content-Type': 'application/json',
         },
         body: jsonEncode({
-          "model": "ft:gpt-3.5-turbo-1106:personal:todak-chat-v1:BSpRFLdW",
+          "model": "gpt-4-turbo",
           "temperature": 0.85,
           "top_p": 0.9,
           "frequency_penalty": 0.7,
           "presence_penalty": 0.8,
           "messages": [
-            { "role": "system",
+            {
+              "role": "system",
               "content": "${prompts["chatPrompt"]} \n당신의 이름은 $botName입니다.",
             },
             ...messages.map((m) => {
