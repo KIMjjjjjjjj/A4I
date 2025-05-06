@@ -19,7 +19,7 @@ class DiaryEntryPage extends StatefulWidget {
 }
 
 class _DiaryEntryPageState extends State<DiaryEntryPage> {
-  String selectedFace = '';
+  String selectedFace = 'assets/face/face1.png';
   File? _selectedImage;
   final TextEditingController _titleController = TextEditingController();
   final TextEditingController _contentController = TextEditingController();
@@ -96,8 +96,15 @@ class _DiaryEntryPageState extends State<DiaryEntryPage> {
 
   Future<void> SaveDiary() async {
     try {
-      String uid = FirebaseAuth.instance.currentUser?.uid ?? '';
+      // 제목이나 내용이 비어 있으면 저장 안 함
+      if (_titleController.text.trim().isEmpty || _contentController.text.trim().isEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('제목과 내용을 모두 입력해주세요')),
+        );
+        return; // 저장 중단
+      }
 
+      String uid = FirebaseAuth.instance.currentUser?.uid ?? '';
       String year = widget.year;
       String month = widget.month;
       String day = widget.day;
@@ -127,13 +134,14 @@ class _DiaryEntryPageState extends State<DiaryEntryPage> {
         const SnackBar(content: Text('저장되었습니다')),
       );
 
-      Navigator.pop(context);
+      Navigator.pop(context, true);
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('오류')),
+        const SnackBar(content: Text('오류')),
       );
     }
   }
+
 
   void _showEmojiPicker() {
     showModalBottomSheet(
@@ -200,7 +208,6 @@ class _DiaryEntryPageState extends State<DiaryEntryPage> {
               Container(
                 padding: EdgeInsets.all(16),
                 width: double.infinity,
-                height: 800,
                 decoration: BoxDecoration(
                   color: Colors.white,
                   borderRadius: BorderRadius.circular(16),
@@ -273,7 +280,7 @@ class _DiaryEntryPageState extends State<DiaryEntryPage> {
                     TextField(
                       controller: _contentController,
                       decoration: InputDecoration(
-                        labelText: '일기를 작성해보세요',
+                        hintText: '일기를 작성해보세요',
                         labelStyle: TextStyle(
                           color: Colors.grey,
                           fontSize: 25,
@@ -282,8 +289,11 @@ class _DiaryEntryPageState extends State<DiaryEntryPage> {
                         border: InputBorder.none,
                         contentPadding: EdgeInsets.symmetric(vertical: 16.0, horizontal: 12.0),
                       ),
+                      keyboardType: TextInputType.multiline,
+                      maxLines: null, // ← 무제한 줄넘김 허용
+                      minLines: 5, // ← 최소 높이 설정
                     ),
-                    Spacer(),
+                    SizedBox(height: 16),
                     Row(
                       mainAxisAlignment: MainAxisAlignment.end,
                       children: [

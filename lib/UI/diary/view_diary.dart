@@ -75,7 +75,8 @@ class _ViewDiaryState extends State<ViewDiary> {
         centerTitle: true,
         backgroundColor: Color(0xFFE6F0FA),
       ),
-      body: Padding(
+    body: SingleChildScrollView(
+    child: Padding(
         padding: EdgeInsets.all(16.0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -155,6 +156,7 @@ class _ViewDiaryState extends State<ViewDiary> {
           ],
         ),
       ),
+    ),
     );
   }
 }

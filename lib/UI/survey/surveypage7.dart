@@ -141,7 +141,7 @@ class _SurveyPage7State extends State<SurveyPage7> {
                     ),
                   ),
                 ),
-              const Spacer(),
+              const SizedBox(height: 10),
               SizedBox(
                 width: double.infinity,
                 child: ElevatedButton(
