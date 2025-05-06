@@ -261,7 +261,7 @@ class _ChatScreenState extends State<ChatScreen> {
           'Content-Type': 'application/json',
         },
         body: jsonEncode({
-          "model": "gpt-3.5-turbo",
+          "model": "gpt-4-turbo",
           "temperature": 0.85,
           "top_p": 0.9,
           "frequency_penalty": 0.7,
