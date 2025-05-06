@@ -38,7 +38,7 @@ class ChatAnalyzer {
         "Content-Type": "application/json"
       },
       body: jsonEncode({
-        "model": "gpt-3.5-turbo-1106",
+        "model": "gpt-4-turbo",
         "temperature": 0.85,
         "top_p": 0.9,
         "messages": [
@@ -72,7 +72,7 @@ class ChatAnalyzer {
         "Content-Type": "application/json"
       },
       body: jsonEncode({
-        "model": "gpt-3.5-turbo-1106",
+        "model": "gpt-4-turbo",
         "temperature": 0.85,
         "top_p": 0.9,
         "messages": [
@@ -87,7 +87,6 @@ class ChatAnalyzer {
       Map<String, dynamic> apiResponse = jsonDecode(utfDecoded);
 
       String responseBody = apiResponse["choices"][0]["message"]["content"];
-      print("🧠 GPT 응답: $responseBody");
       Map<String, dynamic> result = jsonDecode(responseBody);
 
       final emotion = result["emotion"] ?? "neutral";
@@ -131,7 +130,7 @@ class ChatAnalyzer {
         "Content-Type": "application/json"
       },
       body: jsonEncode({
-        "model": "gpt-3.5-turbo-1106",
+        "model": "gpt-4-turbo",
         "temperature": 0.85,
         "top_p": 0.9,
         "messages": [
