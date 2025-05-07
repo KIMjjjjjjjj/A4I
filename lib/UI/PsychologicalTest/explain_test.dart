@@ -64,7 +64,7 @@ class ExplainTestPage extends StatelessWidget {
                   ),
                 ),
               ),
-              SizedBox(height: 25),
+              SizedBox(height: 25,),
               SizedBox(
                 width: double.infinity,
                 child: ElevatedButton(
