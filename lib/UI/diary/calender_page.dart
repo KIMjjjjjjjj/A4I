@@ -187,10 +187,10 @@ class _CalendarPageState extends State<CalendarPage> {
                       builder: (context, snapshot) {
                         bool hasFaceImage = snapshot.hasData && snapshot.data != null;
                     return GestureDetector(
-                      onTap: () {
+                      onTap: () async {
                         String uid = FirebaseAuth.instance.currentUser?.uid ?? '';
                         if (hasFaceImage) {
-                          Navigator.push(
+                          await Navigator.push(
                             context,
                             MaterialPageRoute(
                               builder: (context) => ViewDiary(
@@ -201,8 +201,9 @@ class _CalendarPageState extends State<CalendarPage> {
                               ),
                             ),
                           );
+                          UpdateFace();
                         } else {
-                          Navigator.push(
+                          final result = await Navigator.push<bool>(
                             context,
                             MaterialPageRoute(
                               builder: (context) => DiaryEntryPage(
@@ -212,6 +213,9 @@ class _CalendarPageState extends State<CalendarPage> {
                               ),
                             ),
                           );
+                          if (result == true) {
+                            UpdateFace();
+                          }
                         }
                       },
                       child: Column(
@@ -262,15 +266,30 @@ class _CalendarPageState extends State<CalendarPage> {
         ),
       ),
       floatingActionButton: FloatingActionButton(
-        onPressed: () {
+        onPressed: () async {
           DateTime today = DateTime.now();
           String year = today.year.toString();
           String month = today.month.toString().padLeft(2, '0');
-          String day = today.day.toString();
-          Navigator.push(
+          String dayString = today.day.toString();
+          // Navigator.push(
+          //   context,
+          //   MaterialPageRoute(builder: (context) => DiaryEntryPage(year: year, month: month, day: day,)),
+          // );
+
+          final result = await Navigator.push(
             context,
-            MaterialPageRoute(builder: (context) => DiaryEntryPage(year: year, month: month, day: day,)),
+            MaterialPageRoute(
+              builder: (context) => DiaryEntryPage(
+                year: year,
+                month: selectedMonth,
+                day: dayString,
+              ),
+            ),
           );
+
+          if (result == true) {
+            UpdateFace(); // 저장이 완료되었을 경우 다시 face 이미지 불러오기
+          }
         },
         backgroundColor: Color(0xFFA8DFF3),
         child: Icon(Icons.edit, color: Colors.brown[300]),

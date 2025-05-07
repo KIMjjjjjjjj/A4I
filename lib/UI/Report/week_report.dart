@@ -20,7 +20,7 @@ class weekreport extends StatefulWidget {
 
 class _weekreport extends State<weekreport> with TickerProviderStateMixin {
   late TabController _tabController;
-  final List<String> emotions = ["두려움", "슬픔", "놀람", "분노", "기쁨", "기타"];
+  List<String> emotions = ["두려움", "슬픔", "놀람", "분노", "기쁨", "기타"];
   String selectedEmotion = "두려움";
   final TextEditingController percentController = TextEditingController();
 
@@ -109,8 +109,24 @@ class _weekreport extends State<weekreport> with TickerProviderStateMixin {
     if (startDate != null && endDate != null) {
       final reports = await fetchReportsInRange(startDate!, endDate!);
       print("불러온 보고서 개수: ${reports.length}");
+
+
+      // 사용된 감정 수집
+      final usedEmotionsSet = <String>{};
+      for (final report in reports) {
+        for (final emotion in emotions) {
+          if (report.emotionIntensityData?[emotion] != null) {
+            usedEmotionsSet.add(emotion);
+          }
+        }
+      }
+
+      final sortedUsedEmotions = emotions.where((e) => usedEmotionsSet.contains(e)).toList();
+
       setState(() {
         weeklyReports = reports;
+        emotions = sortedUsedEmotions;
+        selectedEmotion = emotions.isNotEmpty ? emotions.first : "기타";
       });
     }
   }
