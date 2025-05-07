@@ -93,52 +93,13 @@ class _MainScreenState extends State<MainScreen> {
               TextButton(
                 onPressed: () => Navigator.of(context).pop(true),
                 child: Text("예"),
+              ),
               SizedBox(height: 16),
               // Image.asset(
               //   'assets/images/Main/main_banner.png',
               //   width: double.infinity,
               //   fit: BoxFit.fitWidth,
               // ),
-              Column(
-                children: [
-                  Container(
-                    height: 150,
-                    child: PageView(
-                      controller: _pageController,
-                      onPageChanged: (int index) {
-                        setState(() {
-                          _currentPage = index;
-                        });
-                      },
-                      children: [
-                        Image.asset(
-                          'assets/images/Main/main_banner.png',
-                          fit: BoxFit.fitWidth,
-                        ),
-                        Image.asset(
-                          'assets/images/Main/main_banner2.png',
-                          fit: BoxFit.fitWidth,
-                        ),
-                      ],
-                    ),
-                  ),
-                  SizedBox(height: 8),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: List.generate(2, (index) {
-                      return Container(
-                        margin: EdgeInsets.symmetric(horizontal: 4),
-                        width: 8,
-                        height: 8,
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          color: _currentPage == index ? Colors.black : Colors.grey,
-                        ),
-                      );
-                    }),
-                  ),
-                ],
-              ),
             ],
           ),
         );
@@ -182,10 +143,45 @@ class _MainScreenState extends State<MainScreen> {
                   style: TextStyle(fontSize: 16, color: Colors.black),
                 ),
                 SizedBox(height: 16),
-                Image.asset(
-                  'assets/images/Main/main_banner.png',
-                  width: double.infinity,
-                  fit: BoxFit.fitWidth,
+                Column(
+                  children: [
+                    Container(
+                      height: 150,
+                      child: PageView(
+                        controller: _pageController,
+                        onPageChanged: (int index) {
+                          setState(() {
+                            _currentPage = index;
+                          });
+                        },
+                        children: [
+                          Image.asset(
+                            'assets/images/Main/main_banner.png',
+                            fit: BoxFit.fitWidth,
+                          ),
+                          Image.asset(
+                            'assets/images/Main/main_banner2.png',
+                            fit: BoxFit.fitWidth,
+                          ),
+                        ],
+                      ),
+                    ),
+                    SizedBox(height: 8),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: List.generate(2, (index) {
+                        return Container(
+                          margin: EdgeInsets.symmetric(horizontal: 4),
+                          width: 8,
+                          height: 8,
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            color: _currentPage == index ? Colors.black : Colors.grey,
+                          ),
+                        );
+                      }),
+                    ),
+                  ],
                 ),
                 SizedBox(height: 16),
                 Row(
