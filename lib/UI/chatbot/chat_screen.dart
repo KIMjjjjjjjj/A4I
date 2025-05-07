@@ -4,10 +4,11 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:http/http.dart' as http;
-import 'package:repos/UI/Chatbot/prompts.dart';
+import 'package:repos/UI/chatbot/OpenAPI/prompts.dart';
 import 'dart:convert';
 import 'dart:convert' as convert;
 import '../Report/day_report_process.dart';
+import 'OpenAPI/call_api.dart';
 import 'chat_analyzer.dart';
 import 'chat_emotion_character.dart';
 import 'voice_chat.dart';
@@ -235,8 +236,6 @@ class _ChatScreenState extends State<ChatScreen> {
   }
 
   void sendMessage() async {
-    final String _apiKey = dotenv.env['OPENAI_API_KEY'] ?? '';
-    Map<String, String> prompts = await loadPrompts();
     String userMessage = _controller.text.trim();
     if (userMessage.isEmpty) return;
 
@@ -254,37 +253,16 @@ class _ChatScreenState extends State<ChatScreen> {
     });
 
     try {
-      final response = await http.post(
-        Uri.parse('https://api.openai.com/v1/chat/completions'),
-        headers: {
-          'Authorization': 'Bearer $_apiKey',
-          'Content-Type': 'application/json',
-        },
-        body: jsonEncode({
-          "model": "gpt-3.5-turbo",
-          "temperature": 0.85,
-          "top_p": 0.9,
-          "frequency_penalty": 0.7,
-          "presence_penalty": 0.8,
-          "messages": [
-            { "role": "system",
-              "content": "${prompts["chatPrompt"]} \n당신의 이름은 $botName입니다.",
-            },
-            ...messages.map((m) => {
-              "role": m["sender"] == "user" ? "user" : "assistant",
-              "content": m["text"],
-            }),
-          ]
-        }),
+      Map<String, String> prompts = await loadPrompts();
+
+      final response = await callOpenAIChat(
+        prompt: prompts["chatPrompt"] ?? '',
+        messages: messages,
       );
 
-      if (response.statusCode == 200) {
-        final utfDecoded = convert.utf8.decode(response.bodyBytes);
-        final data = jsonDecode(utfDecoded);
-        final reply = data['choices'][0]['message']['content'];
-
+      if (response != null) {
         setState(() {
-          messages.add({"sender": "bot", "text": reply.trim()});
+          messages.add({"sender": "bot", "text": response.trim()});
         });
 
         Future.microtask(() async {
@@ -295,7 +273,6 @@ class _ChatScreenState extends State<ChatScreen> {
         });
         ChatAnalyzer.handleCombineMessage(userMessage);
       } else {
-        jsonDecode(response.body);
         setState(() {
           messages.add({
             "sender": "bot",

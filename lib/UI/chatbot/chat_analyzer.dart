@@ -3,8 +3,10 @@ import 'dart:convert';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:http/http.dart' as http;
-import 'package:repos/UI/Chatbot/prompts.dart';
+import 'package:repos/UI/Chatbot/OpenAPI/prompts.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
+
+import 'OpenAPI/call_api.dart';
 
 class ChatAnalyzer {
   static List<String> unsavedMessages = [];
@@ -25,95 +27,73 @@ class ChatAnalyzer {
 
   // 그동안 저장되지 않은 메시지들 합쳐서 분석
   static Future<void> analyzeCombinedMessages() async {
-    final String _apiKey = dotenv.env['OPENAI_API_KEY'] ?? '';
     final User? user = FirebaseAuth.instance.currentUser;
     Map<String, String> prompts = await loadPrompts();
 
     String combinedMessages = unsavedMessages.join(" ");
 
-    final response = await http.post(
-      Uri.parse("https://api.openai.com/v1/chat/completions"),
-      headers: {
-        "Authorization": "Bearer $_apiKey",
-        "Content-Type": "application/json"
-      },
-      body: jsonEncode({
-        "model": "gpt-3.5-turbo",
-        "temperature": 0.85,
-        "top_p": 0.9,
-        "messages": [
-          {"role": "system", "content": prompts["analyzerPrompt"]},
-          {"role": "user", "content": combinedMessages}
-        ]
-      }),
+    final response = await callOpenAIChat(
+      prompt: prompts["analyzerPrompt"] ?? "",
+      messages: [
+        {"sender": "user", "text": combinedMessages}
+      ],
     );
 
-    if (response.statusCode == 200) {
-      String utfDecoded = utf8.decode(response.bodyBytes);
-      Map<String, dynamic> apiResponse = jsonDecode(utfDecoded);
-
-      String responseBody = apiResponse["choices"][0]["message"]["content"];
-      Map<String, dynamic> result = jsonDecode(responseBody);
-
-      await createDocument(user!.uid, result);
+    if (response != null) {
+      try {
+        Map<String, dynamic> result = jsonDecode(response);
+        await createDocument(user!.uid, result);
+      } catch (e) {
+        print("에러");
+      }
+    } else {
+      print("에러");
     }
   }
 
   // 단일 메시지에서 강한 감정이 발생하는 경우 저장
   static Future<Map<String, dynamic>> analyzeSingleMessage(String message) async {
-    final String _apiKey = dotenv.env['OPENAI_API_KEY'] ?? '';
     final User? user = FirebaseAuth.instance.currentUser;
     Map<String, String> prompts = await loadPrompts();
 
-    final response = await http.post(
-      Uri.parse("https://api.openai.com/v1/chat/completions"),
-      headers: {
-        "Authorization": "Bearer $_apiKey",
-        "Content-Type": "application/json"
-      },
-      body: jsonEncode({
-        "model": "gpt-3.5-turbo",
-        "temperature": 0.85,
-        "top_p": 0.9,
-        "messages": [
-          {"role": "system", "content": prompts["emotionAnalyzerPrompt"]},
-          {"role": "user", "content": message}
-        ]
-      }),
+    final response = await callOpenAIChat(
+      prompt: prompts["analyzerPrompt"] ?? "",
+      messages: [
+        {"sender": "user", "text": message}
+      ],
     );
 
-    if (response.statusCode == 200) {
-      String utfDecoded = utf8.decode(response.bodyBytes);
-      Map<String, dynamic> apiResponse = jsonDecode(utfDecoded);
+    if (response != null) {
+      try {
+        final Map<String, dynamic> result = jsonDecode(response);
 
-      String responseBody = apiResponse["choices"][0]["message"]["content"];
-      print("🧠 GPT 응답: $responseBody");
-      Map<String, dynamic> result = jsonDecode(responseBody);
+        final emotion = result["emotion"] ?? "neutral";
+        final emotionIntensity = result["emotion_intensity"] is String
+            ? double.tryParse(result["emotion_intensity"]) ?? 0.0
+            : result["emotion_intensity"] ?? 0.0;
 
-      final emotion = result["emotion"] ?? "neutral";
-      final emotionIntensity = result["emotion_intensity"] is String
-          ? double.tryParse(result["emotion_intensity"]) ?? 0.0
-          : result["emotion_intensity"] ?? 0.0;
+        if (emotionIntensity >= 0.7) {
+          Future.microtask(() async {
+            await createEmotionDocument(user!.uid, result);
+          });
+        }
 
-      if (emotionIntensity >= 0.7) {
-        Future.microtask(() async {
-          await createEmotionDocument(user!.uid, result);
-        });
+        return {
+          "emotion": emotion,
+          "emotion_intensity": emotionIntensity
+        };
+      } catch (e) {
+        print("에러");
       }
-      return {
-        "emotion": emotion,
-        "emotion_intensity": emotionIntensity
-      };
-    } else {
-      return {
-        "emotion": "neutral",
-        "emotion_intensity": 0.0
-      };
     }
+
+    return {
+      "emotion": "neutral",
+      "emotion_intensity": 0.0
+    };
   }
 
   static Future<void> analyzeVisibleMessages(List<Map<String, String>> messages, String uid) async {
-    final String _apiKey = dotenv.env['OPENAI_API_KEY'] ?? '';
     final User? user = FirebaseAuth.instance.currentUser;
     Map<String, String> prompts = await loadPrompts();
 
@@ -124,31 +104,24 @@ class ChatAnalyzer {
 
     if (combinedMessages.trim().isEmpty) return;
 
-    final response = await http.post(
-      Uri.parse("https://api.openai.com/v1/chat/completions"),
-      headers: {
-        "Authorization": "Bearer $_apiKey",
-        "Content-Type": "application/json"
-      },
-      body: jsonEncode({
-        "model": "gpt-3.5-turbo",
-        "temperature": 0.85,
-        "top_p": 0.9,
-        "messages": [
-          {"role": "system", "content": prompts["analyzerPrompt"]},
-          {"role": "user", "content": combinedMessages}
-        ]
-      }),
+    final response = await callOpenAIChat(
+      prompt: prompts["analyzerPrompt"] ?? "",
+      messages: [
+        {"sender": "user", "text": combinedMessages}
+      ],
     );
 
-    if (response.statusCode == 200) {
-      String utfDecoded = utf8.decode(response.bodyBytes);
-      Map<String, dynamic> apiResponse = jsonDecode(utfDecoded);
-
-      String responseBody = apiResponse["choices"][0]["message"]["content"];
-      Map<String, dynamic> result = jsonDecode(responseBody);
-
-      await createDocument(user!.uid, result);
+    if (response != null && response.trim().isNotEmpty) {
+      try {
+        final Map<String, dynamic> result = jsonDecode(response);
+        if (user != null) {
+          await createDocument(user.uid, result);
+        }
+      } catch (e) {
+        print("에러");
+      }
+    } else {
+      print("에러");
     }
   }
 
