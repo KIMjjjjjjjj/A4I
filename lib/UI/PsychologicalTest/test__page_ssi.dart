@@ -307,119 +307,122 @@ class _TestPageSsiState extends State<TestPageSsi> {
           icon: const Icon(Icons.arrow_back_ios),
           onPressed: () {
             Navigator.pushAndRemoveUntil(
-                context,
-                MaterialPageRoute(builder: (_) =>  CustomNavigationBar()),
-                (route) => false,
+              context,
+              MaterialPageRoute(builder: (_) =>  CustomNavigationBar()),
+                  (route) => false,
             );
           },
         ),
       ),
       body: SafeArea(
-          child: Padding(
-            padding: const EdgeInsets.all(20),
-            child: Column(
-              mainAxisSize: MainAxisSize.min, // ⭐️⭐️⭐️ 핵심
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text(
-                  '자살생각 검사 척도 SSI',
-                  style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
-                ),
-                const SizedBox(height: 7),
-                const Text(
-                  '다음 문항을 읽어보고,\n자신의 상태를 잘 나타내는 곳에 표시하시오',
-                  style: TextStyle(fontSize: 15, color: Colors.grey),
-                  textAlign: TextAlign.center,
-                ),
-                const SizedBox(height: 7),
-                const Text('1/1', style: TextStyle(fontSize: 15)),
-                const SizedBox(height: 20),
-                ListView.builder(
-                  shrinkWrap: true,
-                  physics: NeverScrollableScrollPhysics(),
-                  itemCount: questions.length,
-                  itemBuilder: (context, index) {
-                    final question = questions[index];
-                    return Padding(
-                      padding: const EdgeInsets.symmetric(vertical: 10),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            '${index + 1}. ${question['question']}',
-                            style: TextStyle(fontSize: 18),
-                          ),
-                          ...List.generate(question['options'].length, (optionIndex) {
-                            bool selected = answers[index] == optionIndex;
-                            return Container(
-                              decoration: BoxDecoration(
-                                color: selected ? Color(0xFFCFF7D3) : null,
-                                borderRadius: BorderRadius.circular(8),
-                              ),
-                              child: RadioListTile<int>(
-                                title: Text(question['options'][optionIndex]),
-                                value: optionIndex,
-                                groupValue: answers[index],
-                                onChanged: (value) {
-                                  setState(() {
-                                    answers[index] = value!;
-                                  });
-                                  saveAnswer(index, value!);
-                                },
-                                activeColor: Colors.green,
-                              ),
-                            );
-                          }),
-                        ],
+        child: SingleChildScrollView(
+          controller: scrollController,
+        child: Padding(
+          padding: const EdgeInsets.all(20),
+          child: Column(
+            mainAxisSize: MainAxisSize.min, // ⭐️⭐️⭐️ 핵심
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                '자살생각 검사 척도 SSI',
+                style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(height: 7),
+              const Text(
+                '다음 문항을 읽어보고,\n자신의 상태를 잘 나타내는 곳에 표시하시오',
+                style: TextStyle(fontSize: 15, color: Colors.grey),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 7),
+              const Text('1/1', style: TextStyle(fontSize: 15)),
+              const SizedBox(height: 20),
+              ListView.builder(
+                shrinkWrap: true,
+                physics: NeverScrollableScrollPhysics(),
+                itemCount: questions.length,
+                itemBuilder: (context, index) {
+                  final question = questions[index];
+                  return Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 10),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          '${index + 1}. ${question['question']}',
+                          style: TextStyle(fontSize: 18),
+                        ),
+                        ...List.generate(question['options'].length, (optionIndex) {
+                          bool selected = answers[index] == optionIndex;
+                          return Container(
+                            decoration: BoxDecoration(
+                              color: selected ? Color(0xFFCFF7D3) : null,
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: RadioListTile<int>(
+                              title: Text(question['options'][optionIndex]),
+                              value: optionIndex,
+                              groupValue: answers[index],
+                              onChanged: (value) {
+                                setState(() {
+                                  answers[index] = value!;
+                                });
+                                saveAnswer(index, value!);
+                              },
+                              activeColor: Colors.green,
+                            ),
+                          );
+                        }),
+                      ],
+                    ),
+                  );
+                },
+              ),
+              const SizedBox(height: 30),
+              Row(
+                children: [
+                  Expanded(
+                    child: ElevatedButton(
+                      onPressed: () {
+                        progressTest();
+                        Navigator.push(context, MaterialPageRoute(builder: (_) => SelectTestPage()));
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Color(0xFF6BE5A0),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(17),
+                        ),
+                        padding: const EdgeInsets.all(12),
                       ),
-                    );
-                  },
-                ),
-                const SizedBox(height: 30),
-                Row(
-                  children: [
-                    Expanded(
-                      child: ElevatedButton(
-                        onPressed: () {
-                          progressTest();
+                      child: const Text('뒤로가기', style: TextStyle(color: Colors.black, fontSize: 18)),
+                    ),
+                  ),
+                  const SizedBox(width: 20),
+                  Expanded(
+                    child: ElevatedButton(
+                      onPressed: () async {
+                        bool complete = await submitTest();
+                        if (complete) {
                           Navigator.push(context, MaterialPageRoute(builder: (_) => SelectTestPage()));
-                        },
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Color(0xFF6BE5A0),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(17),
-                          ),
-                          padding: const EdgeInsets.all(12),
+                        }
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Color(0xFF6BE5A0),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(17),
                         ),
-                        child: const Text('뒤로가기', style: TextStyle(color: Colors.black, fontSize: 18)),
+                        padding: const EdgeInsets.all(12),
                       ),
+                      child: const Text('제출', style: TextStyle(color: Colors.black, fontSize: 18)),
                     ),
-                    const SizedBox(width: 20),
-                    Expanded(
-                      child: ElevatedButton(
-                        onPressed: () async {
-                          bool complete = await submitTest();
-                          if (complete) {
-                            Navigator.push(context, MaterialPageRoute(builder: (_) => SelectTestPage()));
-                          }
-                        },
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Color(0xFF6BE5A0),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(17),
-                          ),
-                          padding: const EdgeInsets.all(12),
-                        ),
-                        child: const Text('제출', style: TextStyle(color: Colors.black, fontSize: 18)),
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 30),
-              ],
-            ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 30),
+            ],
           ),
+        ),
       ),
+    ),
     );
   }
 }
