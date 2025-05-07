@@ -55,10 +55,14 @@ dependencies:
   fl_chart: ^0.66.1
   chat_gpt_sdk: ^3.1.4
   just_audio: ^0.9.46
+  smooth_page_indicator: ^1.1.0
 
 dev_dependencies:
   flutter_test:
     sdk: flutter
+
+  flutter_launcher_icons: ^0.13.1
+  flutter_native_splash: ^2.1.3
 
   # The "flutter_lints" package below contains a set of recommended lints to
   # encourage good coding practices. The lint set provided by the package is
@@ -71,6 +75,18 @@ dev_dependencies:
 # following page: https://dart.dev/tools/pub/pubspec
 
 # The following section is specific to Flutter packages.
+
+flutter_icons:
+  android: true
+  ios: true
+  image_path: "assets/images/icon.png"
+
+flutter_native_splash:
+  color: "#ffffff"
+  image: assets/images/splash_icon.png
+  android: true
+  ios: true
+
 flutter:
   fonts:
   - family: PoetsenOne
@@ -132,6 +148,7 @@ flutter:
     - assets/face/face29.png
     - assets/face/face30.png
     - assets/images/Main/main_banner.png
+    - assets/images/Main/main_banner2.png
     - assets/images/Main/main_chatbot_banner.png
     - assets/images/Main/diary.png
     - assets/images/Main/challenge.png
@@ -160,6 +177,8 @@ flutter:
     - assets/images/Chatbot/VoiceChat/sad2.png
     - assets/images/Chatbot/VoiceChat/sad3.png
     - assets/images/Chatbot/VoiceChat/neutral.png
+    - assets/images/icon.png
+    - assets/images/splash_icon.png
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/to/resolution-aware-images
 

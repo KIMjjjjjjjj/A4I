@@ -9,6 +9,7 @@ import '../diary/calender_page.dart';
 import '../HelpCenter/help_center_ui.dart';
 import '../Report/day_report.dart';
 import '../chatbot/chatbot_home.dart';
+import 'dart:async';
 
 class MainScreen extends StatefulWidget {
   @override
@@ -20,11 +21,26 @@ class _MainScreenState extends State<MainScreen> {
   String randomMessage = "로딩 중...";
   final User? user = FirebaseAuth.instance.currentUser;
 
+  PageController _pageController = PageController();
+  int _currentPage = 0;
+
   @override
   void initState() {
     super.initState();
     fetchUserNickname();
     fetchMainMessage();
+
+    // 3초마다 페이지 자동 전환
+    Timer.periodic(Duration(seconds: 3), (Timer timer) {
+      if (_pageController.hasClients) {
+        int nextPage = (_currentPage + 1) % 2;
+        _pageController.animateToPage(
+          nextPage,
+          duration: Duration(milliseconds: 300),
+          curve: Curves.easeIn,
+        );
+      }
+    });
   }
 
   void fetchMainMessage() async {
@@ -77,6 +93,51 @@ class _MainScreenState extends State<MainScreen> {
               TextButton(
                 onPressed: () => Navigator.of(context).pop(true),
                 child: Text("예"),
+              SizedBox(height: 16),
+              // Image.asset(
+              //   'assets/images/Main/main_banner.png',
+              //   width: double.infinity,
+              //   fit: BoxFit.fitWidth,
+              // ),
+              Column(
+                children: [
+                  Container(
+                    height: 150,
+                    child: PageView(
+                      controller: _pageController,
+                      onPageChanged: (int index) {
+                        setState(() {
+                          _currentPage = index;
+                        });
+                      },
+                      children: [
+                        Image.asset(
+                          'assets/images/Main/main_banner.png',
+                          fit: BoxFit.fitWidth,
+                        ),
+                        Image.asset(
+                          'assets/images/Main/main_banner2.png',
+                          fit: BoxFit.fitWidth,
+                        ),
+                      ],
+                    ),
+                  ),
+                  SizedBox(height: 8),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: List.generate(2, (index) {
+                      return Container(
+                        margin: EdgeInsets.symmetric(horizontal: 4),
+                        width: 8,
+                        height: 8,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          color: _currentPage == index ? Colors.black : Colors.grey,
+                        ),
+                      );
+                    }),
+                  ),
+                ],
               ),
             ],
           ),

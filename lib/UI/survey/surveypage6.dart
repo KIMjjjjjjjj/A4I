@@ -110,7 +110,7 @@ class _SurveyPage6State extends State<SurveyPage6> {
                     ),
                   ),
                 ),
-              const Spacer(),
+              const SizedBox(height: 10),
               SizedBox(
                 width: double.infinity,
                 child: ElevatedButton(
