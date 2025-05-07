@@ -2,6 +2,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:repos/UI/PsychologicalTest/test_result_page.dart';
+import '../../bottom_navigation_bar.dart';
 
 import 'explain_test.dart';
 
@@ -90,7 +91,13 @@ class _SelectTestPageState extends State<SelectTestPage> {
       appBar: AppBar(
         leading: IconButton(
           icon: Icon(Icons.arrow_back_ios),
-          onPressed: () => Navigator.pop(context),
+          onPressed: () {
+            Navigator.pushAndRemoveUntil(
+              context,
+              MaterialPageRoute(builder: (_) => CustomNavigationBar()),
+                    (route) => false,
+            );
+          },
         ),
         title: Text(
             "심리 테스트",

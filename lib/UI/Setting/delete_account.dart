@@ -45,10 +45,12 @@ class DeleteAccountPageState extends State<DeleteAccountPage> {
         setState(() {
           errorMessage1 = null;
         });
-        Navigator.push(
+        Navigator.pushAndRemoveUntil(
           context,
-          MaterialPageRoute(builder: (context) => LoginPage()),
+          MaterialPageRoute(builder: (_) => LoginPage()),
+              (route) => false,
         );
+
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('계정이 삭제되었습니다.')),
         );

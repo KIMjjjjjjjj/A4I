@@ -4,6 +4,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:repos/UI/diary/view_diary.dart';
+import '../../bottom_navigation_bar.dart';
 
 import 'write_diary.dart';
 
@@ -95,7 +96,11 @@ class _CalendarPageState extends State<CalendarPage> {
         leading: IconButton(
           icon: Icon(Icons.arrow_back, color: Colors.black),
           onPressed: () {
-            Navigator.pop(context);
+            Navigator.pushAndRemoveUntil(
+              context,
+              MaterialPageRoute(builder: (_) =>  CustomNavigationBar()),
+                  (route) => false,
+            );
           },
         ),
       ),

@@ -4,6 +4,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:repos/UI/PsychologicalTest/select_test.dart';
+import '../../bottom_navigation_bar.dart';
 
 class TestPageBdi extends StatefulWidget {
   @override
@@ -316,9 +317,13 @@ class _TestPageBdiState extends State<TestPageBdi> {
         appBar: AppBar(
           leading: IconButton(
             icon: const Icon(Icons.arrow_back_ios),
-            onPressed: () {
-              Navigator.pop(context);
-            },
+              onPressed: () {
+                Navigator.pushAndRemoveUntil(
+                  context,
+                  MaterialPageRoute(builder: (_) =>  CustomNavigationBar()),
+                      (route) => false,
+                );
+              },
           ),
         ),
         body: Center(

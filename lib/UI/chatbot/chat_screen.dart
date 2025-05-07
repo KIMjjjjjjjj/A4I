@@ -11,6 +11,7 @@ import '../Report/day_report_process.dart';
 import 'chat_analyzer.dart';
 import 'chat_emotion_character.dart';
 import 'voice_chat.dart';
+import '../../bottom_navigation_bar.dart';
 
 class ChatScreen extends StatefulWidget {
   final List<Map<String, String>>? initialMessages;
@@ -118,6 +119,7 @@ class _ChatScreenState extends State<ChatScreen> {
       builder: (context) => AlertDialog(
         title: Text('챗봇 이름 변경'),
         content: TextField(
+          maxLength: 10,
           controller: nameController,
           decoration: InputDecoration(
             hintText: '새 이름을 입력하세요',
@@ -372,12 +374,40 @@ class _ChatScreenState extends State<ChatScreen> {
 
     return WillPopScope ( // 리포트 생성 후 뒤로가기 허용
       onWillPop: () async {
-        final user = FirebaseAuth.instance.currentUser;
-        if (user != null && !await ChatAnalyzer.timecheck(user.uid)) {
-          await ChatAnalyzer.analyzeCombinedMessages();
+        final shouldPop = await showDialog<bool>(
+          context: context,
+          builder: (context) => AlertDialog(
+            title: Text('홈으로 돌아가시겠습니까?'),
+            content: Text('대화를 종료하고 홈화면으로 이동합니다.'),
+            actions: [
+              TextButton(
+                  onPressed: () => Navigator.of(context).pop(false),
+                  child: Text('아니오'),
+              ),
+              TextButton(
+                onPressed: () {
+                  Navigator.pushAndRemoveUntil(
+                    context,
+                    MaterialPageRoute(builder: (_) =>  CustomNavigationBar()),
+                        (route) => false,
+                  );
+                },
+                child: Text('예'),
+              ),
+            ],
+          )
+        );
+
+        if(shouldPop == true){
+          final user = FirebaseAuth.instance.currentUser;
+          if (user != null && !await ChatAnalyzer.timecheck(user.uid)) {
+            await ChatAnalyzer.analyzeCombinedMessages();
+          }
+          await DayReportProcess.generateReportFromLastChat();
+          return true;
+        } else {
+          return false;
         }
-        await DayReportProcess.generateReportFromLastChat();
-        return true;
       },
       child: Scaffold(
         resizeToAvoidBottomInset: true,
@@ -392,13 +422,13 @@ class _ChatScreenState extends State<ChatScreen> {
                 onPressed: _showCangeNameDialog,
                 tooltip: '챗봇 이름 변경',
             ),
-            IconButton(
+            /*IconButton(
               icon: Icon(Icons.save),
               onPressed: ()  {
                 // 대화 분석 저장 함수 호출
                 ChatAnalyzer.analyzeVisibleMessages(messages, user!.uid);
               },
-            ),
+            ),*/
             IconButton(
               icon: Icon(Icons.menu),
               onPressed: ChatHistory,
@@ -414,34 +444,20 @@ class _ChatScreenState extends State<ChatScreen> {
               ),
             ),
             Positioned(
-              top: 15,
-              left: 15,
-              child: Column(
-                children: [
-                  Container(
-                    padding: EdgeInsets.all(12),
-                    decoration: BoxDecoration(
-                      color: Colors.yellow[100],
-                      borderRadius: BorderRadius.circular(15),
-                    ),
-                    child: Text(
-                      "오늘 기분은 어떤가요? 고민이 있다면 편하게 이야기해주세요.",
-                      style: TextStyle(fontSize: 14),
-                    ),
-                  ),
-                  SizedBox(height: 10),
-                  EmotionCharacter(
-                      emotion: _detectedEmotion,
-                      intensity: _detectedIntensity,
-                      width: 200,
-                      height: 200
-                  ),
-                ],
+              top: 0,
+              left: MediaQuery.of(context).size.width / 2 - 100,
+              child:EmotionCharacter(
+                  emotion: _detectedEmotion,
+                  intensity: _detectedIntensity,
+                  width: 200,
+                  height: 200
               ),
             ),
             drawCloud(),
             Positioned.fill(
-              top: isKeyboardOpen ? 50 : 260,
+              top: isKeyboardOpen
+                  ? MediaQuery.of(context).size.height * 0.15
+                  : MediaQuery.of(context).size.height * 0.2,
               child: Column(
                 children: [
                   Expanded(
@@ -570,12 +586,18 @@ class _ChatScreenState extends State<ChatScreen> {
   }
 
   Widget drawCloud() {
+    final keyboardHeight = MediaQuery.of(context).viewInsets.bottom;
+    final baseHeight = MediaQuery.of(context).size.height * 0.7;
+
     return Align(
       alignment: Alignment.bottomCenter,
       child: ClipPath(
         clipper: Cloud(),
-        child: Container(
-          height: 560,
+        child: AnimatedContainer(
+          duration: Duration(milliseconds: 200),
+          height: keyboardHeight > 0
+            ? baseHeight - keyboardHeight * 0.85
+            : baseHeight,
           color: Colors.pink[50],
         ),
       ),

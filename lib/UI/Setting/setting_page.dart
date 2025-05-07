@@ -184,9 +184,10 @@ class _SettingPageState extends State<SettingPage> {
                   tileColor: Colors.white,
                   onTap: () async {
                     await FirebaseAuth.instance.signOut();
-                    Navigator.pushReplacement(
+                    Navigator.pushAndRemoveUntil(
                       context,
-                      MaterialPageRoute(builder: (context) => LoginPage()),
+                      MaterialPageRoute(builder: (_) => LoginPage()),
+                          (route) => false,
                     );
                   },
                 ),

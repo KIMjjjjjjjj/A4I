@@ -93,97 +93,90 @@ class CommunityScreen extends StatelessWidget {
               ),
             ),
             Center(
-              child: Container(
-                width: panelWidth,
-                height: panelHeight,
-                decoration: BoxDecoration(
-                  color: Color(0xFFFFFFFF),
-                  borderRadius: BorderRadius.circular(20),
+              child: ConstrainedBox(
+                constraints: BoxConstraints(
+                  maxWidth: panelWidth,
                 ),
-                child: FutureBuilder<QuerySnapshot>(
-                  future: FirebaseFirestore.instance
-                      .collection("community")
-                      .doc("AjeagqxuQCcafNgotPhV")
-                      .collection("posts")
-                      .orderBy("likeCount", descending: true)
-                      .limit(3)
-                      .get(),
-                  builder: (context, snapshot){
-                    if(snapshot.connectionState == ConnectionState.waiting){
-                      return Center(child: CircularProgressIndicator());
-                    }
-                    if (snapshot.hasError) {
-                      return Center(child: Text("오류 발생: ${snapshot.error}"));
-                    }
-                    if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
-                      return Center(child: Text("추천글이 없습니다."));
-                    }
+                child: Container(
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  padding: EdgeInsets.all(10),
+                  child: FutureBuilder<QuerySnapshot>(
+                    future: FirebaseFirestore.instance
+                        .collection("community")
+                        .doc("AjeagqxuQCcafNgotPhV")
+                        .collection("posts")
+                        .orderBy("likeCount", descending: true)
+                        .limit(3)
+                        .get(),
+                    builder: (context, snapshot) {
+                      if (snapshot.connectionState == ConnectionState.waiting) {
+                        return Center(child: CircularProgressIndicator());
+                      }
+                      if (snapshot.hasError) {
+                        return Center(child: Text("오류 발생: ${snapshot.error}"));
+                      }
+                      if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+                        return Center(child: Text("추천글이 없습니다."));
+                      }
 
-                    snapshot.data!.docs.forEach((doc) {
-                      print("Title: ${doc["title"]}, LikeCount: ${doc["likeCount"]}");
-                    });
+                      return FutureBuilder<List<Map<String, dynamic>>>(
+                        future: Future.wait(
+                          snapshot.data!.docs.map((doc) async {
+                            Map<String, int> counts = await getPostCounts(doc.id);
+                            return {
+                              'doc': doc,
+                              'counts': counts,
+                            };
+                          }).toList(),
+                        ),
+                        builder: (context, postsWithCountsSnapshot) {
+                          if (postsWithCountsSnapshot.connectionState == ConnectionState.waiting) {
+                            return Center(child: CircularProgressIndicator());
+                          }
 
+                          if (!postsWithCountsSnapshot.hasData) {
+                            return Center(child: Text("데이터를 가져오는 중 오류가 발생했습니다."));
+                          }
 
+                          return ListView.separated(
+                            shrinkWrap: true,
+                            physics: NeverScrollableScrollPhysics(),
+                            itemCount: postsWithCountsSnapshot.data!.length,
+                            separatorBuilder: (_, __) => Divider(color: Colors.black, thickness: 1, indent: 10, endIndent: 10),
+                            itemBuilder: (context, i) {
+                              var item = postsWithCountsSnapshot.data![i];
+                              var doc = item['doc'];
+                              var counts = item['counts'];
 
-                    return FutureBuilder<List<Map<String, dynamic>>>(
-                      future: Future.wait(
-                        snapshot.data!.docs.map((doc) async {
-                          Map<String, int> counts = await getPostCounts(doc.id);
-                          return {
-                            'doc': doc,
-                            'counts': counts,
-                          };
-                        }).toList(),
-                      ),
-                      builder: (context, postsWithCountsSnapshot) {
-                        if (postsWithCountsSnapshot.connectionState == ConnectionState.waiting) {
-                          return Center(child: CircularProgressIndicator());
-                        }
-
-                        if (!postsWithCountsSnapshot.hasData) {
-                          return Center(child: Text("데이터를 가져오는 중 오류가 발생했습니다."));
-                        }
-
-                        List<Widget> postWidgets = postsWithCountsSnapshot.data!.map((item) {
-                          var doc = item['doc'];
-                          var counts = item['counts'];
-
-                          return GestureDetector(
-                            onTap: () {
-                              // 게시글 상세 페이지로 이동
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (context) => PostDetailScreen(postId: doc.id), // 게시글 ID 전달
+                              return GestureDetector(
+                                onTap: () {
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (context) => PostDetailScreen(postId: doc.id),
+                                    ),
+                                  );
+                                },
+                                child: postPanel(
+                                  doc["title"],
+                                  doc["boardName"],
+                                  70, // 고정 높이
+                                  panelWidth * 0.9,
+                                  counts['viewCount']!,
+                                  counts['likeCount']!,
+                                  counts['commentCount']!,
                                 ),
                               );
                             },
-                            child: postPanel(
-                              doc["title"],
-                              doc["boardName"],
-                              panelHeight * 0.8 / 3,
-                              panelWidth * 0.9,
-                              counts['viewCount']!,
-                              counts['likeCount']!,
-                              counts['commentCount']!,
-                            ),
                           );
-                        }).toList();
-
-                        // 게시글 수에 따라 Divider 추가
-                        List<Widget> finalWidgets = [];
-                        for (int i = 0; i < postWidgets.length; i++) {
-                          finalWidgets.add(postWidgets[i]);
-                          if (i < postWidgets.length - 1) {
-                            finalWidgets.add(Divider(color: Colors.black, thickness: 1, indent: 10, endIndent: 10));
-                          }
-                        }
-
-                        return Column(children: finalWidgets);
-                      },
-                    );
-                  }
-                )
+                        },
+                      );
+                    },
+                  ),
+                ),
               ),
             ),
             const SizedBox(height: 10),

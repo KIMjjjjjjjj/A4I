@@ -259,6 +259,7 @@ class _DiaryEntryPageState extends State<DiaryEntryPage> {
                     SizedBox(height: 16),
                     TextField(
                       controller: _titleController,
+                      maxLength: 20,
                       decoration: InputDecoration(
                         labelText: '제목',
                         labelStyle: TextStyle(
@@ -266,21 +267,32 @@ class _DiaryEntryPageState extends State<DiaryEntryPage> {
                           fontSize: 28,
                           fontWeight: FontWeight.bold,
                         ),
-                        border: InputBorder.none,
                       ),
                     ),
                     SizedBox(height: 1),
-                    TextField(
-                      controller: _contentController,
-                      decoration: InputDecoration(
-                        labelText: '일기를 작성해보세요',
-                        labelStyle: TextStyle(
-                          color: Colors.grey,
-                          fontSize: 25,
-                          fontWeight: FontWeight.bold,
+                    Container(
+                      height: 270,
+                      decoration: BoxDecoration(
+                        color: Colors.grey[100],
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Scrollbar(
+                        child: SingleChildScrollView(
+                          child:TextField(
+                            controller: _contentController,
+                            maxLines: null,
+                            decoration: InputDecoration(
+                              hintText: '일기를 작성해보세요',
+                              hintStyle: TextStyle(
+                                color: Colors.grey,
+                                fontSize: 25,
+                                fontWeight: FontWeight.bold,
+                              ),
+                              border: InputBorder.none,
+                              contentPadding: EdgeInsets.symmetric(vertical: 16.0, horizontal: 12.0),
+                            ),
+                          ),
                         ),
-                        border: InputBorder.none,
-                        contentPadding: EdgeInsets.symmetric(vertical: 16.0, horizontal: 12.0),
                       ),
                     ),
                     Spacer(),
