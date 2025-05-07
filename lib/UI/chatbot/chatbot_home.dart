@@ -2,6 +2,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'chat_screen.dart';
+import '../../bottom_navigation_bar.dart';
 
 class ChatbotScreen extends StatefulWidget {
   @override
@@ -65,9 +66,15 @@ class _ChatbotScreenState extends State<ChatbotScreen> {
         child: AppBar(
           backgroundColor: Colors.transparent,
           elevation: 0,
-          leading: Padding(
-            padding: EdgeInsets.only(left: 8),
-            child: BackButton(color: Colors.black),
+          leading: IconButton(
+            icon: const Icon(Icons.arrow_back_ios),
+            onPressed: () {
+              Navigator.pushAndRemoveUntil(
+                context,
+                MaterialPageRoute(builder: (_) =>  CustomNavigationBar()),
+                    (route) => false,
+              );
+            },
           ),
         ),
       ),
@@ -153,7 +160,7 @@ class _ChatbotScreenState extends State<ChatbotScreen> {
 
               // 고양이 캐릭터 이미지 (말풍선보다 아래)
               Positioned(
-                top: screenHeight * 0.6, // 말풍선 아래로 배치
+                top: screenHeight * 0.7, // 말풍선 아래로 배치
                 child: Image.asset(
                   "assets/Widget/Login/character.png",
                   width: screenWidth * 0.55,

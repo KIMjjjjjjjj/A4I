@@ -266,6 +266,7 @@ class _DiaryEntryPageState extends State<DiaryEntryPage> {
                     SizedBox(height: 16),
                     TextField(
                       controller: _titleController,
+                      maxLength: 20,
                       decoration: InputDecoration(
                         labelText: '제목',
                         labelStyle: TextStyle(
@@ -273,7 +274,6 @@ class _DiaryEntryPageState extends State<DiaryEntryPage> {
                           fontSize: 28,
                           fontWeight: FontWeight.bold,
                         ),
-                        border: InputBorder.none,
                       ),
                     ),
                     SizedBox(height: 1),
@@ -286,8 +286,6 @@ class _DiaryEntryPageState extends State<DiaryEntryPage> {
                           fontSize: 25,
                           fontWeight: FontWeight.bold,
                         ),
-                        border: InputBorder.none,
-                        contentPadding: EdgeInsets.symmetric(vertical: 16.0, horizontal: 12.0),
                       ),
                       keyboardType: TextInputType.multiline,
                       maxLines: null, // ← 무제한 줄넘김 허용

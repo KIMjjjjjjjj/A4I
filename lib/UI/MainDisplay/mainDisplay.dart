@@ -19,7 +19,6 @@ class MainScreen extends StatefulWidget {
 class _MainScreenState extends State<MainScreen> {
   String userNickname = "";
   String randomMessage = "로딩 중...";
-  final String nickname = "닉네임";
   final User? user = FirebaseAuth.instance.currentUser;
 
   PageController _pageController = PageController();
@@ -43,6 +42,7 @@ class _MainScreenState extends State<MainScreen> {
       }
     });
   }
+
   void fetchMainMessage() async {
     DocumentSnapshot doc = await FirebaseFirestore.instance
         .collection('main_message')
@@ -51,12 +51,13 @@ class _MainScreenState extends State<MainScreen> {
     if (doc.exists) {
       List<String> phrases = List<String>.from(doc['phrase']);
       if (phrases.isNotEmpty) {
-        setState(() { // UI 업데이트
+        setState(() {
           randomMessage = phrases[Random().nextInt(phrases.length)];
         });
       }
     }
   }
+
   void fetchUserNickname() async {
     if (user != null) {
       DocumentSnapshot userDoc = await FirebaseFirestore.instance
@@ -66,7 +67,7 @@ class _MainScreenState extends State<MainScreen> {
 
       if (userDoc.exists) {
         setState(() {
-          userNickname = userDoc['nickname']; // Firestore에서 닉네임 가져오기
+          userNickname = userDoc['nickname'];
         });
       }
     }
@@ -74,40 +75,24 @@ class _MainScreenState extends State<MainScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Color(0xFFEAEBF0),
-      appBar: AppBar(
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        automaticallyImplyLeading: false, // 뒤로 가기 버튼 제거
-        title: Text(
-          "TODAK",
-          style: TextStyle(color: Colors.black, fontSize: 36, fontWeight: FontWeight.bold),
-        ),
-        actions: [
-          IconButton(
-            icon: Icon(Icons.notifications, color: Colors.black),
-            onPressed: () {
-              debugPrint("알람 클릭됨");
-            },
-          ),
-        ],
-      ),
-      body: Padding(
-        padding: const EdgeInsets.only(left: 15.0, right: 15.0, top: 15.0),
-        child: SingleChildScrollView(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                "반갑습니다 $userNickname님",
-                style: TextStyle(fontSize: 24, color: Colors.black),
+    return PopScope(
+      canPop: false,
+      onPopInvoked: (didPop) async {
+        if (didPop) return;
+
+        bool exit = await showDialog(
+          context: context,
+          builder: (context) => AlertDialog(
+            title: Text("앱 종료"),
+            content: Text("앱을 종료하시겠습니까?"),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(context).pop(false),
+                child: Text("아니요"),
               ),
-              SizedBox(height: 8),
-              Text(
-                randomMessage,
-                style: TextStyle(fontSize: 16, color: Colors.black),
-              ),
+              TextButton(
+                onPressed: () => Navigator.of(context).pop(true),
+                child: Text("예"),
               SizedBox(height: 16),
               // Image.asset(
               //   'assets/images/Main/main_banner.png',
@@ -154,77 +139,126 @@ class _MainScreenState extends State<MainScreen> {
                   ),
                 ],
               ),
-              SizedBox(height: 16),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  buildMainButton(
-                    "종합 심리 상태 평가",
-                    "지난달의 나와 얼마나 달라졌을까요?",
-                        () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(builder: (context) => dayreport()),
-                      );
-                    },
-                  ),
-                  buildMainButton(
-                    "심리테스트",
-                    "4개의 심리테스트가 준비되어있어요",
-                        () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(builder: (context) => SelectTestPage()),
-                      );
-                    },
-                  ),
-                ],
-              ),
-              SizedBox(height: 30),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  buildSmallButton("일기", "assets/images/Main/diary.png", () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(builder: (context) => CalendarPage()),
-                    );
-                  }),
-                  buildSmallButton("오늘 한줄", "assets/images/Main/daily_line.png", () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(builder: (context) => DayLineScreen()),
-                    );
-                  }),
-                  buildSmallButton("챌린지", "assets/images/Main/challenge.png", () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(builder: (context) => ChallengeBadgePage()),
-                    );
-                  }),
-                  buildSmallButton("상담센터", "assets/images/Main/counsel_center.png", () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(builder: (context) => HelpCenterPage()),
-                    );
-                  }),
-                ],
-              ),
-              SizedBox(height: 30),
-              GestureDetector(
-                onTap: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (context) => ChatbotScreen()),
-                  );
-                },
-                child: Image.asset(
-                  'assets/images/Main/main_chatbot_banner.png',
+            ],
+          ),
+        );
+
+        if (exit) {
+          Navigator.of(context).maybePop();
+        }
+      },
+      child: Scaffold(
+        backgroundColor: Color(0xFFEAEBF0),
+        appBar: AppBar(
+          backgroundColor: Colors.transparent,
+          elevation: 0,
+          automaticallyImplyLeading: false,
+          title: Text(
+            "TODAK",
+            style: TextStyle(color: Colors.black, fontSize: 36, fontWeight: FontWeight.bold),
+          ),
+          actions: [
+            IconButton(
+              icon: Icon(Icons.notifications, color: Colors.black),
+              onPressed: () {
+                debugPrint("알람 클릭됨");
+              },
+            ),
+          ],
+        ),
+        body: Padding(
+          padding: const EdgeInsets.only(left: 15.0, right: 15.0, top: 15.0),
+          child: SingleChildScrollView(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  "반갑습니다 $userNickname님",
+                  style: TextStyle(fontSize: 24, color: Colors.black),
+                ),
+                SizedBox(height: 8),
+                Text(
+                  randomMessage,
+                  style: TextStyle(fontSize: 16, color: Colors.black),
+                ),
+                SizedBox(height: 16),
+                Image.asset(
+                  'assets/images/Main/main_banner.png',
                   width: double.infinity,
                   fit: BoxFit.fitWidth,
                 ),
-              ),
-            ],
+                SizedBox(height: 16),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    buildMainButton(
+                      "종합 심리 상태 평가",
+                      "지난달의 나와 얼마나 달라졌을까요?",
+                          () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(builder: (context) => dayreport()),
+                        );
+                      },
+                    ),
+                    buildMainButton(
+                      "심리테스트",
+                      "4개의 심리테스트가 준비되어있어요",
+                          () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(builder: (context) => SelectTestPage()),
+                        );
+                      },
+                    ),
+                  ],
+                ),
+                SizedBox(height: 30),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    buildSmallButton("일기", "assets/images/Main/diary.png", () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (context) => CalendarPage()),
+                      );
+                    }),
+                    buildSmallButton("오늘 한줄", "assets/images/Main/daily_line.png", () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (context) => DayLineScreen()),
+                      );
+                    }),
+                    buildSmallButton("챌린지", "assets/images/Main/challenge.png", () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (context) => ChallengeBadgePage()),
+                      );
+                    }),
+                    buildSmallButton("상담센터", "assets/images/Main/counsel_center.png", () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (context) => HelpCenterPage()),
+                      );
+                    }),
+                  ],
+                ),
+                SizedBox(height: 30),
+                GestureDetector(
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (context) => ChatbotScreen()),
+                    );
+                  },
+                  child: Image.asset(
+                    'assets/images/Main/main_chatbot_banner.png',
+                    width: double.infinity,
+                    fit: BoxFit.fitWidth,
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
       ),
@@ -233,7 +267,7 @@ class _MainScreenState extends State<MainScreen> {
 
   Widget buildMainButton(String title, String subtitle, VoidCallback onTap) {
     return GestureDetector(
-      onTap: onTap, // 버튼 클릭 시 실행할 함수
+      onTap: onTap,
       child: Container(
         width: 160,
         height: 155,
@@ -275,7 +309,6 @@ class _MainScreenState extends State<MainScreen> {
     );
   }
 
-
   Widget buildSmallButton(String label, String imagePath, VoidCallback onTap) {
     return GestureDetector(
       onTap: onTap,
@@ -283,7 +316,7 @@ class _MainScreenState extends State<MainScreen> {
         children: [
           Container(
             width: 79,
-            height: 79, // 컨테이너 높이를 너비와 동일하게 조정
+            height: 79,
             decoration: BoxDecoration(
               color: Color(0xFFE2D1AE),
               borderRadius: BorderRadius.circular(27),
@@ -295,13 +328,13 @@ class _MainScreenState extends State<MainScreen> {
                 ),
               ],
             ),
-            child: ClipRRect( // 테두리에 맞게 이미지 잘림 방지
+            child: ClipRRect(
               borderRadius: BorderRadius.circular(27),
               child: Image.asset(
                 imagePath,
-                width: 79, // 컨테이너와 동일한 너비
-                height: 79, // 컨테이너와 동일한 높이
-                fit: BoxFit.cover, // 버튼 크기에 맞춰 이미지 조정
+                width: 79,
+                height: 79,
+                fit: BoxFit.cover,
               ),
             ),
           ),

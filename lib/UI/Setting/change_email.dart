@@ -99,9 +99,10 @@ class _ChangeEmailPageState extends State<ChangeEmailPage> {
             SnackBar(content: Text('이메일이 성공적으로 변경되었습니다.'))
         );
         await FirebaseAuth.instance.signOut();
-        Navigator.push(
+        Navigator.pushAndRemoveUntil(
           context,
-          MaterialPageRoute(builder: (context) => LoginPage()),
+          MaterialPageRoute(builder: (_) => LoginPage()),
+              (route) => false,
         );
       }  catch (error) {
         setState(() {
