@@ -140,7 +140,7 @@ class _VoiceChatScreenState extends State<VoiceChatScreen> with SingleTickerProv
       "input": {"text": text},
       "voice": {
         "languageCode": "ko-KR", // 한국어
-        "name": "ko-KR-Wavenet-B" // 목소리 종류 (Standard-A~D, Wavenet-A~D 등 있음)
+        "name": "ko-KR-Chirp3-HD-Leda" // ko-KR-Chirp3-HD-Zephyr
       },
       "audioConfig": {
         "audioEncoding": "MP3"
