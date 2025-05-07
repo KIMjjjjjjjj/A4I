@@ -64,7 +64,7 @@ class ExplainTestPage extends StatelessWidget {
                   ),
                 ),
               ),
-              const Spacer(),
+              SizedBox(height: 25),
               SizedBox(
                 width: double.infinity,
                 child: ElevatedButton(
