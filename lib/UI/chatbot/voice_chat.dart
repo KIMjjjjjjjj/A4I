@@ -61,6 +61,8 @@ class _VoiceChatScreenState extends State<VoiceChatScreen> with SingleTickerProv
   }
 
   void _onStartRecording() {
+    _audioPlayer.stop();
+
     setState(() {
       print("isRecording = true");
       _isRecording = true;
@@ -86,6 +88,14 @@ class _VoiceChatScreenState extends State<VoiceChatScreen> with SingleTickerProv
   void _onTextRecognized(String text) {
     setState(() {
       _recognizedText = text;
+    });
+
+    Future.delayed(Duration(seconds: 3), () {
+      if(mounted && _recognizedText == text) {
+        setState(() {
+          _recognizedText = "누르고 말해주세요";
+        });
+      }
     });
   }
 
