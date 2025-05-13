@@ -143,7 +143,15 @@ class _RecordingChatButtonState extends State<RecordingChatButton> {
     setState(() {
       _isListening = false;
       _soundLevel = 0.0;
-      _recognizedText = "누르고 말해주세요";
+      //_recognizedText = "누르고 말해주세요";
+    });
+
+    Future.delayed(Duration(seconds: 5), () {
+      if (mounted) {
+        setState(() {
+          _recognizedText = "누르고 말해주세요";
+        });
+      }
     });
 
     widget.onStop();
