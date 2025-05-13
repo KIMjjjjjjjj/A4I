@@ -12,6 +12,8 @@ import 'day_report.dart';
 import 'report_date_range_selector.dart';
 import 'report_service.dart';
 import 'report_model.dart';
+import 'dart:io';
+import 'package:path_provider/path_provider.dart';
 
 class weekreport extends StatefulWidget {
   @override
@@ -23,6 +25,7 @@ class _weekreport extends State<weekreport> with TickerProviderStateMixin {
   List<String> emotions = ["두려움", "슬픔", "놀람", "분노", "기쁨", "기타"];
   String selectedEmotion = "두려움";
   final TextEditingController percentController = TextEditingController();
+  Set<String> usedEmotionsSet = {};
 
   DateTime? startDate;
   DateTime? endDate;
@@ -104,32 +107,67 @@ class _weekreport extends State<weekreport> with TickerProviderStateMixin {
 
   late List<Report> weeklyReports = [];
 
+  Future<List<Report>> loadReportsFromCache(DateTime startDate, DateTime endDate) async {
+    final cacheFile = await _getCacheFile(startDate, endDate);
+    if (await cacheFile.exists()) {
+      final cacheData = await cacheFile.readAsString();
+      final List<dynamic> jsonData = jsonDecode(cacheData);
+      return jsonData.map((e) => Report.fromJson(e)).toList();
+    } else {
+      return [];
+    }
+  }
+
+  Future<File> _getCacheFile(DateTime startDate, DateTime endDate) async {
+    final directory = await getApplicationDocumentsDirectory();
+    final fileName = "${startDate.toIso8601String().substring(0, 10)}_${endDate.toIso8601String().substring(0, 10)}.json";
+    return File('${directory.path}/$fileName');
+  }
+
   // 날짜 범위에 있는 리포트 불러와 리스트에 저장
   Future<void> loadReports() async {
     if (startDate != null && endDate != null) {
-      final reports = await fetchReportsInRange(startDate!, endDate!);
-      print("불러온 보고서 개수: ${reports.length}");
-
+      // 캐시된 데이터를 먼저 시도
+      final cachedReports = await loadReportsFromCache(startDate!, endDate!);
+      if (cachedReports.isNotEmpty) {
+        setState(() {
+          weeklyReports = cachedReports;
+        });
+      } else {
+        // 캐시가 없으면 최신 데이터 불러오기
+        final reports = await fetchReportsInRange(startDate!, endDate!);
+        await _cacheReports(reports); // 최신 데이터 캐시 저장
+        setState(() {
+          weeklyReports = reports;
+        });
+      }
 
       // 사용된 감정 수집
-      final usedEmotionsSet = <String>{};
-      for (final report in reports) {
+      final usedEmotions = <String>{};
+      for (final report in weeklyReports) {
         for (final emotion in emotions) {
           if (report.emotionIntensityData?[emotion] != null) {
-            usedEmotionsSet.add(emotion);
+            usedEmotions.add(emotion);
           }
         }
       }
 
-      final sortedUsedEmotions = emotions.where((e) => usedEmotionsSet.contains(e)).toList();
-
       setState(() {
-        weeklyReports = reports;
-        emotions = sortedUsedEmotions;
-        selectedEmotion = emotions.isNotEmpty ? emotions.first : "기타";
+        usedEmotionsSet = usedEmotions;
+        selectedEmotion = usedEmotions.contains(selectedEmotion)
+            ? selectedEmotion
+            : emotions.firstWhere((e) => usedEmotions.contains(e), orElse: () => "기타");
       });
     }
   }
+
+// 최신 데이터를 캐시하는 함수
+  Future<void> _cacheReports(List<Report> reports) async {
+    final cacheFile = await _getCacheFile(startDate!, endDate!);
+    final jsonData = jsonEncode(reports.map((e) => e.toJson()).toList());
+    await cacheFile.writeAsString(jsonData);
+  }
+
 
   // 날짜마다 리포트 불러오는 함수
   Future<List<Report>> fetchReportsInRange(DateTime start, DateTime end) async {
@@ -150,6 +188,11 @@ class _weekreport extends State<weekreport> with TickerProviderStateMixin {
     List<FlSpot> spots = [];
     Map<int, String> dateLabels = {};
     int currentIndex = 0;
+
+    if (weeklyReports.isEmpty) {
+      // 만약 데이터가 비어있으면 최신 리포트를 로드
+      loadReports(); // 데이터를 비동기적으로 로드합니다.
+    }
 
     for (int i = 0; i < weeklyReports.length; i++) {
       final report = weeklyReports[i];
@@ -437,8 +480,31 @@ class _weekreport extends State<weekreport> with TickerProviderStateMixin {
     );
   }
 
-  // 기간 피드백
-  static Future<String> generatePeriodFeedback(List<Report> reports) async {
+  Future<File> _getFeedbackCacheFile(DateTime startDate, DateTime endDate) async {
+    final directory = await getApplicationDocumentsDirectory();
+    final fileName = "${startDate.toIso8601String().substring(0, 10)}_${endDate.toIso8601String().substring(0, 10)}_feedback.txt";
+    return File('${directory.path}/$fileName');
+  }
+  Future<String?> _loadFeedbackFromCache(DateTime startDate, DateTime endDate) async {
+    final file = await _getFeedbackCacheFile(startDate, endDate);
+    if (await file.exists()) {
+      return await file.readAsString();
+    }
+    return null;
+  }
+  Future<void> _cacheFeedback(String feedback, DateTime startDate, DateTime endDate) async {
+    final file = await _getFeedbackCacheFile(startDate, endDate);
+    await file.writeAsString(feedback);
+  }
+
+  Future<String> generatePeriodFeedback(List<Report> reports, DateTime startDate, DateTime endDate) async {
+    // 1. 캐시 확인
+    final cached = await _loadFeedbackFromCache(startDate, endDate);
+    if (cached != null && cached.isNotEmpty) {
+      return cached;
+    }
+
+    // 2. 없으면 생성
     Map<String, String> prompts = await loadPrompts();
 
     final userContent = reports
@@ -453,13 +519,21 @@ class _weekreport extends State<weekreport> with TickerProviderStateMixin {
       ],
     );
 
-    if (response == null) {
+    if (response != null) {
+      await _cacheFeedback(response, startDate, endDate);
+      return response;
+    } else {
       return "error";
     }
-    return response;
   }
 
   Widget buildPeriodFeedback() {
+    if (startDate == null || endDate == null) {
+      return const Center(
+        child: Text("데이터를 불러오는 중입니다...", style: TextStyle(fontSize: 14)),
+      );
+    }
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -471,7 +545,7 @@ class _weekreport extends State<weekreport> with TickerProviderStateMixin {
               borderRadius: BorderRadius.circular(16),
             ),
             child: FutureBuilder<String>(
-              future: generatePeriodFeedback(weeklyReports),
+              future: generatePeriodFeedback(weeklyReports, startDate!, endDate!),
               builder: (context, snapshot) {
                 if (snapshot.connectionState == ConnectionState.waiting) {
                   return const Text("요약 생성 중...", style: TextStyle(fontSize: 14));
@@ -603,28 +677,53 @@ class _weekreport extends State<weekreport> with TickerProviderStateMixin {
                   Text("얼마나 많은 변화가 있었을까요?", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
                   SizedBox(height: 10),
                   SingleChildScrollView(
-                    scrollDirection: Axis.horizontal,
-                    child: TabBar(
-                      controller: _tabController,
-                      isScrollable: true,
-                      labelColor: Colors.black,
-                      unselectedLabelColor: Color(0xFFAAA4A5),
-                      indicatorColor: Colors.transparent,
-                      tabs: emotions.map((emotion) {
-                        return Tab(
-                          child: Container(
-                            padding: EdgeInsets.symmetric(vertical: 10, horizontal: 10),
-                            decoration: BoxDecoration(
-                              color: selectedEmotion == emotion ? Colors.white : Color(0xFFEAEBF0),
-                              borderRadius: BorderRadius.circular(20),
+                      scrollDirection: Axis.horizontal,
+                      child: TabBar(
+                        controller: _tabController,
+                        isScrollable: true,
+                        labelColor: Colors.black,
+                        unselectedLabelColor: Color(0xFFAAA4A5),
+                        indicatorColor: Colors.transparent,
+                        onTap: (index) {
+                          final emotion = emotions[index];
+                          if (usedEmotionsSet.contains(emotion)) {
+                            setState(() {
+                              selectedEmotion = emotion;
+                            });
+                          } else {
+                            // 선택을 막음 (탭 변경 무효화)
+                            _tabController.animateTo(_tabController.previousIndex);
+                          }
+                        },
+                        tabs: emotions.map((emotion) {
+                          final isEnabled = usedEmotionsSet.contains(emotion);
+                          final isSelected = selectedEmotion == emotion;
+
+                          return Tab(
+                            child: Opacity(
+                              opacity: isEnabled ? 1.0 : 0.3, // 흐리게
+                              child: Container(
+                                padding: EdgeInsets.symmetric(vertical: 10, horizontal: 14),
+                                decoration: BoxDecoration(
+                                  color: isSelected
+                                      ? Colors.white
+                                      : isEnabled
+                                      ? Color(0xFFEAEBF0)
+                                      : Color(0xFFE0E0E0), // 비활성화된 배경색
+                                  borderRadius: BorderRadius.circular(20),
+                                ),
+                                child: Text(
+                                  emotion,
+                                  style: TextStyle(
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.bold,
+                                    color: isEnabled ? Colors.black : Colors.grey,
+                                  ),
+                                ),
+                              ),
                             ),
-                            child: Text(
-                              emotion,
-                              style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
-                            ),
-                          ),
-                        );
-                      }).toList(),
+                          );
+                        }).toList(),
                     )
                   ),
                   SizedBox(height: 30),

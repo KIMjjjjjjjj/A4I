@@ -8,6 +8,7 @@ import 'UI/survey/Firstsurvey_explain.dart';
 import 'UI/MainDisplay/mainDisplay.dart';
 import 'package:flutter_naver_map/flutter_naver_map.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'SplashScreen.dart';
 
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
@@ -19,13 +20,13 @@ class MyApp extends StatelessWidget {
       theme: ThemeData(
         primarySwatch: Colors.blue,
       ),
-      initialRoute: '/', // 앱이 시작되면 LoginScreen이 표시됨
+      home: SplashScreen(),
       routes: {
-        '/' : (context) => LoginScreen(),
         '/navigation': (context) => CustomNavigationBar(),
         '/survey' : (context) => SurveyExplainPage(),
         '/setting' : (context) => SettingPage(),
         '/main' : (context) => MainScreen(),
+        '/login': (context) => LoginScreen(),
       },
     );
   }
