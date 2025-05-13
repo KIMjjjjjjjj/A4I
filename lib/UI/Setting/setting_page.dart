@@ -3,8 +3,8 @@ import 'dart:io';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
-import 'package:repos/UI/MainDisplay/mainDisplay.dart';
 import 'package:repos/UI/Setting/settings.dart';
+import '../../bottom_navigation_bar.dart';
 import 'alarm_setting.dart';
 import 'edit_profile.dart';
 import '../Login/Login_UI.dart';
@@ -54,9 +54,10 @@ class _SettingPageState extends State<SettingPage> {
   Widget build(BuildContext context) {
     return WillPopScope(
       onWillPop: () async {
-        Navigator.pushReplacement(
-            context,
-            MaterialPageRoute(builder: (context) => MainScreen()),
+        Navigator.pushAndRemoveUntil(
+          context,
+          MaterialPageRoute(builder: (_) =>  CustomNavigationBar()),
+              (route) => false,
         );
         return false;
       },

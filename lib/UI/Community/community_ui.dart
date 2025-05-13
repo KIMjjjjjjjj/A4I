@@ -1,6 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
-import 'package:repos/UI/MainDisplay/mainDisplay.dart';
+import '../../bottom_navigation_bar.dart';
 import 'board_post_ui.dart';
 import 'board_ui.dart';
 
@@ -64,9 +64,10 @@ class CommunityScreen extends StatelessWidget {
 
     return WillPopScope(
         onWillPop: () async {
-          Navigator.pushReplacement(
+          Navigator.pushAndRemoveUntil(
             context,
-            MaterialPageRoute(builder: (context) => MainScreen())
+            MaterialPageRoute(builder: (_) =>  CustomNavigationBar()),
+                (route) => false,
           );
           return false;
         },
