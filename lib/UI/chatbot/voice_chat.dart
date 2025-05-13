@@ -61,10 +61,12 @@ class _VoiceChatScreenState extends State<VoiceChatScreen> with SingleTickerProv
   }
 
   void _onStartRecording() {
+    flutterTts.stop();
     _audioPlayer.stop();
 
     setState(() {
       print("isRecording = true");
+      _audioPlayer.stop();
       _isRecording = true;
       _recognizedText = "말하는 중...";
       _animationController.repeat(reverse: true); // 애니메이션 반복 실행
@@ -247,7 +249,6 @@ class _VoiceChatScreenState extends State<VoiceChatScreen> with SingleTickerProv
         messages: _messages,
       );
 
-
       if (response != null) {
         final trimmedReply = response.trim();
 
@@ -263,6 +264,7 @@ class _VoiceChatScreenState extends State<VoiceChatScreen> with SingleTickerProv
         final emotion = result["emotion"];
         final intensity = result["emotion_intensity"];
         _updateEmotionCharacter(emotion, intensity);
+        _audioPlayer.stop();
         Future.microtask(() => textToSpeech(trimmedReply));
         ChatAnalyzer.handleCombineMessage(message);
       } else {
