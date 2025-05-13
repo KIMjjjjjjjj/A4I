@@ -1,5 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
+import 'package:repos/UI/MainDisplay/mainDisplay.dart';
 import 'board_post_ui.dart';
 import 'board_ui.dart';
 
@@ -61,148 +62,157 @@ class CommunityScreen extends StatelessWidget {
     final double buttonPanelWidth = screenWidth * 0.9;
     final double buttonPanelHeight = screenWidth * 0.9;
 
-    return Scaffold(
-      backgroundColor: const Color(0xFFFAF8F8),
-      appBar: AppBar(
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        automaticallyImplyLeading: false,
-        title: const Text(
-          "TODAK",
-          style: TextStyle(color: Colors.black, fontSize: 36, fontWeight: FontWeight.bold),
+    return WillPopScope(
+        onWillPop: () async {
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(builder: (context) => MainScreen())
+          );
+          return false;
+        },
+      child: Scaffold(
+        backgroundColor: const Color(0xFFFAF8F8),
+        appBar: AppBar(
+          backgroundColor: Colors.transparent,
+          elevation: 0,
+          automaticallyImplyLeading: false,
+          title: const Text(
+            "TODAK",
+            style: TextStyle(color: Colors.black, fontSize: 36, fontWeight: FontWeight.bold),
+          ),
+          centerTitle: false,
         ),
-        centerTitle: false,
-      ),
-      body: SingleChildScrollView(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const SizedBox(height: 20),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 50, vertical: 10),
-              child: Align(
-                alignment: Alignment.centerLeft,
-                child: Text(
-                  "오늘의 추천글",
-                  style: TextStyle(
-                    fontSize: 19,
-                    color: Colors.black,
-                    fontWeight: FontWeight.bold,
+        body: SingleChildScrollView(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const SizedBox(height: 20),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 50, vertical: 10),
+                child: Align(
+                  alignment: Alignment.centerLeft,
+                  child: Text(
+                    "오늘의 추천글",
+                    style: TextStyle(
+                      fontSize: 19,
+                      color: Colors.black,
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
                 ),
               ),
-            ),
-            Center(
-              child: ConstrainedBox(
-                constraints: BoxConstraints(
-                  maxWidth: panelWidth,
+              Center(
+                child: ConstrainedBox(
+                  constraints: BoxConstraints(
+                    maxWidth: panelWidth,
+                  ),
+                  child: Container(
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    padding: EdgeInsets.all(10),
+                    child: FutureBuilder<QuerySnapshot>(
+                      future: FirebaseFirestore.instance
+                          .collection("community")
+                          .doc("AjeagqxuQCcafNgotPhV")
+                          .collection("posts")
+                          .orderBy("likeCount", descending: true)
+                          .limit(3)
+                          .get(),
+                      builder: (context, snapshot) {
+                        if (snapshot.connectionState == ConnectionState.waiting) {
+                          return Center(child: CircularProgressIndicator());
+                        }
+                        if (snapshot.hasError) {
+                          return Center(child: Text("오류 발생: ${snapshot.error}"));
+                        }
+                        if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+                          return Center(child: Text("추천글이 없습니다."));
+                        }
+
+                        return FutureBuilder<List<Map<String, dynamic>>>(
+                          future: Future.wait(
+                            snapshot.data!.docs.map((doc) async {
+                              Map<String, int> counts = await getPostCounts(doc.id);
+                              return {
+                                'doc': doc,
+                                'counts': counts,
+                              };
+                            }).toList(),
+                          ),
+                          builder: (context, postsWithCountsSnapshot) {
+                            if (postsWithCountsSnapshot.connectionState == ConnectionState.waiting) {
+                              return Center(child: CircularProgressIndicator());
+                            }
+
+                            if (!postsWithCountsSnapshot.hasData) {
+                              return Center(child: Text("데이터를 가져오는 중 오류가 발생했습니다."));
+                            }
+
+                            return ListView.separated(
+                              shrinkWrap: true,
+                              physics: NeverScrollableScrollPhysics(),
+                              itemCount: postsWithCountsSnapshot.data!.length,
+                              separatorBuilder: (_, __) => Divider(color: Colors.black, thickness: 1, indent: 10, endIndent: 10),
+                              itemBuilder: (context, i) {
+                                var item = postsWithCountsSnapshot.data![i];
+                                var doc = item['doc'];
+                                var counts = item['counts'];
+
+                                return GestureDetector(
+                                  onTap: () {
+                                    Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                        builder: (context) => PostDetailScreen(postId: doc.id),
+                                      ),
+                                    );
+                                  },
+                                  child: postPanel(
+                                    doc["title"],
+                                    doc["boardName"],
+                                    70, // 고정 높이
+                                    panelWidth * 0.9,
+                                    counts['viewCount']!,
+                                    counts['likeCount']!,
+                                    counts['commentCount']!,
+                                  ),
+                                );
+                              },
+                            );
+                          },
+                        );
+                      },
+                    ),
+                  ),
                 ),
+              ),
+              const SizedBox(height: 10),
+              Center(
                 child: Container(
+                  width: buttonPanelWidth,
+                  height: buttonPanelHeight,
                   decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(20),
+                    color: Color(0xFFFAF8F8),
+                    borderRadius: BorderRadius.circular(10),
                   ),
-                  padding: EdgeInsets.all(10),
-                  child: FutureBuilder<QuerySnapshot>(
-                    future: FirebaseFirestore.instance
-                        .collection("community")
-                        .doc("AjeagqxuQCcafNgotPhV")
-                        .collection("posts")
-                        .orderBy("likeCount", descending: true)
-                        .limit(3)
-                        .get(),
-                    builder: (context, snapshot) {
-                      if (snapshot.connectionState == ConnectionState.waiting) {
-                        return Center(child: CircularProgressIndicator());
-                      }
-                      if (snapshot.hasError) {
-                        return Center(child: Text("오류 발생: ${snapshot.error}"));
-                      }
-                      if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
-                        return Center(child: Text("추천글이 없습니다."));
-                      }
-
-                      return FutureBuilder<List<Map<String, dynamic>>>(
-                        future: Future.wait(
-                          snapshot.data!.docs.map((doc) async {
-                            Map<String, int> counts = await getPostCounts(doc.id);
-                            return {
-                              'doc': doc,
-                              'counts': counts,
-                            };
-                          }).toList(),
-                        ),
-                        builder: (context, postsWithCountsSnapshot) {
-                          if (postsWithCountsSnapshot.connectionState == ConnectionState.waiting) {
-                            return Center(child: CircularProgressIndicator());
-                          }
-
-                          if (!postsWithCountsSnapshot.hasData) {
-                            return Center(child: Text("데이터를 가져오는 중 오류가 발생했습니다."));
-                          }
-
-                          return ListView.separated(
-                            shrinkWrap: true,
-                            physics: NeverScrollableScrollPhysics(),
-                            itemCount: postsWithCountsSnapshot.data!.length,
-                            separatorBuilder: (_, __) => Divider(color: Colors.black, thickness: 1, indent: 10, endIndent: 10),
-                            itemBuilder: (context, i) {
-                              var item = postsWithCountsSnapshot.data![i];
-                              var doc = item['doc'];
-                              var counts = item['counts'];
-
-                              return GestureDetector(
-                                onTap: () {
-                                  Navigator.push(
-                                    context,
-                                    MaterialPageRoute(
-                                      builder: (context) => PostDetailScreen(postId: doc.id),
-                                    ),
-                                  );
-                                },
-                                child: postPanel(
-                                  doc["title"],
-                                  doc["boardName"],
-                                  70, // 고정 높이
-                                  panelWidth * 0.9,
-                                  counts['viewCount']!,
-                                  counts['likeCount']!,
-                                  counts['commentCount']!,
-                                ),
-                              );
-                            },
-                          );
-                        },
-                      );
-                    },
+                  child: GridView.count(
+                    padding: const EdgeInsets.all(20),
+                    crossAxisCount: 2,
+                    mainAxisSpacing: 10,
+                    crossAxisSpacing: 10,
+                    children: [
+                      categoryButton(context, "자유 게시판", "assets/Widget/Community/smile.png"),
+                      categoryButton(context, "일기 게시판", "assets/Widget/Community/diary.png"),
+                      categoryButton(context, "고민 게시판", "assets/Widget/Community/help.png"),
+                      categoryButton(context, "후기 게시판", "assets/Widget/Community/review.png"),
+                    ],
                   ),
                 ),
               ),
-            ),
-            const SizedBox(height: 10),
-            Center(
-              child: Container(
-                width: buttonPanelWidth,
-                height: buttonPanelHeight,
-                decoration: BoxDecoration(
-                  color: Color(0xFFFAF8F8),
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                child: GridView.count(
-                  padding: const EdgeInsets.all(20),
-                  crossAxisCount: 2,
-                  mainAxisSpacing: 10,
-                  crossAxisSpacing: 10,
-                  children: [
-                    categoryButton(context, "자유 게시판", "assets/Widget/Community/smile.png"),
-                    categoryButton(context, "일기 게시판", "assets/Widget/Community/diary.png"),
-                    categoryButton(context, "고민 게시판", "assets/Widget/Community/help.png"),
-                    categoryButton(context, "후기 게시판", "assets/Widget/Community/review.png"),
-                  ],
-                ),
-              ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
