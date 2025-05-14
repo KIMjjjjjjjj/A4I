@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import 'chat_screen.dart';
+
 class CharacterSelectorDialog extends StatelessWidget {
   final List<Map<String, dynamic>> personalities = [
     {
@@ -10,6 +12,7 @@ class CharacterSelectorDialog extends StatelessWidget {
       'description': '배려심이 깊고 공감능력이 좋음',
       'usage': '일반적인 대화',
       'color': Color(0xFFFDEAEA),
+      'selectprompt': 'chatPrompt',
     },
     {
       'title': '츤데레 성격',
@@ -19,6 +22,7 @@ class CharacterSelectorDialog extends StatelessWidget {
       'description': '겉으로는 퉁명스럽고 차가워 보이지만 속은 따뜻하고 배려심 깊음.',
       'usage': '로맨틱 코미디 스타일 대화',
       'color': Color(0xFFF0637B),
+      'selectprompt': 'chatPromptTsundere',
     },
     {
       'title': '소심한 성격',
@@ -28,6 +32,7 @@ class CharacterSelectorDialog extends StatelessWidget {
       'description': '불안하고 자기 확신이 부족한 스타일. 항상 조심스러움.',
       'usage': '역전 매력. 공감형 대화',
       'color': Color(0xFFFFE08C),
+      'selectprompt': 'chatPrompt',
     },
     {
       'title': '사투리 성격',
@@ -37,6 +42,7 @@ class CharacterSelectorDialog extends StatelessWidget {
       'description': '시원시원하고 정 많은 스타일',
       'usage': '친근하고 인간미 있는 상담',
       'color': Color(0xFF7BD3EA),
+      'selectprompt': 'chatPromptDialect',
     },
     {
       'title': '현자 스타일',
@@ -46,6 +52,7 @@ class CharacterSelectorDialog extends StatelessWidget {
       'description': '조용하고 지혜로운 조언자 스타일.',
       'usage': '고민 상담, 철학적 대화',
       'color': Color(0xFFEAAF7B),
+      'selectprompt': 'chatPromptSavant',
     },
   ];
 
@@ -106,8 +113,11 @@ class CharacterSelectorDialog extends StatelessWidget {
                     child: ElevatedButton(
                       onPressed: () {
                         Navigator.pop(context);
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(content: Text("${item['title']} 선택됨")),
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => ChatScreen(selectprompt: item['selectprompt']),
+                          ),
                         );
                       },
                       style: ElevatedButton.styleFrom(

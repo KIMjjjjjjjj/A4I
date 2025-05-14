@@ -18,9 +18,10 @@ import 'package:just_audio/just_audio.dart';
 
 class VoiceChatScreen extends StatefulWidget {
   final List<Map<String, String>> messages;
+  final String selectprompt;
 
   // 메시지 목록을 받아오는 생성자 추가
-  VoiceChatScreen({Key? key, required this.messages}) : super(key: key);
+  VoiceChatScreen({Key? key, required this.messages, required this.selectprompt}) : super(key: key);
 
   @override
   _VoiceChatScreenState createState() => _VoiceChatScreenState();
@@ -395,7 +396,7 @@ class _VoiceChatScreenState extends State<VoiceChatScreen> with SingleTickerProv
           Navigator.pushReplacement(
             context,
             MaterialPageRoute(
-              builder: (context) => ChatScreen(initialMessages: _messages),
+              builder: (context) => ChatScreen(initialMessages: _messages, selectprompt: widget.selectprompt,),
             ),
           );
         },

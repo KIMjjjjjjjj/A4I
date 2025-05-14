@@ -20,10 +20,11 @@ class ChatScreen extends StatefulWidget {
   final List<Map<String, String>>? initialMessages;
   final String? topicFilter; // 특정 주제를 필터링하기 위한 파라미터
   final String? userId;
+  final String selectprompt;
 
   static List<Map<String, String>>? cachedInitialMessages;
 
-  ChatScreen({Key? key, this.initialMessages, this.topicFilter, this.userId}) : super(key: key);
+  ChatScreen({Key? key, this.initialMessages, this.topicFilter, this.userId, required this.selectprompt}) : super(key: key);
 
   @override
   _ChatScreenState createState() => _ChatScreenState();
@@ -323,8 +324,10 @@ class _ChatScreenState extends State<ChatScreen> {
     try {
       Map<String, String> prompts = await loadPrompts();
 
+      final selectedPrompt = prompts[widget.selectprompt] ?? prompts["chatPrompt"] ?? '';
+
       final response = await callOpenAIChat(
-        prompt: prompts["chatPrompt"] ?? '',
+        prompt: selectedPrompt,
         messages: messages,
       );
 
@@ -395,7 +398,7 @@ class _ChatScreenState extends State<ChatScreen> {
                   ),
                 ],
               ),
-              child: ChatHistoryPage(scrollController: ScrollController()),
+              child: ChatHistoryPage(scrollController: ScrollController(), selectprompt: '',),
             ),
           ),
         );
@@ -594,7 +597,7 @@ class _ChatScreenState extends State<ChatScreen> {
                               onPressed: () {
                                 Navigator.push(
                                   context,
-                                  MaterialPageRoute(builder: (context) => VoiceChatScreen(messages: messages)),
+                                  MaterialPageRoute(builder: (context) => VoiceChatScreen(messages: messages, selectprompt: '',)),
                                 );
                               },
                             ),
@@ -686,7 +689,8 @@ class Cloud extends CustomClipper<Path> {
 
 class ChatHistoryPage extends StatelessWidget {
   final ScrollController scrollController;
-  ChatHistoryPage({required this.scrollController});
+  final String selectprompt;
+  ChatHistoryPage({required this.scrollController, required this.selectprompt});
 
   @override
   Widget build(BuildContext context) {
@@ -962,6 +966,7 @@ class ChatHistoryPage extends StatelessWidget {
           ],
           topicFilter: topic,
           userId: userId,
+          selectprompt: selectprompt,
         ),
       ),
     );

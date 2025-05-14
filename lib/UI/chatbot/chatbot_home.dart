@@ -102,12 +102,6 @@ class _ChatbotScreenState extends State<ChatbotScreen> {
               );
             },
           ),
-          actions: [
-            IconButton(
-              icon: Icon(Icons.settings, color: Colors.black),
-              onPressed: _showCharacterSelector,
-            ),
-          ],
         ),
       ),
       body: SingleChildScrollView(
@@ -161,10 +155,7 @@ class _ChatbotScreenState extends State<ChatbotScreen> {
                       ),
                       SizedBox(height: 20),
                       ElevatedButton(
-                        onPressed: () {
-                          Navigator.push(context,
-                              MaterialPageRoute(builder: (context) => ChatScreen()));
-                        },
+                        onPressed: _showCharacterSelector,
                         style: ElevatedButton.styleFrom(
                           backgroundColor: Color(0xFFEEFDEA),
                           shape: RoundedRectangleBorder(
