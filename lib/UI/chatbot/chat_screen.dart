@@ -426,7 +426,7 @@ class _ChatScreenState extends State<ChatScreen> {
         final shouldPop = await showDialog<bool>(
           context: context,
           builder: (context) => AlertDialog(
-            title: Text('홈으로 돌아가시겠습니까?'),
+            title: Text('홈으로 돌아가시겠습니까?', style: TextStyle(fontSize: 20),),
             content: Text('대화를 종료하고 홈화면으로 이동합니다.'),
             actions: [
               TextButton(

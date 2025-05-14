@@ -139,7 +139,7 @@ class _CalendarPageState extends State<CalendarPage> {
                   style: TextStyle(
                     fontFamily: 'PoetsenOne',
                     color: Color(0xFF6E96B4),
-                    fontSize: 50,
+                    fontSize: 40,
                     fontWeight: FontWeight.bold,
                   ),
                   textAlign: TextAlign.center,

@@ -32,7 +32,7 @@ class CharacterSelectorDialog extends StatelessWidget {
       'description': '불안하고 자기 확신이 부족한 스타일. 항상 조심스러움.',
       'usage': '역전 매력. 공감형 대화',
       'color': Color(0xFFFFE08C),
-      'selectprompt': 'chatPrompt',
+      'selectprompt': 'chatPromptShy',
     },
     {
       'title': '사투리 성격',
