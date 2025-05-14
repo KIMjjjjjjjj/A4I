@@ -502,7 +502,7 @@ class _dayreport extends State<dayreport> {
           title: Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Text("종합 심리 평가"),
+              Text("감정 리포트"),
               IconButton(
                 icon: Icon(Icons.help_outline, color: Colors.black),
                 onPressed: () {

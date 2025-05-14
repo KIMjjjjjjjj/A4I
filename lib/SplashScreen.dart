@@ -54,7 +54,7 @@ class _SplashScreenState extends State<SplashScreen> {
           Spacer(flex: 2), // 위 여백
           Center(
             child: Image.asset(
-              'assets/images/splash_icon.png',
+              'assets/images/icon.png',
               width: 200,
               height: 200,
               fit: BoxFit.contain,
