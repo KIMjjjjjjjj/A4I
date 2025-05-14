@@ -13,14 +13,18 @@ import 'chat_analyzer.dart';
 import 'chat_emotion_character.dart';
 import 'voice_chat.dart';
 import '../../bottom_navigation_bar.dart';
+import 'dart:io';
+import 'package:path_provider/path_provider.dart';
 
 class ChatScreen extends StatefulWidget {
   final List<Map<String, String>>? initialMessages;
   final String? topicFilter; // 특정 주제를 필터링하기 위한 파라미터
   final String? userId;
+  final String selectprompt;
 
+  static List<Map<String, String>>? cachedInitialMessages;
 
-  ChatScreen({Key? key, this.initialMessages, this.topicFilter, this.userId}) : super(key: key);
+  ChatScreen({Key? key, this.initialMessages, this.topicFilter, this.userId, required this.selectprompt}) : super(key: key);
 
   @override
   _ChatScreenState createState() => _ChatScreenState();
@@ -32,6 +36,7 @@ class _ChatScreenState extends State<ChatScreen> {
   TextEditingController _controller = TextEditingController();
   final ScrollController _scrollController = ScrollController();
   final FocusNode _focusNode = FocusNode();
+  static int lastReadIndex = 0;
 
 
   String _detectedEmotion = 'neutral';
@@ -45,10 +50,14 @@ class _ChatScreenState extends State<ChatScreen> {
 
     _loadBotName();
 
-    messages = widget.initialMessages ?? [
-      {"sender": "bot", "text": "안녕! 난 토리야. 반가워!"},
-      {"sender": "bot", "text": "오늘 기분은 어때? 고민이 있다면 편하게 이야기해줘."},
-    ];
+    if (widget.initialMessages != null) {
+      messages = widget.initialMessages!;
+    } else if (ChatScreen.cachedInitialMessages != null && ChatScreen.cachedInitialMessages!.isNotEmpty) {
+      messages = ChatScreen.cachedInitialMessages!;
+    } else {
+      messages = [];
+      _loadLocalMessages();
+    }
 
     if (widget.topicFilter != null && widget.userId != null) {
       _loadPreviousConversation(widget.topicFilter!, widget.userId!);
@@ -57,6 +66,61 @@ class _ChatScreenState extends State<ChatScreen> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _scrollToBottom();
     });
+  }
+
+  void _loadLocalMessages() async {
+    final loaded = await loadMessages();
+
+    if (loaded.isEmpty) {
+      // 기본 초기 메시지
+      setState(() {
+        messages = [
+          {"sender": "bot", "text": "안녕! 난 $botName야. 반가워!"},
+          {"sender": "bot", "text": "오늘 기분은 어때? 고민이 있다면 편하게 이야기해줘."},
+        ];
+        lastReadIndex = messages.length;
+      });
+    } else if (loaded.length > lastReadIndex) {
+      // 저장된 메시지 중에서 새로운 것만 추가
+      final newMessages = loaded.sublist(lastReadIndex);
+      setState(() {
+        messages.addAll(newMessages);
+        lastReadIndex = loaded.length;
+      });
+    }
+  }
+
+  Future<void> appendMessage(Map<String, String> message) async {
+    final dir = await getApplicationDocumentsDirectory();
+    final file = File('${dir.path}/chat_history.json');
+
+    List<Map<String, String>> updated = [];
+
+    if (await file.exists()) {
+      final contents = await file.readAsString();
+      final List decoded = jsonDecode(contents);
+      updated = decoded.map((e) => Map<String, String>.from(e)).toList();
+    }
+
+    updated.add(message);
+    await file.writeAsString(jsonEncode(updated));
+  }
+
+  Future<List<Map<String, String>>> loadMessages() async {
+    try {
+      final directory = await getApplicationDocumentsDirectory();
+      final file = File('${directory.path}/chat_history.json');
+      if (await file.exists()) {
+        final contents = await file.readAsString();
+        final List decoded = jsonDecode(contents);
+        return decoded.map((e) => Map<String, String>.from(e)).toList();
+      } else {
+        return [];
+      }
+    } catch (e) {
+      print("대화 기록 로드 실패: $e");
+      return [];
+    }
   }
 
   Future<void> _loadBotName() async {
@@ -244,6 +308,9 @@ class _ChatScreenState extends State<ChatScreen> {
     setState(() {
       messages.add({"sender": "user", "text": userMessage});
     });
+
+    await appendMessage({"sender": "user", "text": userMessage});
+
     _controller.clear();
 
     Future.delayed(Duration(milliseconds: 300), () {
@@ -257,15 +324,20 @@ class _ChatScreenState extends State<ChatScreen> {
     try {
       Map<String, String> prompts = await loadPrompts();
 
+      final selectedPrompt = prompts[widget.selectprompt] ?? prompts["chatPrompt"] ?? '';
+
       final response = await callOpenAIChat(
-        prompt: prompts["chatPrompt"] ?? '',
+        prompt: selectedPrompt,
         messages: messages,
       );
 
       if (response != null) {
+        final botMessage = {"sender": "bot", "text": response.trim()};
         setState(() {
-          messages.add({"sender": "bot", "text": response.trim()});
+          messages.add(botMessage);
         });
+
+        await appendMessage(botMessage);
 
         Future.microtask(() async {
           final result = await ChatAnalyzer.analyzeSingleMessage(userMessage);
@@ -326,7 +398,7 @@ class _ChatScreenState extends State<ChatScreen> {
                   ),
                 ],
               ),
-              child: ChatHistoryPage(scrollController: ScrollController()),
+              child: ChatHistoryPage(scrollController: ScrollController(), selectprompt: '',),
             ),
           ),
         );
@@ -354,7 +426,7 @@ class _ChatScreenState extends State<ChatScreen> {
         final shouldPop = await showDialog<bool>(
           context: context,
           builder: (context) => AlertDialog(
-            title: Text('홈으로 돌아가시겠습니까?'),
+            title: Text('홈으로 돌아가시겠습니까?', style: TextStyle(fontSize: 20),),
             content: Text('대화를 종료하고 홈화면으로 이동합니다.'),
             actions: [
               TextButton(
@@ -525,7 +597,7 @@ class _ChatScreenState extends State<ChatScreen> {
                               onPressed: () {
                                 Navigator.push(
                                   context,
-                                  MaterialPageRoute(builder: (context) => VoiceChatScreen(messages: messages)),
+                                  MaterialPageRoute(builder: (context) => VoiceChatScreen(messages: messages, selectprompt: '',)),
                                 );
                               },
                             ),
@@ -617,7 +689,8 @@ class Cloud extends CustomClipper<Path> {
 
 class ChatHistoryPage extends StatelessWidget {
   final ScrollController scrollController;
-  ChatHistoryPage({required this.scrollController});
+  final String selectprompt;
+  ChatHistoryPage({required this.scrollController, required this.selectprompt});
 
   @override
   Widget build(BuildContext context) {
@@ -893,6 +966,7 @@ class ChatHistoryPage extends StatelessWidget {
           ],
           topicFilter: topic,
           userId: userId,
+          selectprompt: selectprompt,
         ),
       ),
     );

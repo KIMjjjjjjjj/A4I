@@ -110,7 +110,7 @@ class _MainScreenState extends State<MainScreen> {
         }
       },
       child: Scaffold(
-        backgroundColor: Color(0xFFEAEBF0),
+        backgroundColor: Color(0xFFFFFAFC),
         appBar: AppBar(
           backgroundColor: Colors.transparent,
           elevation: 0,
@@ -141,9 +141,9 @@ class _MainScreenState extends State<MainScreen> {
                 SizedBox(height: 8),
                 Text(
                   randomMessage,
-                  style: TextStyle(fontSize: 16, color: Colors.black),
+                  style: TextStyle(fontSize: 18, color: Colors.black),
                 ),
-                SizedBox(height: 16),
+                SizedBox(height: 10),
                 Column(
                   children: [
                     Container(
@@ -185,54 +185,65 @@ class _MainScreenState extends State<MainScreen> {
                   ],
                 ),
                 SizedBox(height: 16),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    buildMainButton(
-                      "종합 심리 상태 평가",
-                      "지난달의 나와 얼마나 달라졌을까요?",
-                          () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(builder: (context) => dayreport()),
-                        );
-                      },
-                    ),
-                    buildMainButton(
-                      "심리테스트",
-                      "4개의 심리테스트가 준비되어있어요",
-                          () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(builder: (context) => SelectTestPage()),
-                        );
-                      },
-                    ),
-                  ],
+                LayoutBuilder(
+                  builder: (context, constraints) {
+                    double buttonWidth = (constraints.maxWidth - 16) / 2;
+                    return Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        SizedBox(
+                          width: buttonWidth,
+                          child: buildMainButton(
+                            "감정 분석 리포트",
+                            "지난달의 나와 얼마나\n달라졌을까요?",
+                                () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(builder: (context) => dayreport()),
+                              );
+                            },
+                          ),
+                        ),
+                        SizedBox(
+                          width: buttonWidth,
+                          child: buildMainButton(
+                            "심리테스트",
+                            "4개의 심리테스트가\n준비되어있어요",
+                                () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(builder: (context) => SelectTestPage()),
+                              );
+                            },
+                          ),
+                        )
+                      ],
+                    );
+                  },
                 ),
-                SizedBox(height: 30),
+                SizedBox(height: 16),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    buildSmallButton("일기", "assets/images/Main/diary.png", () {
+                    buildSmallButton("assets/images/Main/diary.png", () {
                       Navigator.push(
                         context,
                         MaterialPageRoute(builder: (context) => CalendarPage()),
                       );
                     }),
-                    buildSmallButton("오늘 한줄", "assets/images/Main/daily_line.png", () {
+                    buildSmallButton("assets/images/Main/daily_line.png", () {
                       Navigator.push(
                         context,
                         MaterialPageRoute(builder: (context) => DayLineScreen()),
                       );
                     }),
-                    buildSmallButton("챌린지", "assets/images/Main/challenge.png", () {
+                    buildSmallButton("assets/images/Main/challenge.png", () {
                       Navigator.push(
                         context,
                         MaterialPageRoute(builder: (context) => ChallengeBadgePage()),
                       );
                     }),
-                    buildSmallButton("상담센터", "assets/images/Main/counsel_center.png", () {
+                    buildSmallButton("assets/images/Main/counsel_center.png", () {
                       Navigator.push(
                         context,
                         MaterialPageRoute(builder: (context) => HelpCenterPage()),
@@ -240,7 +251,7 @@ class _MainScreenState extends State<MainScreen> {
                     }),
                   ],
                 ),
-                SizedBox(height: 30),
+                SizedBox(height: 16),
                 GestureDetector(
                   onTap: () {
                     Navigator.push(
@@ -267,7 +278,7 @@ class _MainScreenState extends State<MainScreen> {
       onTap: onTap,
       child: Container(
         width: 160,
-        height: 155,
+        height: 165,
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(27),
@@ -289,15 +300,15 @@ class _MainScreenState extends State<MainScreen> {
                 children: [
                   Text(
                     title,
-                    style: TextStyle(fontSize: 14, color: Colors.black),
+                    style: TextStyle(fontSize: 15, color: Colors.black),
                   ),
-                  Icon(Icons.arrow_forward_ios, size: 14, color: Colors.black),
+                  Icon(Icons.arrow_forward_ios, size: 15, color: Colors.black),
                 ],
               ),
               SizedBox(height: 8),
               Text(
                 subtitle,
-                style: TextStyle(fontSize: 12, color: Color(0xFF585757)),
+                style: TextStyle(fontSize: 13, color: Color(0xFF585757)),
               ),
             ],
           ),
@@ -306,7 +317,7 @@ class _MainScreenState extends State<MainScreen> {
     );
   }
 
-  Widget buildSmallButton(String label, String imagePath, VoidCallback onTap) {
+  Widget buildSmallButton(String imagePath, VoidCallback onTap) {
     return GestureDetector(
       onTap: onTap,
       child: Column(
@@ -334,11 +345,6 @@ class _MainScreenState extends State<MainScreen> {
                 fit: BoxFit.cover,
               ),
             ),
-          ),
-          SizedBox(height: 8),
-          Text(
-            label,
-            style: TextStyle(fontSize: 12, color: Colors.black),
           ),
         ],
       ),

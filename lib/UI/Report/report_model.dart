@@ -47,4 +47,42 @@ class Report {
         ),
     };
   }
+
+  // fromJson (JSON 문자열을 Report 객체로 변환)
+  factory Report.fromJson(Map<String, dynamic> json) {
+    return Report(
+      date: DateTime.parse(json['date'] as String),
+      emotionData: json['emotionData'] != null
+          ? (json['emotionData'] as Map<String, dynamic>).map(
+            (key, value) => MapEntry(key, (value as num).toDouble()),
+      )
+          : {},
+      feedback: json['feedback'],
+      keywords: json['keywords'] != null ? List<String>.from(json['keywords']) : null,
+      topics: json['topics'] != null ? List<String>.from(json['topics']) : null,
+      emotionIntensityData: json['emotionIntensityData'] != null
+          ? (json['emotionIntensityData'] as Map<String, dynamic>).map(
+            (key, value) => MapEntry(
+          key,
+          (value as List).map((e) => (e as num).toDouble()).toList(),
+        ),
+      )
+          : null,
+    );
+  }
+
+  // toJson (Report 객체를 JSON 형식으로 변환)
+  Map<String, dynamic> toJson() {
+    return {
+      'date': date.toIso8601String(),
+      'emotionData': emotionData,
+      if (feedback != null) 'feedback': feedback,
+      if (keywords != null) 'keywords': keywords,
+      if (topics != null) 'topics': topics,
+      if (emotionIntensityData != null)
+        'emotionIntensityData': emotionIntensityData!.map(
+              (key, value) => MapEntry(key, value),
+        ),
+    };
+  }
 }

@@ -3,6 +3,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'chat_screen.dart';
 import '../../bottom_navigation_bar.dart';
+import 'character_selector.dart';
 
 class ChatbotScreen extends StatefulWidget {
   @override
@@ -53,6 +54,31 @@ class _ChatbotScreenState extends State<ChatbotScreen> {
       }
     }
   }
+
+  void _showCharacterSelector() {
+    double screenHeight = MediaQuery.of(context).size.height;
+    showGeneralDialog(
+      context: context,
+      barrierDismissible: true,
+      barrierLabel: "캐릭터 선택",
+      transitionDuration: Duration(milliseconds: 200),
+      pageBuilder: (context, animation, secondaryAnimation) {
+        return Align(
+          alignment: Alignment.center,
+          child: Material(
+            color: Colors.transparent,
+            child: SizedBox(
+              height: screenHeight * 0.7,
+              child: CharacterSelectorDialog(), // 내부에서 Card만 보여주게 구성
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+
+
 
   @override
   Widget build(BuildContext context) {
@@ -129,10 +155,7 @@ class _ChatbotScreenState extends State<ChatbotScreen> {
                       ),
                       SizedBox(height: 20),
                       ElevatedButton(
-                        onPressed: () {
-                          Navigator.push(context,
-                              MaterialPageRoute(builder: (context) => ChatScreen()));
-                        },
+                        onPressed: _showCharacterSelector,
                         style: ElevatedButton.styleFrom(
                           backgroundColor: Color(0xFFEEFDEA),
                           shape: RoundedRectangleBorder(
