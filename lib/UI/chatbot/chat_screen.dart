@@ -59,6 +59,11 @@ class _ChatScreenState extends State<ChatScreen> {
       _loadLocalMessages();
     }
 
+   /* messages.insert(0, {
+      "sender": "bot",
+      "text": "선택된 성격은 \"${widget.selectprompt}\" 입니다.",
+    });*/
+
     if (widget.topicFilter != null && widget.userId != null) {
       _loadPreviousConversation(widget.topicFilter!, widget.userId!);
     }
