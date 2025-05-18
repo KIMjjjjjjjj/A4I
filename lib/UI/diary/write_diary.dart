@@ -7,6 +7,9 @@ import 'package:flutter/material.dart';
 import 'package:image_cropper/image_cropper.dart';
 import 'package:image_picker/image_picker.dart';
 
+import 'day_report_process.dart';
+import '../chatbot/chat_analyzer.dart';
+
 class DiaryEntryPage extends StatefulWidget {
   final String year;
   final String month;
@@ -129,6 +132,12 @@ class _DiaryEntryPageState extends State<DiaryEntryPage> {
         'face': selectedFace,
         'imagePath': imageUrl ?? '',
       });
+
+      final user = FirebaseAuth.instance.currentUser;
+      if (user != null && !await ChatAnalyzer.timecheck(user.uid)) {
+        await ChatAnalyzer.analyzeCombinedMessages();
+      }
+      await DayReportProcess.generateReportFromLastChat();
 
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('저장되었습니다')),
