@@ -11,7 +11,7 @@ class ReportService {
     if (uid == null) return {};
 
     final snapshot = await _firestore
-        .collection('register')
+        .collection('diary')
         .doc(uid)
         .collection('report')
         .get();
@@ -37,7 +37,7 @@ class ReportService {
     if (uid == null) return null;
     final docId = "${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}";
     final doc = await _firestore
-        .collection('register')
+        .collection('diary')
         .doc(uid)
         .collection('report')
         .doc(docId)
@@ -53,7 +53,7 @@ class ReportService {
     if (uid == null) return;
     final docId = "${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}";
     await _firestore
-        .collection('register')
+        .collection('diary')
         .doc(uid)
         .collection('report')
         .doc(docId)
@@ -65,7 +65,7 @@ class ReportService {
     final uid = _auth.currentUser?.uid;
     if (uid == null) return null;
     final query = await _firestore
-        .collection('register')
+        .collection('diary')
         .doc(uid)
         .collection('report')
         .get();
