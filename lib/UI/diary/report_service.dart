@@ -49,6 +49,7 @@ class ReportService {
 
 
   Future<void> saveReport(DateTime date, Report report) async {
+    print("saveReport");
     final uid = _auth.currentUser?.uid;
     if (uid == null) return;
     final docId = "${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}";

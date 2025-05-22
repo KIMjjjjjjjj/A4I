@@ -6,6 +6,7 @@ import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
 import 'package:image_cropper/image_cropper.dart';
 import 'package:image_picker/image_picker.dart';
+import 'diary_report_process.dart';
 import 'diary_analyzer.dart';
 
 class DiaryEntryPage extends StatefulWidget {
@@ -135,6 +136,7 @@ class _DiaryEntryPageState extends State<DiaryEntryPage> {
 
       DiaryAnalyzer.handleCombineMessage(_contentController.text);
       await DiaryAnalyzer.analyzeCombinedMessages();
+      await DiaryReportProcess.generateReportFromLastChat();
 
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('저장되었습니다')),

@@ -49,7 +49,7 @@ class DiaryAnalyzer {
     // 주제 전환이 발생한 경우 주제별로 개별 저장
     for (var entry in analysis) {
       try {
-        await FirebaseFirestore.instance.collection("diary").doc(userId).collection("report").doc().set({
+        await FirebaseFirestore.instance.collection("diary").doc(userId).collection("diary_analyzer").doc().set({
           "timestamp": FieldValue.serverTimestamp(),
           "keywords": List<String>.from(entry["keywords"]),
           "topic": entry["topic"] ?? "",
