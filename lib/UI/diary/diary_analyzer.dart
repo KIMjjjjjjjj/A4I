@@ -17,7 +17,7 @@ class DiaryAnalyzer {
   }
 
   // 그동안 저장되지 않은 메시지들 합쳐서 분석
-  static Future<void> analyzeCombinedMessages() async {
+  static Future<void> analyzeCombinedMessages({required DateTime diaryDate}) async {
     final User? user = FirebaseAuth.instance.currentUser;
     Map<String, String> prompts = await loadPrompts();
 
@@ -33,7 +33,7 @@ class DiaryAnalyzer {
     if (response != null) {
       try {
         Map<String, dynamic> result = jsonDecode(response);
-        await createDocument(user!.uid, result);
+        await createDocument(user!.uid, result, diaryDate);
       } catch (e) {
         print("에러");
       }
@@ -43,14 +43,14 @@ class DiaryAnalyzer {
   }
 
   // 전체 대화 분석 저장하는 함수
-  static Future<void> createDocument(String userId, Map<String, dynamic> result)async { // List<double> embedding 추가
+  static Future<void> createDocument(String userId, Map<String, dynamic> result, DateTime diaryDate)async { // List<double> embedding 추가
     List<dynamic> analysis = result["analysis"] ?? [];
 
     // 주제 전환이 발생한 경우 주제별로 개별 저장
     for (var entry in analysis) {
       try {
         await FirebaseFirestore.instance.collection("diary").doc(userId).collection("diary_analyzer").doc().set({
-          "timestamp": FieldValue.serverTimestamp(),
+          "timestamp": Timestamp.fromDate(diaryDate),
           "keywords": List<String>.from(entry["keywords"]),
           "topic": entry["topic"] ?? "",
           "emotion": entry["emotion"] ?? "",

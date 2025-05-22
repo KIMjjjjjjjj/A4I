@@ -135,7 +135,13 @@ class _DiaryEntryPageState extends State<DiaryEntryPage> {
       });
 
       DiaryAnalyzer.handleCombineMessage(_contentController.text);
-      await DiaryAnalyzer.analyzeCombinedMessages();
+      await DiaryAnalyzer.analyzeCombinedMessages(
+        diaryDate: DateTime(
+          int.parse(widget.year),
+          int.parse(widget.month),
+          int.parse(widget.day),
+        ),
+      );
       await DiaryReportProcess.generateReportFromLastChat();
 
       ScaffoldMessenger.of(context).showSnackBar(
