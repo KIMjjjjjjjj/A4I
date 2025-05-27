@@ -6,6 +6,8 @@ import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
 import 'package:image_cropper/image_cropper.dart';
 import 'package:image_picker/image_picker.dart';
+import 'diary_report_process.dart';
+import 'diary_analyzer.dart';
 
 class DiaryEntryPage extends StatefulWidget {
   final String year;
@@ -94,6 +96,8 @@ class _DiaryEntryPageState extends State<DiaryEntryPage> {
     }
   }
 
+
+
   Future<void> SaveDiary() async {
     try {
       // 제목이나 내용이 비어 있으면 저장 안 함
@@ -129,6 +133,16 @@ class _DiaryEntryPageState extends State<DiaryEntryPage> {
         'face': selectedFace,
         'imagePath': imageUrl ?? '',
       });
+
+      DiaryAnalyzer.handleCombineMessage(_contentController.text);
+      await DiaryAnalyzer.analyzeCombinedMessages(
+        diaryDate: DateTime(
+          int.parse(widget.year),
+          int.parse(widget.month),
+          int.parse(widget.day),
+        ),
+      );
+      await DiaryReportProcess.generateReportFromLastChat();
 
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('저장되었습니다')),

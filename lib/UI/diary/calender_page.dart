@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:repos/UI/diary/diary_report.dart';
 import 'package:repos/UI/diary/view_diary.dart';
 import '../../bottom_navigation_bar.dart';
 
@@ -103,6 +104,17 @@ class _CalendarPageState extends State<CalendarPage> {
             );
           },
         ),
+        actions: [
+          IconButton(
+            icon: Icon(Icons.insert_chart_outlined_rounded, color: Colors.black),
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => diaryreport()),
+              );
+            },
+          ),
+        ],
       ),
       body: Padding(
         padding: EdgeInsets.all(16.0),

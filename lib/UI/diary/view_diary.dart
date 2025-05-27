@@ -144,12 +144,19 @@ class _ViewDiaryState extends State<ViewDiary> {
                     ),
                   ),
                   SizedBox(height: 8),
-                  Text(
-                    content,
-                    style: TextStyle(
-                      fontSize: 20,
+                  Container(
+                    height: 200, // 필요에 따라 높이 조절
+                    child: SingleChildScrollView(
+                      scrollDirection: Axis.vertical,
+                      child: Text(
+                        content,
+                        style: TextStyle(
+                          fontSize: 20,
+                        ),
+                      ),
                     ),
-                  ),
+                  )
+
                 ],
               ),
             ),

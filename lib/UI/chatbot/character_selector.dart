@@ -1,8 +1,13 @@
 import 'package:flutter/material.dart';
 
 import 'chat_screen.dart';
+import 'chatbot_home.dart';
 
 class CharacterSelectorDialog extends StatelessWidget {
+  final Function(String imagePath, String prompt) onCharacterSelected;
+
+  CharacterSelectorDialog({required this.onCharacterSelected});
+
   final List<Map<String, dynamic>> personalities = [
     {
       'title': '기본 성격',
@@ -112,13 +117,15 @@ class CharacterSelectorDialog extends StatelessWidget {
                   Center(
                     child: ElevatedButton(
                       onPressed: () {
+                        onCharacterSelected(item['image'], item['selectprompt']);
                         Navigator.pop(context);
-                        Navigator.push(
+/*                        Navigator.push(
                           context,
                           MaterialPageRoute(
+                            //builder: (context) => ChatbotScreen(),
                             builder: (context) => ChatScreen(selectprompt: item['selectprompt']),
                           ),
-                        );
+                        );*/
                       },
                       style: ElevatedButton.styleFrom(
                         backgroundColor: Color(0xFF69DEC3),
