@@ -49,18 +49,23 @@ class DiaryReportProcess {
   }
 
   // chat 컬렉션에서 가장 최근 데이터의 기준으로 리포트 생성
-  static Future<void> generateReportFromLastChat() async {
+  static Future<void> generateReportFromLastChat({DateTime? diaryDate}) async {
     final user = FirebaseAuth.instance.currentUser;
     print("generateReportFromLastChat");
-    final lastChat = await getLastChat(user!.uid);
 
-    if (lastChat != null) {
-      print("lastChat not null");
+    // diaryDate가 있으면 그걸 사용, 없으면 마지막 채팅에서 날짜 추출
+    final DateTime reportDate;
+    if (diaryDate != null) {
+      reportDate = diaryDate;
+    } else {
+      final lastChat = await getLastChat(user!.uid);
+      if (lastChat == null) return;
       final timestamp = lastChat['timestamp'];
       final local = timestamp.toDate().toLocal();
-      final reportDate = DateTime(local.year, local.month, local.day);
-      processDailyReport(reportDate);
+      reportDate = DateTime(local.year, local.month, local.day);
     }
+
+    await processDailyReport(reportDate);
   }
 
   // 일일리포트 생성 및 병합
