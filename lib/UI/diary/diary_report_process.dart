@@ -31,12 +31,12 @@ class DiaryReportProcess {
     final endDate = startDate.add(Duration(days: 1));
     final querySnapshot = await FirebaseFirestore.instance
         .collection("diary")
-        .doc(user?.uid)
+        .doc(uid)
         .collection("diary_analyzer")
-        .where(
-        "timestamp", isGreaterThanOrEqualTo: Timestamp.fromDate(startDate))
+        .where("timestamp", isGreaterThanOrEqualTo: Timestamp.fromDate(startDate))
         .where("timestamp", isLessThan: Timestamp.fromDate(endDate))
-        .orderBy("timestamp")
+        .orderBy("timestamp", descending: true)
+        .limit(1)
         .get();
 
     // keywords, topic, summary가 있는 데이터만 추출(감정만 있는 데이터는 가져오지 않음)
@@ -88,13 +88,10 @@ class DiaryReportProcess {
     // 리포터가 존재하면 기존 데이터와 병합, 존재하지 않으면 새로 생성
     final updatedReport = Report(
       date: date,
-      emotionData: existingReport != null ? mergeEmotions(
-          existingReport.emotionData, emotions) : emotions,
+      emotionData: existingReport != null ? emotions : emotions,
       feedback: await feedback,
-      topics: existingReport != null ? mergeList(
-          existingReport.topics ?? [], topics, max: 3) : topics,
-      keywords: existingReport != null ? mergeList(
-          existingReport.keywords ?? [], keywords, max: 5) : keywords,
+      topics: existingReport != null ? topics : topics,
+      keywords: existingReport != null ? keywords : keywords,
       emotionIntensityData: intensity,
     );
     print("updateReport");
