@@ -222,7 +222,8 @@ class _VoiceChatScreenState extends State<VoiceChatScreen> with SingleTickerProv
   }
 
   Future<void> _sendToChatbot(String message) async {
-    Map<String, String> prompts = await loadPrompts();
+    final prompts = await loadPrompts();
+    final selectedPrompt = prompts[widget.selectprompt] ?? prompts["chatPrompt"] ?? "";
     if (message.isEmpty || _isProcessing) return;
 
     // 사용자 메시지를 먼저 저장
@@ -234,7 +235,7 @@ class _VoiceChatScreenState extends State<VoiceChatScreen> with SingleTickerProv
 
     try {
       final response = await callOpenAIChat(
-        prompt: prompts["chatPrompt"] ?? "",
+        prompt: selectedPrompt,
         messages: _messages,
       );
 
