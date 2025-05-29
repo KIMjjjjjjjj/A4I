@@ -142,7 +142,15 @@ class _DiaryEntryPageState extends State<DiaryEntryPage> {
           int.parse(widget.day),
         ),
       );
-      await DiaryReportProcess.generateReportFromLastChat();
+
+      await DiaryReportProcess.generateReportFromLastChat(
+        diaryDate: DateTime(
+          int.parse(widget.year),
+          int.parse(widget.month),
+          int.parse(widget.day),
+        ),
+      );
+
 
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('저장되었습니다')),
@@ -344,5 +352,4 @@ class _DiaryEntryPageState extends State<DiaryEntryPage> {
     );
   }
 }
-
 
