@@ -120,7 +120,7 @@ class _weekreport extends State<weekreport> with TickerProviderStateMixin {
 
   Future<File> _getCacheFile(DateTime startDate, DateTime endDate) async {
     final directory = await getApplicationDocumentsDirectory();
-    final fileName = "${startDate.toIso8601String().substring(0, 10)}_${endDate.toIso8601String().substring(0, 10)}.json";
+    final fileName = "diary_${startDate.toIso8601String().substring(0, 10)}_${endDate.toIso8601String().substring(0, 10)}.json";
     return File('${directory.path}/$fileName');
   }
 
@@ -482,7 +482,7 @@ class _weekreport extends State<weekreport> with TickerProviderStateMixin {
 
   Future<File> _getFeedbackCacheFile(DateTime startDate, DateTime endDate) async {
     final directory = await getApplicationDocumentsDirectory();
-    final fileName = "${startDate.toIso8601String().substring(0, 10)}_${endDate.toIso8601String().substring(0, 10)}_feedback.txt";
+    final fileName = "diary_${startDate.toIso8601String().substring(0, 10)}_${endDate.toIso8601String().substring(0, 10)}_feedback.txt";
     return File('${directory.path}/$fileName');
   }
   Future<String?> _loadFeedbackFromCache(DateTime startDate, DateTime endDate) async {
