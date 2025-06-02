@@ -9,7 +9,7 @@
 
 ## 📽️ 시연 영상
 
-[![Watch the video](./images/demo_img.png)](./videos/todak_demo.mp4)
+[![Watch the video](https://img.youtube.com/vi/AfmODWfiDA0/0.jpg)](https://youtu.be/AfmODWfiDA0)
 
 ※ 클릭 시 시연 영상 재생
 

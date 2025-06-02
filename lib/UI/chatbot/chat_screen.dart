@@ -408,7 +408,7 @@ class _ChatScreenState extends State<ChatScreen> {
                   ),
                 ],
               ),
-              child: ChatHistoryPage(scrollController: ScrollController(), selectprompt: '',),
+              child: ChatHistoryPage(scrollController: ScrollController(), selectprompt: widget.selectprompt,),
             ),
           ),
         );
@@ -607,7 +607,7 @@ class _ChatScreenState extends State<ChatScreen> {
                               onPressed: () {
                                 Navigator.push(
                                   context,
-                                  MaterialPageRoute(builder: (context) => VoiceChatScreen(messages: messages, selectprompt: '',)),
+                                  MaterialPageRoute(builder: (context) => VoiceChatScreen(messages: messages, selectprompt: widget.selectprompt,)),
                                 );
                               },
                             ),

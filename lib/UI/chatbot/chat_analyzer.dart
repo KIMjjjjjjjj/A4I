@@ -64,17 +64,21 @@ class ChatAnalyzer {
     );
 
     if (response != null) {
+
       try {
-        final Map<String, dynamic> result = jsonDecode(response);
+        final Map<String, dynamic> outer = jsonDecode(response);
+        final List<dynamic> analysis = outer["analysis"] ?? [];
+
+        final result = analysis[0] as Map<String, dynamic>;
 
         final emotion = result["emotion"] ?? "neutral";
         final emotionIntensity = result["emotion_intensity"] is String
             ? double.tryParse(result["emotion_intensity"]) ?? 0.0
             : result["emotion_intensity"] ?? 0.0;
 
-        if (emotionIntensity >= 0.7) {
+        if (emotionIntensity >= 0.7 && user != null) {
           Future.microtask(() async {
-            await createEmotionDocument(user!.uid, result);
+            await createEmotionDocument(user.uid, result);
           });
         }
 
@@ -85,6 +89,8 @@ class ChatAnalyzer {
       } catch (e) {
         print("에러");
       }
+    } else {
+      print("에러");
     }
 
     return {
