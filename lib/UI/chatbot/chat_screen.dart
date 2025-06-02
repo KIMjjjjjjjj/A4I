@@ -76,22 +76,26 @@ class _ChatScreenState extends State<ChatScreen> {
   void _loadLocalMessages() async {
     final loaded = await loadMessages();
 
-    if (loaded.isEmpty) {
-      // 기본 초기 메시지
+    // 처음 시작 시
+    if (messages.isEmpty && loaded.isEmpty) {
       setState(() {
         messages = [
           {"sender": "bot", "text": "안녕! 난 $botName야. 반가워!"},
           {"sender": "bot", "text": "오늘 기분은 어때? 고민이 있다면 편하게 이야기해줘."},
         ];
-        lastReadIndex = messages.length;
       });
-    } else if (loaded.length > lastReadIndex) {
-      // 저장된 메시지 중에서 새로운 것만 추가
-      final newMessages = loaded.sublist(lastReadIndex);
-      setState(() {
-        messages.addAll(newMessages);
-        lastReadIndex = loaded.length;
-      });
+      return;
+    }
+
+    if (loaded.isNotEmpty) {
+      final existingSet = messages.map((m) => jsonEncode(m)).toSet();
+      final newMessages = loaded.where((m) => !existingSet.contains(jsonEncode(m))).toList();
+
+      if (newMessages.isNotEmpty) {
+        setState(() {
+          messages.addAll(newMessages);
+        });
+      }
     }
   }
 
@@ -102,13 +106,14 @@ class _ChatScreenState extends State<ChatScreen> {
     List<Map<String, String>> updated = [];
 
     if (await file.exists()) {
+
       final contents = await file.readAsString();
       final List decoded = jsonDecode(contents);
       updated = decoded.map((e) => Map<String, String>.from(e)).toList();
     }
 
     updated.add(message);
-    await file.writeAsString(jsonEncode(updated));
+    await file.writeAsString(jsonEncode(updated), flush: true);
   }
 
   Future<List<Map<String, String>>> loadMessages() async {

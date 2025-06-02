@@ -21,6 +21,11 @@ class DayReportProcess {
         .limit(1)
         .get();
 
+    final data = query.docs.first.data();
+    final timestamp = data["timestamp"];
+    if (timestamp != null) {
+      print("${timestamp.toDate()}");
+    }
     return query.docs.isNotEmpty ? query.docs.first.data() : null;
   }
 
